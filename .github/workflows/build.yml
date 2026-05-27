@@ -20,15 +20,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         
-      - name: Build Release APK
-        run: ./gradlew :app:assembleRelease -Pandroid.injected.build.abi=arm64-v8a -x :web:buildWebUi
-        
-      - name: List APK files
-        run: find app/build -name "*.apk" 2>/dev/null || echo "no apk found"
+      - name: Build Debug APK
+        run: ./gradlew :app:assembleDebug -Pandroid.injected.build.abi=arm64-v8a -x :web:buildWebUi
         
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: rikkahub-release
-          path: app/build/intermediates/apk/release/
-          if-no-files-found: warn
+          name: rikkahub-debug
+          path: app/build/outputs/apk/debug/
