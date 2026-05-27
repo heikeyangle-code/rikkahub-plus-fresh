@@ -40,9 +40,16 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleRelease -x :web:buildWebUi
 
+      - name: Prepare APK files
+        run: |
+          mkdir -p apk-output
+          cp app/build/outputs/apk/**/*.apk apk-output/ 2>/dev/null || true
+          ls -la apk-output/
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         if: success()
         with:
           name: rikkahub-release
-          path: app/build/outputs/apk/**/*.apk
+          path: apk-output/*.apk
+          if-no-files-found: error
