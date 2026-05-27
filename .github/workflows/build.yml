@@ -26,23 +26,24 @@ jobs:
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
-      - name: Write signing config
-        run: |
-          cat > local.properties << 'EOF'
-          storeFile=app.key
-          storePassword=rikkahub123
-          keyAlias=rikkahub-plus
-          keyPassword=rikkahub123
-          EOF
+      - name: Build Release APK
+        run: ./gradlew :app:assembleRelease -Pandroid.injected.build.abi=arm64-v8a -x :web:buildWebUi
 
-      - name: Gradle Build
+      - name: Zipalign and Sign APK
         run: |
-          chmod +x gradlew
-          ./gradlew :app:assembleRelease -Pandroid.injected.build.abi=arm64-v8a -x :web:buildWebUi
+          UNSIGNED="app/build/intermediates/apk/release/app-arm64-v8a-release-unsigned.apk"
+          $ANDROID_SDK_ROOT/build-tools/35.0.0/zipalign -v 4 "$UNSIGNED" aligned.apk
+          $ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner sign \
+            --ks app/app.key \
+            --ks-pass pass:rikkahub123 \
+            --key-pass pass:rikkahub123 \
+            --min-sdk-version 26 \
+            --out rikkahub-signed.apk \
+            aligned.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         if: success()
         with:
           name: rikkahub-release
-          path: app/build/outputs/apk/**/*.apk
+          path: rikkahub-signed.apk
