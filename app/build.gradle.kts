@@ -20,6 +20,7 @@ android {
     defaultConfig {
         applicationId = "me.rerere.rikkahub.plus"
         minSdk = 26
+        multiDexEnabled = true
         targetSdk = 35
         versionCode = 162
         versionName = "2.2.6"
