@@ -102,7 +102,7 @@ internal fun PermissionRationaleDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(permissions) { permissionInfo ->
+                    items(permissions, key = { permissionInfo }) { permissionInfo ->
                         PermissionItem(
                             permissionInfo = permissionInfo,
                             isPermanentlyDenied = permanentlyDeniedPermissions.contains(permissionInfo),

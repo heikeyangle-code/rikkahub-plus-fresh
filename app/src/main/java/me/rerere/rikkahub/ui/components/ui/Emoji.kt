@@ -296,7 +296,7 @@ private fun EmojiModifierPicker(
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(variants) { variant ->
+                    items(variants, key = { variant.emoji }) { variant ->
                         Box(
                             modifier = Modifier
                                 .size(48.dp)

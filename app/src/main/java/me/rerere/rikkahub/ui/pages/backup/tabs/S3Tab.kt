@@ -338,7 +338,7 @@ fun S3Tab(
                         contentPadding = PaddingValues(bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(it) { item ->
+                        items(it, key = { item.key }) { item ->
                             S3BackupItemCard(
                                 item = item,
                                 isRestoring = restoringItemId == item.displayName,

@@ -144,7 +144,7 @@ private fun Sponsors(modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(value) {
+                items(value, key = { it.hashCode() }) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)

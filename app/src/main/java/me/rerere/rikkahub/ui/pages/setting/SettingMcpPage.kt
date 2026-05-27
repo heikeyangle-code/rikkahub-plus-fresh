@@ -754,7 +754,7 @@ private fun McpToolsConfigure(
                 Text(stringResource(R.string.setting_mcp_page_tools_unavailable_message))
             }
         }
-        items(config.commonOptions.tools) { tool ->
+        items(config.commonOptions.tools, key = { it.name }) { tool ->
             McpToolCard(
                 tool = tool,
                 onEnableChange = { newVal ->

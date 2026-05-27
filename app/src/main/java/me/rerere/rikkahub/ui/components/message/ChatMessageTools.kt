@@ -369,7 +369,7 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.wrapContentWidth(),
                         ) {
-                            items(images) { image ->
+                            items(images, key = { image.url }) { image ->
                                 ZoomableAsyncImage(
                                     model = image.url,
                                     contentDescription = null,
@@ -509,7 +509,7 @@ private fun SearchWebPreview(
         }
 
         if (items.isNotEmpty()) {
-            items(items) { item ->
+            items(items, key = { items.indexOf(item) }) { item ->
                 val url = item.getStringContent("url") ?: return@items
                 val title = item.getStringContent("title") ?: return@items
                 val text = item.getStringContent("text") ?: return@items
@@ -580,7 +580,7 @@ private fun ScrapeWebPreview(content: JsonElement) {
             )
         }
 
-        items(urls) { url ->
+        items(urls, key = { url }) { url ->
             val urlObject = url.jsonObject
             Column(
                 modifier = Modifier.fillMaxWidth(),

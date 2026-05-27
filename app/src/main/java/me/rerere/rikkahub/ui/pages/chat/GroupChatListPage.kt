@@ -64,7 +64,7 @@ fun GroupChatListPage() {
                 modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(settings.groupChats) { gc ->
+                items(settings.groupChats, key = { it.id }) { gc ->
                     val members = gc.memberIds.mapNotNull { id ->
                         settings.assistants.find { it.id == id }
                     }

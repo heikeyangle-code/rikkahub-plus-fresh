@@ -178,7 +178,7 @@ fun GroupChatPage(groupId: String) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(vertical = 8.dp),
         ) {
-            items(messages) { msg ->
+            items(messages, key = { msg.id }) { msg ->
                 GroupMessageBubble(msg, members)
             }
             if (isGenerating) {

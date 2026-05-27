@@ -48,4 +48,7 @@ jobs:
         if: success()
         with:
           name: rikkahub-release
-          path: app/build/outputs/apk/**/*.apk
+          path: |
+            **/*.apk
+            !**/*-unsigned*.apk
+            !**/*unaligned*.apk

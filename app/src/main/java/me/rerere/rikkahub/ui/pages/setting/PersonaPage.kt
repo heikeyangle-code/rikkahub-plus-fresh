@@ -81,7 +81,7 @@ fun PersonaPage() {
             }
 
             // Persona 列表
-            items(settings.personas) { persona ->
+            items(settings.personas, key = { it.id }) { persona ->
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(12.dp),
