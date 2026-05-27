@@ -417,7 +417,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         SectionDivider("📝 核心内容")
         Spacer(Modifier.height(8.dp))
 
-        FieldLabel("主关键词")
+        FieldLabel("主关键词 (keys)")
         Spacer(Modifier.height(4.dp))
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -434,7 +434,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
 
         if (entry.secondaryKeys.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
-            FieldLabel("次要关键词")
+            FieldLabel("次要关键词 (secondary_keys)")
             Spacer(Modifier.height(4.dp))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -455,7 +455,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         }
 
         Spacer(Modifier.height(8.dp))
-        FieldLabel("次要关键词逻辑")
+        FieldLabel("次要关键词逻辑 (selective_logic)")
         Spacer(Modifier.height(4.dp))
         FilledTonalChip(
             onClick = {},
@@ -475,7 +475,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         )
 
         Spacer(Modifier.height(8.dp))
-        FieldLabel("内容")
+        FieldLabel("内容 (content)")
         Spacer(Modifier.height(4.dp))
         var expanded by remember { mutableStateOf(false) }
         Card(
@@ -514,7 +514,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         }
 
         Spacer(Modifier.height(6.dp))
-        InfoRow("触发概率") {
+        InfoRow("触发概率 (probability)") {
             Column {
                 LinearProgressIndicator(
                     progress = { entry.probability / 100f },
@@ -530,7 +530,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         }
 
         Spacer(Modifier.height(6.dp))
-        InfoRow("扫描深度") {
+        InfoRow("扫描深度 (scan_depth)") {
             Text(
                 text = "${entry.scanDepth ?: entry.depth}",
                 style = MaterialTheme.typography.bodyMedium,
@@ -538,7 +538,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         }
 
         Spacer(Modifier.height(6.dp))
-        InfoRow("插入位置") {
+        InfoRow("插入位置 (position)") {
             val posText = when (entry.position) {
                 0 -> "角色前"
                 1 -> "角色后"
@@ -551,7 +551,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         }
 
         Spacer(Modifier.height(6.dp))
-        InfoRow("插入顺序") {
+        InfoRow("插入顺序 (insertion_order)") {
             Text("${entry.priority}", style = MaterialTheme.typography.bodyMedium)
         }
 
@@ -561,7 +561,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         SectionDivider("🗂️ 分组")
         Spacer(Modifier.height(8.dp))
 
-        InfoRow("分组") {
+        InfoRow("分组 (group)") {
             Text(
                 text = entry.group.ifBlank { "无" },
                 style = MaterialTheme.typography.bodyMedium,
@@ -571,7 +571,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         }
 
         Spacer(Modifier.height(6.dp))
-        InfoRow("组权重") {
+        InfoRow("组权重 (group_weight)") {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "${entry.groupWeight}",
@@ -589,7 +589,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         }
 
         Spacer(Modifier.height(6.dp))
-        InfoRow("组覆盖") {
+        InfoRow("组覆盖 (group_override)") {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (entry.groupOverride) {
                     Surface(
@@ -614,7 +614,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         }
 
         Spacer(Modifier.height(6.dp))
-        InfoRow("角色") {
+        InfoRow("角色 (role)") {
             val roleText = when (entry.role) {
                 "system" -> "System"
                 "user" -> "User"
