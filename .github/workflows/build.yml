@@ -17,6 +17,14 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install pnpm
+        run: npm install -g pnpm
+          
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         
