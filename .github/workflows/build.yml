@@ -26,10 +26,7 @@ jobs:
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Prepare signing config
+      - name: Write signing config
         run: |
           cat > local.properties << 'EOF'
           storeFile=app.key
@@ -38,7 +35,7 @@ jobs:
           keyPassword=android
           EOF
 
-      - name: Build
+      - name: Gradle Build
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleRelease -x :web:buildWebUi
@@ -48,7 +45,4 @@ jobs:
         if: success()
         with:
           name: rikkahub-release
-          path: |
-            **/*.apk
-            !**/*-unsigned*.apk
-            !**/*unaligned*.apk
+          path: app/build/outputs/apk/**/*.apk
