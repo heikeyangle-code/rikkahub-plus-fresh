@@ -45,4 +45,4 @@ jobs:
         if: success()
         with:
           name: rikkahub-release
-          path: app/build/outputs/apk/release/*.apk
+          path: app/build/outputs/apk/**/*.apk
