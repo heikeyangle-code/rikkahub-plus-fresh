@@ -411,7 +411,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
             )
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
         // 📝 核心内容
         SectionDivider("📝 核心内容")
@@ -498,7 +498,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
             )
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
         // ⚙️ 触发设置
         SectionDivider("⚙️ 触发设置")
@@ -555,7 +555,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
             Text("${entry.priority}", style = MaterialTheme.typography.bodyMedium)
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
         // 🗂️ 分组
         SectionDivider("🗂️ 分组")
@@ -627,7 +627,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         // ⏱️ 定时效果 (only show if any has value)
         val hasTiming = entry.sticky || entry.cooldown > 0 || entry.delayUntil > 0
         if (hasTiming) {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
             SectionDivider("⏱️ 定时效果")
             Spacer(Modifier.height(8.dp))
 
