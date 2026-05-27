@@ -18,7 +18,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "me.rerere.rikkahub"
+        applicationId = "me.rerere.rikkahub.plus"
         minSdk = 26
         targetSdk = 35
         versionCode = 161
