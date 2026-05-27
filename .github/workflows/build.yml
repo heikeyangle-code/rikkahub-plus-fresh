@@ -20,11 +20,16 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         
-      - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug -Pandroid.injected.build.abi=arm64-v8a -x :web:buildWebUi
+      - name: Build Release APK
+        run: ./gradlew :app:assembleRelease -Pandroid.injected.build.abi=arm64-v8a -x :web:buildWebUi
+        
+      - name: Sign APK
+        run: |
+          keytool -genkey -v -keystore release.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=rikkahub"
+          apksigner sign --ks release.jks --ks-pass pass:android --key-pass pass:android --out rikkahub-signed.apk app/build/intermediates/apk/release/app-arm64-v8a-release-unsigned.apk
         
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: rikkahub-debug
-          path: app/build/outputs/apk/debug/
+          name: rikkahub-release
+          path: rikkahub-signed.apk
