@@ -32,7 +32,7 @@ jobs:
       - name: Write signing config
         run: |
           cat > local.properties << 'EOF'
-          storeFile=app.key
+          storeFile=app/app.key
           storePassword=android
           keyAlias=androiddebugkey
           keyPassword=android
