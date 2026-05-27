@@ -46,30 +46,50 @@ const val CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID = "chat_live_update"
 const val WEB_SERVER_NOTIFICATION_CHANNEL_ID = "web_server"
 
 class RikkaHubApp : Application() {
+    private fun trace(msg: String) {
+        try {
+            java.io.File("/sdcard/rikkahub_trace.txt").appendText("${System.currentTimeMillis()} $msg\n")
+        } catch (_: Exception) {}
+    }
+
     override fun onCreate() {
         super.onCreate()
-        startKoin {
-            androidLogger()
-            androidContext(this@RikkaHubApp)
-            workManagerFactory()
-            modules(appModule, viewModelModule, dataSourceModule, repositoryModule)
+        trace("onCreate start")
+        try {
+            startKoin {
+                trace("koin config")
+                androidLogger()
+                androidContext(this@RikkaHubApp)
+                workManagerFactory()
+                modules(appModule, viewModelModule, dataSourceModule, repositoryModule)
+            }
+            trace("koin done")
+        } catch (e: Exception) {
+            trace("koin FAILED: ${e.message}")
+            throw e
         }
         this.createNotificationChannel()
+        trace("notification done")
 
         // set cursor window size to 32MB
         DatabaseUtil.setCursorWindowSize(32 * 1024 * 1024)
+        trace("cursor done")
 
         // install crash handler
         CrashHandler.install(this)
+        trace("crashhandler done")
 
         // Init QuickJS native library
         QuickJSLoader.init()
+        trace("quickjs done")
 
         // delete temp files
         deleteTempFiles()
+        trace("tempfiles done")
 
         // sync upload files to DB
         syncManagedFiles()
+        trace("sync done")
 
         // Init remote config
         get<FirebaseRemoteConfig>().apply {
@@ -82,9 +102,11 @@ class RikkaHubApp : Application() {
 
         // Start WebServer if enabled in settings
         startWebServerIfEnabled()
+        trace("webserver done")
 
         // Increment launch count
         incrementLaunchCount()
+        trace("onCreate complete")
 
         // Composer.setDiagnosticStackTraceMode(ComposeStackTraceMode.Auto)
     }
