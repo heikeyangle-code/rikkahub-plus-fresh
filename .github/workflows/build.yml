@@ -24,10 +24,11 @@ jobs:
         run: ./gradlew :app:assembleRelease -Pandroid.injected.build.abi=arm64-v8a -x :web:buildWebUi
         
       - name: List APK files
-        run: find app/build/outputs -name "*.apk"
+        run: find app/build -name "*.apk" 2>/dev/null || echo "no apk found"
         
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: rikkahub-release
           path: app/build/outputs/apk/release/
+          if-no-files-found: warn
