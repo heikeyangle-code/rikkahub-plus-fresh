@@ -26,8 +26,7 @@ jobs:
       - name: Sign APK
         run: |
           keytool -genkey -v -keystore release.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=rikkahub"
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore release.jks -storepass android -keypass android app/build/intermediates/apk/release/app-arm64-v8a-release-unsigned.apk release
-          cp app/build/intermediates/apk/release/app-arm64-v8a-release-unsigned.apk rikkahub-signed.apk
+          ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/apksigner sign --ks release.jks --ks-pass pass:android --key-pass pass:android --out rikkahub-signed.apk app/build/intermediates/apk/release/app-arm64-v8a-release-unsigned.apk
         
       - name: Upload APK
         uses: actions/upload-artifact@v4
