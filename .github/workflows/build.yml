@@ -29,26 +29,22 @@ jobs:
       - name: Build Release APK
         run: ./gradlew :app:assembleRelease -Pandroid.injected.build.abi=arm64-v8a -x :web:buildWebUi
 
-      - name: Build Debug APK (control test)
-        run: ./gradlew :app:assembleDebug -Pandroid.injected.build.abi=arm64-v8a -x :web:buildWebUi
-
       - name: Zipalign and Sign APK
         run: |
           UNSIGNED="app/build/intermediates/apk/release/app-arm64-v8a-release-unsigned.apk"
           $ANDROID_SDK_ROOT/build-tools/35.0.0/zipalign -v 4 "$UNSIGNED" aligned.apk
           $ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner sign \
             --ks app/app.key \
+            --ks-key-alias androiddebugkey \
             --ks-pass pass:android \
             --key-pass pass:android \
             --min-sdk-version 26 \
             --out rikkahub-signed.apk \
             aligned.apk
 
-      - name: Upload APKs
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: rikkahub-apks
-          path: |
-            rikkahub-signed.apk
-            app/build/outputs/apk/debug/app-*-debug.apk
+          name: rikkahub-release
+          path: rikkahub-signed.apk
