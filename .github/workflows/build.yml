@@ -35,8 +35,8 @@ jobs:
           $ANDROID_SDK_ROOT/build-tools/35.0.0/zipalign -v 4 "$UNSIGNED" aligned.apk
           $ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner sign \
             --ks app/app.key \
-            --ks-pass pass:rikkahub123 \
-            --key-pass pass:rikkahub123 \
+            --ks-pass pass:android \
+            --key-pass pass:android \
             --min-sdk-version 26 \
             --out rikkahub-signed.apk \
             aligned.apk

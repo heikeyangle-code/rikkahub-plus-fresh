@@ -24,9 +24,9 @@ jobs:
           cp app/google-services.json original/app/
           cp app/app.key original/app/
           echo 'storeFile=app.key' > original/local.properties
-          echo 'storePassword=rikkahub123' >> original/local.properties
-          echo 'keyAlias=rikkahub-plus' >> original/local.properties
-          echo 'keyPassword=rikkahub123' >> original/local.properties
+          echo 'storePassword=android' >> original/local.properties
+          echo 'keyAlias=rikkahub' >> original/local.properties
+          echo 'keyPassword=android' >> original/local.properties
       
       - name: Patch build.gradle.kts (disable original signing)
         run: sed -i 's/signingConfig = signingConfigs.getByName("release")/\/\/ signingConfig = signingConfigs.getByName("release")/' original/app/build.gradle.kts
@@ -38,7 +38,7 @@ jobs:
         run: |
           cd original
           $ANDROID_SDK_ROOT/build-tools/35.0.0/zipalign -v 4 app/build/intermediates/apk/release/app-release-unsigned.apk aligned.apk
-          $ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner sign --ks app/app.key --ks-pass pass:rikkahub123 --key-pass pass:rikkahub123 --min-sdk-version 26 --out rikkahub-original-signed.apk aligned.apk
+          $ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner sign --ks app/app.key --ks-pass pass:android --key-pass pass:android --min-sdk-version 26 --out rikkahub-original-signed.apk aligned.apk
       
       - uses: actions/upload-artifact@v4
         with: {name: original-test, path: original/rikkahub-original-signed.apk}
