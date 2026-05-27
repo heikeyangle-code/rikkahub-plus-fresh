@@ -193,6 +193,7 @@ class SkillManager(
                 linkedFiles = linked,
                 skillDir = skillDir,
                 commands = commands,
+                mcpServers = plugin?.mcpServers ?: emptyList(),
             )
         }.getOrElse {
             Log.w(TAG, "parseSkillFile: Failed to parse ${skillFile.absolutePath}", it)
@@ -236,6 +237,7 @@ data class SkillMetadata(
     val remoteUrl: String? = null,                     // 远程更新源 URL
     val linkedFiles: Map<String, List<String>> = emptyMap(),
     val commands: List<CommandFile> = emptyList(),
+    val mcpServers: List<PluginMcpServer> = emptyList(),
     val skillDir: File,
 ) {
     val skillFile: File get() = skillDir.resolve("SKILL.md")

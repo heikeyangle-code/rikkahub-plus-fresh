@@ -7,11 +7,13 @@ import me.rerere.rikkahub.data.files.CommandFile
  * Claude Code 风格：每个 commands/xxx.md 自动变成 /xxx 命令
  */
 data class SlashCommand(
-    val name: String,           // 命令名，如 "code-review"
-    val description: String,    // 简短描述
-    val allowedTools: List<String>, // 允许的工具
-    val content: String,        // 指令正文
-    val filePath: String,       // 源文件路径，如 "commands/code-review.md"
+    val name: String,                    // 命令名，如 "code-review"
+    val description: String,             // 简短描述
+    val allowedTools: List<String>,      // 允许的工具
+    val argumentHint: String = "",       // 参数提示，如 "[project-name]"
+    val disableModelInvocation: Boolean = false, // 纯脚本不调模型
+    val content: String,                 // 指令正文
+    val filePath: String,                // 源文件路径，如 "commands/code-review.md"
 )
 
 /**
@@ -26,6 +28,8 @@ fun collectSlashCommands(
                 name = cmd.name,
                 description = cmd.description,
                 allowedTools = cmd.allowedTools,
+                argumentHint = cmd.argumentHint,
+                disableModelInvocation = cmd.disableModelInvocation,
                 content = cmd.content,
                 filePath = cmd.filePath,
             )

@@ -209,21 +209,21 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                     )
                     item(
                         onClick = { navController.navigate(Screen.Persona) },
-                        leadingContent = { Text("👤") },
-                        supportingContent = { Text("定义用户角色，注入提示词") },
-                        headlineContent = { Text("Persona · 用户人设") },
+                        leadingContent = { Icon(HugeIcons.Edit02, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_persona_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_persona)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.AuthorsNote) },
-                        leadingContent = { Text("📝") },
-                        supportingContent = { Text("导演备注，控制 AI 输出方向") },
-                        headlineContent = { Text("Author's Note") },
+                        leadingContent = { Icon(HugeIcons.Notebook01, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_authors_note_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_authors_note)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.GroupChatList) },
-                        leadingContent = { Text("👥") },
-                        supportingContent = { Text("多人角色群聊") },
-                        headlineContent = { Text("群聊") },
+                        leadingContent = { Icon(HugeIcons.MessageMultiple01, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_group_chat_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_group_chat)) },
                     )
                 }
             }

@@ -176,6 +176,16 @@ class SkillsVM(
     fun importFromLocalFile(uri: android.net.Uri, context: android.content.Context, onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                val fileName = uri.lastPathSegment?.lowercase() ?: ""
+                // Route .zip to zip importer
+                if (fileName.endsWith(".zip")) {
+                    importFromZip(uri, context, onResult)
+                    return@launch
+                }
+                if (!fileName.endsWith(".md")) {
+                    withContext(Dispatchers.Main) { onResult(false, "不支持的格式，请选择 .zip 或 .md 文件") }
+                    return@launch
+                }
                 val content = context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()
                     ?: run {
                         withContext(Dispatchers.Main) { onResult(false, "无法读取文件") }
@@ -184,13 +194,80 @@ class SkillsVM(
                 val frontmatter = SkillFrontmatterParser.parse(content)
                 val name = frontmatter["name"]?.takeIf { it.isNotBlank() }
                     ?: run {
-                        withContext(Dispatchers.Main) { onResult(false, "SKILL.md 缺少 name 字段") }
+                        withContext(Dispatchers.Main) { onResult(false, "无效的Skill文件，缺少name或description字段") }
+                        return@launch
+                    }
+                val desc = frontmatter["description"]?.takeIf { it.isNotBlank() }
+                    ?: run {
+                        withContext(Dispatchers.Main) { onResult(false, "无效的Skill文件，缺少name或description字段") }
                         return@launch
                     }
                 val saved = skillManager.saveSkill(name, content)
                 _skills.value = skillManager.listSkills()
                 withContext(Dispatchers.Main) {
                     onResult(saved != null, if (saved != null) name else "保存失败")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onResult(false, e.message ?: "导入失败") }
+            }
+        }
+    }
+
+    /**
+     * 从文件夹导入 (OpenDocumentTree)
+     */
+    fun importFromFolder(uri: android.net.Uri, context: android.content.Context, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val files = mutableMapOf<String, String>()
+
+                fun readDir(dirUri: android.net.Uri, prefix: String) {
+                    val childrenUri = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(
+                        dirUri,
+                        android.provider.DocumentsContract.getTreeDocumentId(dirUri)
+                    )
+                    val cursor = context.contentResolver.query(
+                        childrenUri,
+                        arrayOf(
+                            android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                            android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE,
+                            android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME
+                        ),
+                        null, null, null
+                    )
+                    cursor?.use { c ->
+                        while (c.moveToNext()) {
+                            val docId = c.getString(0)
+                            val mime = c.getString(1)
+                            val name = c.getString(2) ?: continue
+                            val docUri = android.provider.DocumentsContract.buildDocumentUriUsingTree(dirUri, docId)
+
+                            if (android.provider.DocumentsContract.Document.MIME_TYPE_DIR == mime) {
+                                readDir(docUri, "$prefix$name/")
+                            } else {
+                                val content = context.contentResolver.openInputStream(docUri)?.bufferedReader()?.readText()
+                                if (content != null) {
+                                    files["$prefix$name"] = content
+                                }
+                            }
+                        }
+                    }
+                }
+                readDir(uri, "")
+
+                val skillMdPath = files.keys.find { it == "SKILL.md" }
+                    ?: run { withContext(Dispatchers.Main) { onResult(false, "文件夹中未找到 SKILL.md") }; return@launch }
+
+                val frontmatter = SkillFrontmatterParser.parse(files[skillMdPath]!!)
+                val name = frontmatter["name"]?.takeIf { it.isNotBlank() }
+                    ?: run { withContext(Dispatchers.Main) { onResult(false, "无效的Skill文件，缺少name或description字段") }; return@launch }
+                val desc = frontmatter["description"]?.takeIf { it.isNotBlank() }
+                    ?: run { withContext(Dispatchers.Main) { onResult(false, "无效的Skill文件，缺少name或description字段") }; return@launch }
+
+                val saved = skillManager.saveSkillFilesAtomically(name, files)
+                _skills.value = skillManager.listSkills()
+                withContext(Dispatchers.Main) {
+                    onResult(saved, if (saved) name else "保存失败")
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { onResult(false, e.message ?: "导入失败") }

@@ -10,10 +10,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import me.rerere.rikkahub.data.model.Assistant
+import me.rerere.rikkahub.data.model.TavernBookEntry
 import me.rerere.rikkahub.data.model.TavernEmbeddedBook
-import me.rerere.rikkahub.ui.theme.CustomColors
 
 /**
  * 酒馆角色卡信息面板 — 简洁高级，分层展示
@@ -247,9 +257,11 @@ private fun StatBadge(label: String, active: Boolean) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun EmbeddedBookSummary(book: TavernEmbeddedBook) {
     var showEntries by remember { mutableStateOf(false) }
+    var selectedEntry by remember { mutableStateOf<TavernBookEntry?>(null) }
 
     Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
         Row(
@@ -259,11 +271,16 @@ private fun EmbeddedBookSummary(book: TavernEmbeddedBook) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("📖 内嵌世界书", style = MaterialTheme.typography.labelMedium)
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = "${book.entries.size}条",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+            Spacer(Modifier.width(8.dp))
+            FilledTonalChip(
+                onClick = { showEntries = !showEntries },
+                label = {
+                    Text(
+                        text = "${book.entries.size}",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                },
+                shape = RoundedCornerShape(8.dp),
             )
             if (book.name.isNotBlank()) {
                 Spacer(Modifier.width(4.dp))
@@ -282,52 +299,61 @@ private fun EmbeddedBookSummary(book: TavernEmbeddedBook) {
 
         AnimatedVisibility(visible = showEntries) {
             Column(
-                modifier = Modifier.padding(top = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 book.entries.take(15).forEach { entry ->
-                    Row(
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.Top,
+                            .clickable { selectedEntry = entry },
+                        shape = RoundedCornerShape(8.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        ),
                     ) {
-                        // 触发词
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
                                 entry.keys.firstOrNull()?.let { key ->
+                                    Text(
+                                        text = key,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                if (entry.group.isNotBlank()) {
+                                    Spacer(Modifier.height(4.dp))
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
-                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                                     ) {
                                         Text(
-                                            text = key,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
-                                            style = MaterialTheme.typography.labelSmall,
+                                            text = entry.group,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                                            color = MaterialTheme.colorScheme.primary,
                                         )
                                     }
                                 }
-                                if (entry.constant) Text("🔒", style = MaterialTheme.typography.labelSmall)
                             }
-                            if (entry.comment.isNotBlank()) {
-                                Text(
-                                    text = entry.comment,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = entry.content.replace("\n", " "),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.widthIn(max = 200.dp),
+                            )
                         }
-                        // 内容预览
-                        Text(
-                            text = entry.content.take(60).replace("\n", " "),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.widthIn(max = 140.dp),
-                        )
                     }
                 }
                 if (book.entries.size > 15) {
@@ -338,6 +364,312 @@ private fun EmbeddedBookSummary(book: TavernEmbeddedBook) {
                     )
                 }
             }
+        }
+    }
+
+    selectedEntry?.let { entry ->
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { selectedEntry = null },
+            sheetState = sheetState,
+            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        ) {
+            EmbeddedEntryDetail(entry)
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
+    Column(
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+    ) {
+        // Title
+        Text(
+            text = entry.comment.ifBlank { entry.keys.firstOrNull() ?: "未命名条目" },
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(Modifier.height(8.dp))
+
+        // Enable/disable badge
+        Surface(
+            shape = RoundedCornerShape(4.dp),
+            color = if (entry.disable) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            else MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
+        ) {
+            Text(
+                text = if (entry.disable) "禁用" else "启用",
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (entry.disable) MaterialTheme.colorScheme.outline
+                else MaterialTheme.colorScheme.tertiary,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // 📝 核心内容
+        SectionDivider("📝 核心内容")
+        Spacer(Modifier.height(8.dp))
+
+        FieldLabel("主关键词")
+        Spacer(Modifier.height(4.dp))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            entry.keys.forEach { key ->
+                SuggestionChip(
+                    onClick = {},
+                    label = { Text(key, style = MaterialTheme.typography.labelSmall) },
+                    shape = RoundedCornerShape(6.dp),
+                )
+            }
+        }
+
+        if (entry.secondaryKeys.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            FieldLabel("次要关键词")
+            Spacer(Modifier.height(4.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                entry.secondaryKeys.forEach { key ->
+                    SuggestionChip(
+                        onClick = {},
+                        label = { Text(key, style = MaterialTheme.typography.labelSmall) },
+                        shape = RoundedCornerShape(6.dp),
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        FieldLabel("次要关键词逻辑")
+        Spacer(Modifier.height(4.dp))
+        FilledTonalChip(
+            onClick = {},
+            label = {
+                Text(
+                    text = when (entry.selectiveLogic) {
+                        0 -> "AND"
+                        1 -> "OR"
+                        2 -> "NOT_ANY"
+                        3 -> "NOT_ALL"
+                        else -> "AND"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            },
+            shape = RoundedCornerShape(6.dp),
+        )
+
+        Spacer(Modifier.height(8.dp))
+        FieldLabel("内容")
+        Spacer(Modifier.height(4.dp))
+        var expanded by remember { mutableStateOf(false) }
+        Card(
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+        ) {
+            val displayContent = if (!expanded && entry.content.lines().size > 10) {
+                entry.content.lines().take(10).joinToString("\n") + "\n..."
+            } else {
+                entry.content
+            }
+            Text(
+                text = displayContent,
+                modifier = Modifier
+                    .padding(12.dp)
+                    .clickable { expanded = !expanded },
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // ⚙️ 触发设置
+        SectionDivider("⚙️ 触发设置")
+        Spacer(Modifier.height(8.dp))
+
+        InfoRow("策略") {
+            val (icon, label) = when {
+                entry.constant -> "🔵" to "常驻"
+                entry.selective -> "🟢" to "关键词触发"
+                else -> "🔗" to "向量"
+            }
+            Text("$icon  $label", style = MaterialTheme.typography.bodyMedium)
+        }
+
+        Spacer(Modifier.height(6.dp))
+        InfoRow("触发概率") {
+            Column {
+                LinearProgressIndicator(
+                    progress = { entry.probability / 100f },
+                    modifier = Modifier.fillMaxWidth(0.6f),
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "${entry.probability}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(6.dp))
+        InfoRow("扫描深度") {
+            Text(
+                text = "${entry.scanDepth ?: entry.depth}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+
+        Spacer(Modifier.height(6.dp))
+        InfoRow("插入位置") {
+            val posText = when (entry.position) {
+                0 -> "角色前"
+                1 -> "角色后"
+                2 -> "用户前"
+                3 -> "用户后"
+                4 -> "@D 深度插入"
+                else -> "未知"
+            }
+            Text(posText, style = MaterialTheme.typography.bodyMedium)
+        }
+
+        Spacer(Modifier.height(6.dp))
+        InfoRow("插入顺序") {
+            Text("${entry.priority}", style = MaterialTheme.typography.bodyMedium)
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // 🗂️ 分组
+        SectionDivider("🗂️ 分组")
+        Spacer(Modifier.height(8.dp))
+
+        InfoRow("分组") {
+            Text(
+                text = entry.group.ifBlank { "无" },
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (entry.group.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.onSurface,
+            )
+        }
+
+        Spacer(Modifier.height(6.dp))
+        InfoRow("角色") {
+            val roleText = when (entry.role) {
+                "system" -> "System"
+                "user" -> "User"
+                "assistant" -> "Assistant"
+                else -> entry.role
+            }
+            Text(roleText, style = MaterialTheme.typography.bodyMedium)
+        }
+
+        // ⏱️ 定时效果 (only show if any has value)
+        val hasTiming = entry.sticky || entry.cooldown > 0 || entry.delayUntil > 0
+        if (hasTiming) {
+            Spacer(Modifier.height(16.dp))
+            SectionDivider("⏱️ 定时效果")
+            Spacer(Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                TimingChip("粘性", if (entry.sticky) "是" else "否", entry.sticky)
+                if (entry.cooldown > 0) {
+                    TimingChip("冷却", "${entry.cooldown}轮", true)
+                }
+                if (entry.delayUntil > 0) {
+                    TimingChip("延迟", "${entry.delayUntil}轮", true)
+                }
+            }
+        }
+
+        // 底部留白
+        Spacer(Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun SectionDivider(title: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .height(16.dp)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(1.dp)),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+        )
+    }
+}
+
+@Composable
+private fun FieldLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+    )
+}
+
+@Composable
+private fun InfoRow(label: String, content: @Composable ColumnScope.() -> Unit) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+        )
+        Spacer(Modifier.height(2.dp))
+        content()
+    }
+}
+
+@Composable
+private fun TimingChip(label: String, value: String, active: Boolean) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = if (active) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+        else MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = if (active) MaterialTheme.colorScheme.tertiary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            )
         }
     }
 }

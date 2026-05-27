@@ -807,6 +807,12 @@
   <string name="setting_page_dynamic_color_desc">Generate the app theme colors dynamically from your wallpaper</string>
   <string name="setting_page_extensions">Extensions</string>
   <string name="setting_page_extensions_desc">Manage prompt injections, skills and more</string>
+  <string name="setting_page_persona">Persona</string>
+  <string name="setting_page_persona_desc">Define user role to inject into prompts</string>
+  <string name="setting_page_authors_note">Author\'s Note</string>
+  <string name="setting_page_authors_note_desc">Control AI output direction with director notes</string>
+  <string name="setting_page_group_chat">Group Chat</string>
+  <string name="setting_page_group_chat_desc">Multi-character group chat</string>
   <string name="setting_page_general_settings">General Settings</string>
   <string name="setting_page_interaction_notification_settings">Interaction &amp;amp; Notifications</string>
   <string name="setting_page_mcp">MCP</string>
@@ -1031,6 +1037,12 @@
   <string name="skills_page_skill_content_label">SKILL.md Content</string>
   <string name="skills_page_skill_name">Skill name: %s</string>
   <string name="skills_page_title">Agent Skills</string>
+  <string name="skills_page_import_file">Import File</string>
+  <string name="skills_page_import_folder">Import Folder</string>
+  <string name="skills_page_import_unsupported">Unsupported format, please select .zip or .md file</string>
+  <string name="skills_page_import_invalid">Invalid Skill file: missing name or description field</string>
+  <string name="skills_page_install_success">Installed successfully: %s</string>
+  <string name="skills_page_import_skill_title">Import Skill</string>
   <string name="speech_page_title">Speech</string>
   <string name="speech_tab_asr">Speech Recognition</string>
   <string name="speech_tab_tts">Text to Speech</string>
