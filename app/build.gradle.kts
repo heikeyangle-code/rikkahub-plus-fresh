@@ -18,13 +18,12 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "me.rerere.rikkahub.plus"
+        applicationId = "me.rerere.rikkahub"
         minSdk = 26
         multiDexEnabled = true
-        multiDexKeepFile = file("multidex-keep.txt")
         targetSdk = 35
-        versionCode = 162
-        versionName = "2.2.6"
+        versionCode = 161
+        versionName = "2.2.5"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
@@ -70,7 +69,6 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
