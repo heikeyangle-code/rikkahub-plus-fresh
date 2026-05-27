@@ -1,0 +1,42 @@
+name: Build Original (Comparison)
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone original rikkahub
+        run: git clone https://github.com/rikkahub/rikkahub.git original
+      
+      - uses: actions/setup-java@v4
+        with: {distribution: 'temurin', java-version: '17'}
+      
+      - uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-original-${{ hashFiles('original/**/*.gradle*', 'original/**/gradle-wrapper.properties') }}
+      
+      - name: Copy google-services.json and keystore
+        run: |
+          cp app/google-services.json original/app/
+          cp app/app.key original/app/
+          echo 'storeFile=app.key' > original/local.properties
+          echo 'storePassword=rikkahub123' >> original/local.properties
+          echo 'keyAlias=rikkahub-plus' >> original/local.properties
+          echo 'keyPassword=rikkahub123' >> original/local.properties
+      
+      - name: Patch build.gradle.kts (disable original signing)
+        run: sed -i 's/signingConfig = signingConfigs.getByName("release")/\/\/ signingConfig = signingConfigs.getByName("release")/' original/app/build.gradle.kts
+      
+      - name: Build
+        run: cd original && chmod +x gradlew && ./gradlew :app:assembleRelease -x :web:buildWebUi
+      
+      - name: Sign
+        run: |
+          cd original
+          $ANDROID_SDK_ROOT/build-tools/35.0.0/zipalign -v 4 app/build/intermediates/apk/release/app-release-unsigned.apk aligned.apk
+          $ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner sign --ks app/app.key --ks-pass pass:rikkahub123 --key-pass pass:rikkahub123 --min-sdk-version 26 --out rikkahub-original-signed.apk aligned.apk
+      
+      - uses: actions/upload-artifact@v4
+        with: {name: original-test, path: original/rikkahub-original-signed.apk}
