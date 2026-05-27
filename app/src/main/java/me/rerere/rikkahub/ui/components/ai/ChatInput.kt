@@ -793,12 +793,22 @@ private fun TextInputRow(
                                 color = Color.Transparent,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Column(modifier = Modifier.padding(12.dp, 8.dp)) {
-                                    Text(
-                                        text = "/${cmd.name}",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                            Column(modifier = Modifier.padding(12.dp, 8.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = "/${cmd.name}",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                        if (cmd.argumentHint.isNotBlank()) {
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(
+                                                text = cmd.argumentHint,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                            )
+                                        }
+                                    }
                                     Text(
                                         text = cmd.description,
                                         style = MaterialTheme.typography.bodySmall,
