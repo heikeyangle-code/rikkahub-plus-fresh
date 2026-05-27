@@ -20,7 +20,6 @@ android {
     defaultConfig {
         applicationId = "me.rerere.rikkahub"
         minSdk = 26
-        multiDexEnabled = true
         targetSdk = 35
         versionCode = 161
         versionName = "2.2.5"
@@ -69,6 +68,7 @@ android {
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
