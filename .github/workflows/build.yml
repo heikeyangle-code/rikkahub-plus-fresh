@@ -26,6 +26,9 @@ jobs:
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Prepare signing config
         run: |
           cat > local.properties << 'EOF'
