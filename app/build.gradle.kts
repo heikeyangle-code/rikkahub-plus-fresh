@@ -21,8 +21,8 @@ android {
         applicationId = "me.rerere.rikkahub.plus"
         minSdk = 26
         targetSdk = 35
-        versionCode = 161
-        versionName = "2.2.5"
+        versionCode = 162
+        versionName = "2.2.6"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
