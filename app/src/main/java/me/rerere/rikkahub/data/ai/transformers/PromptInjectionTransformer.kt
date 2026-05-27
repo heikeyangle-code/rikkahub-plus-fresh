@@ -10,6 +10,7 @@ import me.rerere.rikkahub.data.model.Lorebook
 import me.rerere.rikkahub.data.model.extractContextForMatching
 import me.rerere.rikkahub.data.model.isTriggered
 import kotlin.uuid.Uuid
+import kotlin.random.Random
 
 /**
  * 提示词注入转换器
@@ -103,12 +104,37 @@ internal fun collectInjections(
         val nonSystemMessages = messages.filter { it.role != MessageRole.SYSTEM }
 
         enabledLorebooks.forEach { lorebook ->
-            lorebook.entries
+            val triggered = lorebook.entries
                 .filter { entry ->
                     val context = extractContextForMatching(nonSystemMessages, entry.scanDepth)
                     entry.isTriggered(context)
                 }
-                .forEach { injections.add(it) }
+            // 同组条目权重随机选择：同一 group 的条目只选一条
+            val grouped = triggered.filter { it.group.isNotBlank() }.groupBy { it.group }
+            val ungrouped = triggered.filter { it.group.isBlank() }
+            // 无 group 的条目直接加入
+            injections.addAll(ungrouped)
+            // 每个 group 按 weight 随机选一条
+            for ((_, entries) in grouped) {
+                val override = entries.find { it.groupOverride }
+                if (override != null) {
+                    injections.add(override)
+                    continue
+                }
+                val totalWeight = entries.sumOf { it.groupWeight.toLong() }
+                if (totalWeight <= 0) {
+                    injections.add(entries.first())
+                    continue
+                }
+                var roll = Random.nextLong(totalWeight)
+                for (entry in entries) {
+                    roll -= entry.groupWeight.toLong()
+                    if (roll < 0) {
+                        injections.add(entry)
+                        break
+                    }
+                }
+            }
         }
     }
 

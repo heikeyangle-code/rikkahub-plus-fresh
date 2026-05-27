@@ -76,4 +76,6 @@ data class TavernBookEntry(
     val depth: Int = 4,          // @D 模式插入深度
     val scanDepth: Int? = null,
     val role: String = "system", // system/user/assistant
+    val groupWeight: Int = 100,  // 同组权重（随机选择时使用）
+    val groupOverride: Boolean = false, // 是否覆盖同组其他条目
 )

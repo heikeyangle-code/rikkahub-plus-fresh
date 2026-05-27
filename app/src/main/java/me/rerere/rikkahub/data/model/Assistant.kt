@@ -182,6 +182,7 @@ sealed class PromptInjection {
         val selectiveLogic: SelectiveLogic = SelectiveLogic.AND_ANY, // 触发逻辑
         val group: String = "",                         // 分组标签（同组条目互斥时只激活一个）
         val groupWeight: Int = 100,                     // 同组权重（随机选择时使用）
+        val groupOverride: Boolean = false,             // 是否覆盖同组其他条目
         val probability: Int = 100,                     // 触发概率 0-100
         val sticky: Boolean = false,                    // 激活后持续保留N轮
         val cooldown: Int = 0,                          // 冷却轮数（0=无冷却）

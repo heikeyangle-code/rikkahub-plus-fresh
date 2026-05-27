@@ -571,6 +571,49 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         }
 
         Spacer(Modifier.height(6.dp))
+        InfoRow("组权重") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${entry.groupWeight}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                if (entry.group.isNotBlank()) {
+                    Spacer(Modifier.width(8.dp))
+                    LinearProgressIndicator(
+                        progress = { entry.groupWeight / 100f },
+                        modifier = Modifier.width(60.dp),
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(6.dp))
+        InfoRow("组覆盖") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (entry.groupOverride) {
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.15f),
+                    ) {
+                        Text(
+                            text = "覆盖同组",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "否",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(6.dp))
         InfoRow("角色") {
             val roleText = when (entry.role) {
                 "system" -> "System"

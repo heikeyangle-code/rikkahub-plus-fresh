@@ -338,6 +338,8 @@ private fun parseEntriesArray(arr: kotlinx.serialization.json.JsonArray): List<T
                 depth = e["depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 4,
                 scanDepth = e["scan_depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull(),
                 role = e["role"]?.jsonPrimitive?.contentOrNull ?: "system",
+                groupWeight = e["group_weight"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 100,
+                groupOverride = e["group_override"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
             )
         } catch (_: Exception) { null }
     }
@@ -369,6 +371,8 @@ private fun parseEntriesMap(obj: JsonObject): List<TavernBookEntry> {
                 depth = e["depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 4,
                 scanDepth = e["scan_depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull(),
                 role = e["role"]?.jsonPrimitive?.contentOrNull ?: "system",
+                groupWeight = e["group_weight"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 100,
+                groupOverride = e["group_override"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
             )
         } catch (_: Exception) { null }
     }
@@ -398,6 +402,8 @@ private fun tavernEntryToInjection(entry: TavernBookEntry): PromptInjection.Rege
         probability = entry.probability,
         sticky = entry.sticky,
         cooldown = entry.cooldown,
+        groupWeight = entry.groupWeight,
+        groupOverride = entry.groupOverride,
     )
 }
 
