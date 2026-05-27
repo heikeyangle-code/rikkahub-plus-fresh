@@ -1,0 +1,275 @@
+package me.rerere.rikkahub.data.files
+
+import android.content.Context
+import android.util.Log
+import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import me.rerere.rikkahub.data.datastore.SettingsStore
+
+class SkillManager(
+    private val context: Context,
+    private val settingsStore: SettingsStore,
+) {
+    companion object {
+        private const val TAG = "SkillManager"
+    }
+
+    fun getSkillsDir(): File {
+        // App 外部文件目录，文件管理器可访问，无需额外权限
+        val dir = context.getExternalFilesDir(null)?.resolve(FileFolders.SKILLS)
+            ?: context.filesDir.resolve(FileFolders.SKILLS)
+        if (!dir.exists()) dir.mkdirs()
+        return dir
+    }
+
+    /**
+     * 额外扫描目录：内部存储/Rikkahub/skills/
+     * 如果存在且有权限，一并加载
+     */
+    fun getPublicSkillsDir(): File? {
+        val dir = File(android.os.Environment.getExternalStorageDirectory(), "Rikkahub/skills")
+        return if (dir.exists() && dir.canRead()) dir else null
+    }
+
+    fun listSkills(): List<SkillMetadata> {
+        val skillsDir = getSkillsDir()
+        return skillsDir.listFiles()
+            ?.filter { it.isDirectory }
+            ?.mapNotNull { dir ->
+                val skillFile = dir.resolve("SKILL.md")
+                if (!skillFile.exists()) return@mapNotNull null
+                parseSkillFile(skillFile, dir)
+            }
+            ?: emptyList()
+    }
+
+    fun readSkillBody(skillName: String): String? {
+        val skillFile = resolveSkillDir(skillName)?.resolve("SKILL.md") ?: return null
+        if (!skillFile.exists()) return null
+        return SkillFrontmatterParser.extractBody(skillFile.readText())
+    }
+
+    fun readSkillContent(skillName: String): String? {
+        val skillFile = resolveSkillDir(skillName)?.resolve("SKILL.md") ?: return null
+        if (!skillFile.exists()) return null
+        return skillFile.readText()
+    }
+
+    fun saveSkill(name: String, content: String): SkillMetadata? {
+        val skillDir = resolveSkillDir(name) ?: return null
+        skillDir.mkdirs()
+        val skillFile = skillDir.resolve("SKILL.md")
+        skillFile.writeText(content)
+        return parseSkillFile(skillFile, skillDir)
+    }
+
+    suspend fun deleteSkill(name: String): Boolean = withContext(Dispatchers.IO) {
+        val skillDir = resolveSkillDir(name) ?: return@withContext false
+        val deleted = skillDir.deleteRecursively()
+        if (deleted) {
+            settingsStore.update { settings ->
+                settings.copy(
+                    assistants = settings.assistants.map { assistant ->
+                        if (assistant.enabledSkills.contains(name)) {
+                            assistant.copy(enabledSkills = assistant.enabledSkills - name)
+                        } else {
+                            assistant
+                        }
+                    }
+                )
+            }
+        }
+        deleted
+    }
+
+    fun getSkillDir(skillName: String): File? = resolveSkillDir(skillName)
+
+    fun saveSkillFile(skillName: String, relativePath: String, content: String): Boolean {
+        val skillDir = resolveSkillDir(skillName) ?: return false
+        val target = SkillPaths.resolveSkillFile(skillDir, relativePath) ?: return false
+        target.parentFile?.mkdirs()
+        target.writeText(content)
+        return true
+    }
+
+    fun saveSkillFilesAtomically(skillName: String, files: Map<String, String>): Boolean {
+        val skillsDir = getSkillsDir()
+        val targetDir = resolveSkillDir(skillName) ?: return false
+        val stagingDir = createTempSkillDir(skillsDir, skillName, "staging") ?: return false
+        var backupDir: File? = null
+
+        try {
+            for ((relativePath, content) in files) {
+                val target = SkillPaths.resolveSkillFile(stagingDir, relativePath) ?: return false
+                target.parentFile?.mkdirs()
+                target.writeText(content)
+            }
+
+            if (!stagingDir.resolve("SKILL.md").exists()) return false
+
+            if (targetDir.exists()) {
+                backupDir = createTempSkillDir(skillsDir, skillName, "backup") ?: return false
+                if (!targetDir.renameTo(backupDir)) return false
+            }
+
+            if (!stagingDir.renameTo(targetDir)) {
+                if (backupDir != null && !targetDir.exists()) {
+                    backupDir.renameTo(targetDir)
+                }
+                return false
+            }
+
+            backupDir?.deleteRecursively()
+            return true
+        } catch (e: Exception) {
+            Log.w(TAG, "saveSkillFilesAtomically: Failed to save $skillName", e)
+            if (backupDir != null && !targetDir.exists()) {
+                backupDir.renameTo(targetDir)
+            }
+            return false
+        } finally {
+            if (stagingDir.exists()) {
+                stagingDir.deleteRecursively()
+            }
+            if (backupDir?.exists() == true && targetDir.exists()) {
+                backupDir.deleteRecursively()
+            }
+        }
+    }
+
+    fun deleteSkillFile(skillName: String, relativePath: String): Boolean {
+        val skillDir = resolveSkillDir(skillName) ?: return false
+        val target = SkillPaths.resolveSkillFile(skillDir, relativePath) ?: return false
+        return target.delete()
+    }
+
+    fun resolveSkillFile(skillName: String, relativePath: String): File? {
+        val skillDir = resolveSkillDir(skillName) ?: return null
+        return SkillPaths.resolveSkillFile(skillDir, relativePath)
+    }
+
+    private fun resolveSkillDir(skillName: String): File? {
+        return SkillPaths.resolveSkillDir(getSkillsDir(), skillName)
+    }
+
+    private fun createTempSkillDir(skillsRoot: File, skillName: String, suffix: String): File? {
+        repeat(100) { attempt ->
+            val candidate = skillsRoot.resolve(".$skillName.$suffix.$attempt.tmp")
+            if (!candidate.exists() && candidate.mkdirs()) {
+                return candidate
+            }
+        }
+        return null
+    }
+
+    private fun parseSkillFile(skillFile: File, skillDir: File): SkillMetadata? {
+        return runCatching {
+            val content = skillFile.readText()
+            val frontmatter = SkillFrontmatterParser.parse(content)
+            val name = frontmatter["name"]?.takeIf { it.isNotBlank() }
+                ?: parsePluginManifest(skillDir)?.name?.takeIf { it.isNotBlank() }
+                ?: return null
+            val description = frontmatter["description"]?.takeIf { it.isNotBlank() }
+                ?: parsePluginManifest(skillDir)?.description?.takeIf { it.isNotBlank() }
+                ?: return null
+            // plugin.json 补充元数据
+            val plugin = parsePluginManifest(skillDir)
+            val commands = listCommands(skillDir)
+            // 自动发现子目录文件
+            val linked = discoverLinkedFiles(skillDir)
+            SkillMetadata(
+                name = name,
+                description = description,
+                compatibility = frontmatter["compatibility"],
+                allowedTools = frontmatter["allowed-tools"]?.split(" ")?.filter { it.isNotBlank() }?.toList()
+                    ?: plugin?.allowedTools ?: emptyList(),
+                triggers = frontmatter["triggers"]?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }?.toList()
+                    ?: plugin?.triggers ?: emptyList(),
+                category = frontmatter["category"] ?: plugin?.category,
+                injectPosition = frontmatter["inject_position"] ?: plugin?.injectPosition,
+                version = frontmatter["version"] ?: plugin?.version,
+                author = frontmatter["author"] ?: plugin?.author?.name,
+                linkedFiles = linked,
+                skillDir = skillDir,
+                commands = commands,
+            )
+        }.getOrElse {
+            Log.w(TAG, "parseSkillFile: Failed to parse ${skillFile.absolutePath}", it)
+            null
+        }
+    }
+
+    /**
+     * 扫描 skill 目录下的 references/ templates/ scripts/ assets/ 子目录，
+     * 返回 linked_files 映射。
+     */
+    private fun discoverLinkedFiles(skillDir: File): Map<String, List<String>> {
+        val result = mutableMapOf<String, List<String>>()
+        val subdirs = listOf("references", "templates", "scripts", "assets")
+        for (sub in subdirs) {
+            val dir = skillDir.resolve(sub)
+            if (!dir.isDirectory) continue
+            val files = dir.walkTopDown()
+                .filter { it.isFile }
+                .map { it.relativeTo(skillDir).path }
+                .toList()
+            if (files.isNotEmpty()) {
+                result[sub] = files
+            }
+        }
+        return result
+    }
+}
+
+data class SkillMetadata(
+    val name: String,
+    val description: String,
+    val compatibility: String? = null,
+    val allowedTools: List<String> = emptyList(),
+    val triggers: List<String> = emptyList(),          // 自动触发关键词
+    val category: String? = null,                      // 分类标签
+    val injectPosition: String? = null,                // before_system / after_system / in_chat
+    val version: String? = null,                       // 版本号
+    val author: String? = null,                        // 作者
+    val pinned: Boolean = false,                       // 固定保护，不可删除
+    val remoteUrl: String? = null,                     // 远程更新源 URL
+    val linkedFiles: Map<String, List<String>> = emptyMap(),
+    val commands: List<CommandFile> = emptyList(),
+    val skillDir: File,
+) {
+    val skillFile: File get() = skillDir.resolve("SKILL.md")
+}
+
+object SkillFrontmatterParser {
+    private val frontmatterEndRegex = Regex("""\r?\n---(?:\r?\n|$)""")
+
+    fun parse(content: String): Map<String, String> {
+        val result = mutableMapOf<String, String>()
+        if (!content.startsWith("---")) return result
+        val endRange = findFrontmatterEndRange(content) ?: return result
+        val yaml = content.substring(3, endRange.first).trim()
+        yaml.lines().forEach { line ->
+            val colonIdx = line.indexOf(':')
+            if (colonIdx > 0) {
+                val key = line.substring(0, colonIdx).trim()
+                val value = line.substring(colonIdx + 1).trim().removeSurrounding("\"")
+                if (key.isNotBlank() && value.isNotBlank()) {
+                    result[key] = value
+                }
+            }
+        }
+        return result
+    }
+
+    fun extractBody(content: String): String {
+        if (!content.startsWith("---")) return content
+        val endRange = findFrontmatterEndRange(content) ?: return content
+        return content.substring(endRange.last + 1).trimStart('\r', '\n')
+    }
+
+    private fun findFrontmatterEndRange(content: String): IntRange? {
+        if (!content.startsWith("---")) return null
+        return frontmatterEndRegex.find(content, startIndex = 3)?.range
+    }
+}

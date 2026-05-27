@@ -1,0 +1,79 @@
+package me.rerere.rikkahub.data.model
+
+import kotlinx.serialization.Serializable
+
+/**
+ * 酒馆角色卡结构化数据
+ * 从 V2/V3 spec 完整解析，不丢失任何字段
+ */
+@Serializable
+data class TavernCharacterData(
+    val spec: String = "",                          // "chara_card_v2" or "chara_card_v3"
+    val specVersion: String = "",                    // e.g. "3.0"
+    val name: String = "",
+    val description: String = "",
+    val personality: String = "",
+    val scenario: String = "",
+    val firstMessage: String = "",                   // 开场白
+    val alternateGreetings: List<String> = emptyList(), // 备选开场白
+    val mesExample: String = "",                     // 示例对话
+    val systemPrompt: String = "",                   // 系统提示词（角色卡原始system_prompt）
+    val creator: String = "",                        // 作者
+    val creatorNotes: String = "",                   // 作者备注
+    val characterVersion: String = "",               // 角色版本
+    val tags: List<String> = emptyList(),            // 文本标签
+    val postHistoryInstructions: String = "",        // 历史后指令
+    val extensions: Map<String, String> = emptyMap(), // V3 扩展字段
+    val assets: List<TavernAsset> = emptyList(),     // V3 资源引用
+    val groupOnlyGreetings: List<String> = emptyList(), // 群聊专用开场白
+    // 内嵌世界书
+    val embeddedBook: TavernEmbeddedBook? = null,
+)
+
+@Serializable
+data class TavernAsset(
+    val type: String = "",      // "image", "audio", etc.
+    val name: String = "",
+    val uri: String = "",       // asset URI
+    val ext: String = "",       // file extension
+)
+
+/**
+ * 内嵌世界书（character_book）
+ * 对齐酒馆 V2/V3 world book 格式
+ */
+@Serializable
+data class TavernEmbeddedBook(
+    val name: String = "",
+    val description: String = "",
+    val scanDepth: Int? = null,
+    val tokenBudget: Int? = null,
+    val recursiveScanning: Boolean? = null,
+    val extensions: Map<String, String> = emptyMap(),
+    val entries: List<TavernBookEntry> = emptyList(),
+)
+
+@Serializable
+data class TavernBookEntry(
+    val id: Int = 0,
+    val keys: List<String> = emptyList(),
+    val secondaryKeys: List<String> = emptyList(),
+    val comment: String = "",
+    val content: String = "",
+    val constant: Boolean = false,
+    val selective: Boolean = false,
+    val selectiveLogic: Int = 0,  // 0=AND, 1=OR, 2=NOT_ANY, 3=NOT_ALL
+    val group: String = "",
+    val position: Int = 1,        // 0=before_char, 1=after_char, 2=before_user, 3=after_user, 4=@D
+    val priority: Int = 100,      // order/priority, lower = higher
+    val disable: Boolean = false,
+    val caseSensitive: Boolean = false,
+    val useRegex: Boolean = false,
+    val probability: Int = 100,   // 0-100, 触发概率
+    val sticky: Boolean = false,  // 激活后持续
+    val cooldown: Int = 0,       // 冷却轮数
+    val delayUntil: Int = 0,     // 延迟到第N轮
+    val depth: Int = 4,          // @D 模式插入深度
+    val scanDepth: Int? = null,
+    val role: String = "system", // system/user/assistant
+)
