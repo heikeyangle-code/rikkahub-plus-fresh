@@ -34,6 +34,9 @@
 -dontwarn java.lang.management.ManagementFactory
 -dontwarn java.lang.management.RuntimeMXBean
 
+# keep Application class
+-keep class me.rerere.rikkahub.RikkaHubApp { *; }
+
 # java.beans is not available on Android; Jackson references it only on JVM
 -dontwarn java.beans.ConstructorProperties
 -dontwarn java.beans.Transient
