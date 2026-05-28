@@ -209,7 +209,7 @@ class SkillManager(
      */
     private fun discoverLinkedFiles(skillDir: File): Map<String, List<String>> {
         val result = mutableMapOf<String, List<String>>()
-        val subdirs = listOf("references", "templates", "scripts", "assets", "examples", "commands", "hooks", "agents", "evals")
+        val subdirs = listOf("references", "templates", "scripts", "assets", "examples", "hooks", "agents", "evals")
         for (sub in subdirs) {
             val dir = skillDir.resolve(sub)
             if (!dir.isDirectory) continue

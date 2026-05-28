@@ -72,7 +72,7 @@ object SkillAutoTriggerTransformer : InputMessageTransformer, KoinComponent {
         // After system
         afterSystem.forEach { skill ->
             val body = skillManager.readSkillBody(skill.name) ?: return@forEach
-            result.add(UIMessage.user("[Skill: ${skill.name}]\n$body"))
+            result.add(UIMessage.system("[Skill: ${skill.name}]\n$body"))
         }
 
         // Rest of messages

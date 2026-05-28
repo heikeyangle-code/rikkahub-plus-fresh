@@ -123,11 +123,98 @@ fun SkillDetailPage(skillName: String) {
                             if (skill.version != null) {
                                 SuggestionChip(onClick = {}, label = { Text("v${skill.version}") })
                             }
-                            val totalFiles = skill.linkedFiles.values.sumOf { it.size }
-                            if (totalFiles > 0) {
-                                SuggestionChip(onClick = {}, label = { Text("📎 $totalFiles 文件") })
-                            }
-                        }
+    val totalFiles = skill.linkedFiles.values.sumOf { it.size }
+    if (totalFiles > 0) {
+        SuggestionChip(onClick = {}, label = { Text("📎 $totalFiles 文件") })
+    }
+}
+
+// 命令列表
+if (skill.commands.isNotEmpty()) {
+    Spacer(Modifier.height(6.dp))
+    Text(
+        "斜杠命令",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.primary,
+    )
+    skill.commands.forEach { cmd ->
+        Row(
+            modifier = Modifier.padding(top = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "/${cmd.name}",
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            if (cmd.argumentHint.isNotBlank()) {
+                Text(
+                    cmd.argumentHint,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+// 工具权限
+if (skill.allowedTools.isNotEmpty()) {
+    Spacer(Modifier.height(4.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        skill.allowedTools.forEach { tool ->
+            SuggestionChip(
+                onClick = {},
+                label = { Text(tool, style = MaterialTheme.typography.labelSmall) },
+                shape = RoundedCornerShape(4.dp),
+            )
+        }
+    }
+}
+
+// 技能属性标签
+Spacer(Modifier.height(4.dp))
+Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    if (skill.userInvocable) {
+        SuggestionChip(onClick = {}, label = { Text("可手动调用") })
+    }
+    if (skill.disableModelInvocation) {
+        SuggestionChip(onClick = {}, label = { Text("不调模型") })
+    }
+    if (skill.injectPosition != null) {
+        SuggestionChip(onClick = {}, label = { Text("注入: ${skill.injectPosition}") })
+    }
+}
+
+// MCP 服务器
+if (skill.mcpServers.isNotEmpty()) {
+    Spacer(Modifier.height(8.dp))
+    Text(
+        "MCP 服务器",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.primary,
+    )
+    skill.mcpServers.forEach { server ->
+        Row(
+            modifier = Modifier.padding(top = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                server.name,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+            )
+            Text(
+                "[${server.transport}]",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
                         if (skill.triggers.isNotEmpty()) {
                             Spacer(Modifier.height(4.dp))
                             Text(
