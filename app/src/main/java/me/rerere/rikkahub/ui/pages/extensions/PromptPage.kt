@@ -28,13 +28,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -47,10 +50,12 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,6 +68,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -84,6 +90,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -955,9 +962,10 @@ private fun LorebookEditSheet(
                 }
 
                 // 有分组的组
-                namedGroups.forEach { (groupName, groupEntries) ->
+                namedGroups.toList().forEachIndexed { idx, (groupName, groupEntries) ->
                     LorebookGroupSection(
                         groupName = groupName,
+                        groupIndex = idx,
                         entries = groupEntries,
                         onGroupSettings = {
                             groupEditState.open(Pair(groupName, groupEntries))
@@ -980,11 +988,16 @@ private fun LorebookEditSheet(
 
                 // 无分组的条目
                 if (ungroupedEntries.isNotEmpty()) {
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
                     Text(
                         text = stringResource(R.string.prompt_page_no_group),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                     )
                     ungroupedEntries.forEach { entry ->
                         RegexInjectionEntryCard(
@@ -1083,13 +1096,26 @@ private fun RegexInjectionEntryCard(
     var editNameValue by remember { mutableStateOf(entry.name) }
     var newKeyword by remember { mutableStateOf("") }
 
-    Card(
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.elevatedCardColors(
             containerColor = CustomColors.listItemColors.containerColor
-        )
+        ),
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            // 左侧 4dp 彩色装饰线
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(12.dp)
+            ) {
             // 第一行：名称 + 启用开关 + 操作按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1148,34 +1174,85 @@ private fun RegexInjectionEntryCard(
                 )
             }
 
-            // 添加触发词
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = newKeyword,
-                    onValueChange = { if (it.length <= 20) newKeyword = it },
-                    modifier = Modifier.weight(1f).height(32.dp),
-                    textStyle = MaterialTheme.typography.bodySmall,
-                    singleLine = true,
-                    placeholder = { Text("+") },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                    ),
-                )
-                if (newKeyword.isNotBlank()) {
-                    IconButton(onClick = {
-                        onUpdate(entry.copy(keywords = entry.keywords + newKeyword.trim()))
-                        newKeyword = ""
-                    }, modifier = Modifier.size(28.dp)) {
-                        Icon(HugeIcons.Add01, null, modifier = Modifier.size(14.dp))
+            // 注入内容预览（可展开编辑）
+            var contentExpanded by remember { mutableStateOf(false) }
+            var editContent by remember(entry.content) { mutableStateOf(entry.content) }
+            Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                if (contentExpanded) {
+                    OutlinedTextField(
+                        value = editContent,
+                        onValueChange = { editContent = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 80.dp, max = 200.dp),
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        ),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        TextButton(
+                            onClick = {
+                                contentExpanded = false
+                                editContent = entry.content
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            Text(stringResource(R.string.prompt_page_cancel), style = MaterialTheme.typography.labelSmall)
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        TextButton(
+                            onClick = {
+                                onUpdate(entry.copy(content = editContent))
+                                contentExpanded = false
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            Text(stringResource(R.string.prompt_page_confirm), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                } else if (entry.content.isNotBlank()) {
+                    Surface(
+                        onClick = { contentExpanded = true; editContent = entry.content },
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = entry.content.lines().take(3).joinToString("\n")
+                                .let { if (it.length < entry.content.length) "$it…" else it },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(10.dp),
+                        )
+                    }
+                } else {
+                    Surface(
+                        onClick = { contentExpanded = true },
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.prompt_page_add_content),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(10.dp),
+                        )
                     }
                 }
             }
         }
     }
+}
+
 }
 
 @Composable
@@ -1187,12 +1264,20 @@ private fun LorebookGroupSection(
     onDeleteEntry: (PromptInjection.RegexInjection) -> Unit,
     onUpdateEntry: (PromptInjection.RegexInjection) -> Unit,
     onAddEntry: () -> Unit,
+    groupIndex: Int = 0,
 ) {
     var expanded by rememberSaveable(groupName) { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
         animationSpec = tween(200),
     )
+
+    val folderColors = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.tertiary,
+        MaterialTheme.colorScheme.secondary,
+    )
+    val folderColor = folderColors[groupIndex % folderColors.size]
 
     Column(
         modifier = Modifier
@@ -1212,7 +1297,7 @@ private fun LorebookGroupSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1227,20 +1312,25 @@ private fun LorebookGroupSection(
                 Icon(
                     HugeIcons.Folder01,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                    tint = folderColor,
                 )
                 Text(
                     text = groupName,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.weight(1f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Tag(type = TagType.INFO) {
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                ) {
                     Text(
-                        stringResource(R.string.prompt_page_entries_count_format, entries.size),
+                        "${entries.size}",
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
                         style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
                 IconButton(onClick = onGroupSettings, modifier = Modifier.size(28.dp)) {
