@@ -204,7 +204,7 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             modifier = Modifier.padding(horizontal = 14.dp),
                         )
-                        EditableField("开场白", tav.firstMessage) { v ->
+                        EditableField("开场白", tav.firstMessage, previewLines = 1) { v ->
                             val newTav = tav.copy(firstMessage = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
@@ -344,11 +344,12 @@ private fun EditableField(
     label: String,
     value: String,
     onSave: (String) -> Unit,
+    previewLines: Int = 3,
 ) {
     if (value.isBlank()) return
     var expanded by remember { mutableStateOf(false) }
     var editText by remember(value) { mutableStateOf(value) }
-    val previewLines = 3
+    val previewLinesVal = previewLines
 
     Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) {
         Row(
@@ -400,11 +401,11 @@ private fun EditableField(
             }
         } else {
             Text(
-                text = value.lines().take(previewLines).joinToString("\n")
+                text = value.lines().take(previewLinesVal).joinToString("\n")
                     .let { if (it.length < value.length) "$it…" else it },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-                maxLines = previewLines,
+                maxLines = previewLinesVal,
                 overflow = TextOverflow.Ellipsis,
             )
         }

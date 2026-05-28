@@ -375,7 +375,8 @@ private fun ChatPageContent(
                         if (currentChatModel == null) {
                             toaster.show("请先选择模型", type = ToastType.Error)
                         } else {
-                            vm.handleMessageSend(inputState.messageContent)
+                            vm.handleMessageSend(inputState.getContents())
+                            inputState.clearInput()
                         }
                     },
                     onLongSendClick = { },
@@ -433,32 +434,24 @@ private fun TopBar(
     val scope = rememberCoroutineScope()
     TopAppBar(
         title = {
-            var editingTitle by remember { mutableStateOf(false) }
-            var titleText by remember { mutableStateOf(conversation.title) }
-
-            if (editingTitle) {
-                OutlinedTextField(
-                    value = titleText,
-                    onValueChange = { titleText = it },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = MaterialTheme.typography.titleMedium,
-                )
-            } else {
+            Column {
+                val assistant = settings.getCurrentAssistant()
+                val model = settings.getCurrentChatModel()
+                val provider = model?.findProvider(providers = settings.providers, checkOverwrite = false)
                 Text(
-                    text = conversation.title.ifBlank { "Chat" },
+                    text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { editingTitle = true },
+                    style = MaterialTheme.typography.bodyMedium,
                 )
-            }
-
-            LaunchedEffect(editingTitle) {
-                if (!editingTitle && titleText != conversation.title && titleText.isNotBlank()) {
-                    onUpdateTitle(titleText)
+                if (model != null && provider != null) {
+                    Text(
+                        text = "${assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${model.displayName} (${provider.name})",
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                        color = LocalContentColor.current.copy(alpha = 0.65f),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
                 }
             }
         },
