@@ -55,6 +55,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -961,7 +962,7 @@ private fun LorebookEditSheet(
                 }
 
                 // 有分组的组
-                namedGroups.forEachIndexed { idx, (groupName, groupEntries) ->
+                namedGroups.toList().forEachIndexed { idx, (groupName, groupEntries) ->
                     LorebookGroupSection(
                         groupName = groupName,
                         groupIndex = idx,
