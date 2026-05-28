@@ -17,6 +17,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("me.rerere.rikkahub.plus", appContext.packageName)
+        assertEquals("me.rerere.rikkahub", appContext.packageName)
     }
 }
