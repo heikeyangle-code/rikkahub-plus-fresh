@@ -108,6 +108,7 @@ fun ChatMessage(
     lastMessage: Boolean = false,
     onFork: () -> Unit,
     onRegenerate: () -> Unit,
+    onImpersonate: (() -> Unit)? = null,
     onEdit: () -> Unit,
     onShare: () -> Unit,
     onDelete: () -> Unit,
@@ -197,6 +198,7 @@ fun ChatMessage(
                 ChatMessageActionButtons(
                     message = message,
                     onRegenerate = onRegenerate,
+                    onImpersonate = onImpersonate,
                     node = node,
                     onUpdate = onUpdate,
                     onOpenActionSheet = {

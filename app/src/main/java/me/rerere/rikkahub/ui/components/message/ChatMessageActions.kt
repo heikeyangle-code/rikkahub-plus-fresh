@@ -52,6 +52,7 @@ import me.rerere.hugeicons.stroke.StopCircle
 import me.rerere.hugeicons.stroke.TextSelection
 import me.rerere.hugeicons.stroke.Translate
 import me.rerere.hugeicons.stroke.VolumeHigh
+import me.rerere.hugeicons.stroke.ArrowRight01
 import me.rerere.hugeicons.stroke.WebDesign01
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.model.MessageNode
@@ -69,6 +70,7 @@ fun ColumnScope.ChatMessageActionButtons(
     node: MessageNode,
     onUpdate: (MessageNode) -> Unit,
     onRegenerate: () -> Unit,
+    onImpersonate: (() -> Unit)? = null,
     onOpenActionSheet: () -> Unit,
     onTranslate: ((UIMessage, Locale) -> Unit)? = null,
     onClearTranslation: (UIMessage) -> Unit = {},
@@ -151,6 +153,24 @@ fun ColumnScope.ChatMessageActionButtons(
                     .size(16.dp),
                 tint = if (isAvailable) actionIconColor else actionIconColor.copy(alpha = 0.38f)
             )
+
+            // 冒充按钮
+            if (onImpersonate != null) {
+                Icon(
+                    imageVector = HugeIcons.ArrowRight01,
+                    contentDescription = stringResource(R.string.impersonate),
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = LocalIndication.current,
+                            onClick = onImpersonate
+                        )
+                        .padding(8.dp)
+                        .size(16.dp),
+                    tint = actionIconColor,
+                )
+            }
 
             // Translation button
             if (onTranslate != null) {
