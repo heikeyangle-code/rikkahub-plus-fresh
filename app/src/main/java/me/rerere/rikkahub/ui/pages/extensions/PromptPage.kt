@@ -53,7 +53,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilledTonalChip
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.HorizontalFloatingToolbar
@@ -993,19 +992,13 @@ private fun LorebookEditSheet(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.7f),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Column(modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)) {
-                            Text(
-                                text = stringResource(R.string.prompt_page_no_group),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            )
-                            ungroupedEntries.forEach { entry ->
+                    Text(
+                        text = stringResource(R.string.prompt_page_no_group),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    )
+                    ungroupedEntries.forEach { entry ->
                         RegexInjectionEntryCard(
                             entry = entry,
                             onEdit = { entryEditState.open(entry) },
@@ -1019,8 +1012,6 @@ private fun LorebookEditSheet(
                                 }
                             },
                         )
-                    }
-                        }
                     }
                 }
 
@@ -1202,7 +1193,7 @@ private fun RegexInjectionEntryCard(
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                         horizontalArrangement = Arrangement.End,
-                        horizontalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         TextButton(
                             onClick = {
@@ -1328,11 +1319,17 @@ private fun LorebookGroupSection(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                FilledTonalChip(
-                    onClick = {},
-                    label = { Text("${entries.size}", style = MaterialTheme.typography.labelSmall) },
-                    modifier = Modifier.height(24.dp),
-                )
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                ) {
+                    Text(
+                        "${entries.size}",
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
                 IconButton(onClick = onGroupSettings, modifier = Modifier.size(28.dp)) {
                     Icon(HugeIcons.Tools, null, modifier = Modifier.size(16.dp))
                 }
