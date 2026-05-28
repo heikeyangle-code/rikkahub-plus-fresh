@@ -125,7 +125,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
             )
             val response = client.newCall(request).await()
             if (response.isSuccessful) {
-                val body = response.body?.string() ?: error("empty body")
+                val body = response.body!!.string() ?: error("empty body")
                 Log.d(TAG, "listModels: $body")
                 val bodyObject = json.parseToJsonElement(body).jsonObject
                 val models = bodyObject["models"]?.jsonArray ?: return@withContext emptyList()
@@ -182,10 +182,10 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
 
         val response = client.newCall(request).await()
         if (!response.isSuccessful) {
-            throw Exception("Failed to get response: ${response.code} ${response.body?.string()}")
+            throw Exception("Failed to get response: ${response.code} ${response.body!!.string()}")
         }
 
-        val bodyStr = response.body?.string() ?: ""
+        val bodyStr = response.body!!.string() ?: ""
         val bodyJson = json.parseToJsonElement(bodyStr).jsonObject
 
         val candidates = bodyJson["candidates"]!!.jsonArray
@@ -306,7 +306,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
 
                 try {
                     if (t == null && response != null) {
-                        val bodyStr = response.body?.stringSafe()
+                        val bodyStr = response.body!!.stringSafe()
                         if (!bodyStr.isNullOrEmpty()) {
                             val bodyElement = json.parseToJsonElement(bodyStr)
                             println(bodyElement)
@@ -796,10 +796,10 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
 
         val response = client.newCall(request).await()
         if (!response.isSuccessful) {
-            error("Failed to generate image: ${response.code} ${response.body?.string()}")
+            error("Failed to generate image: ${response.code} ${response.body!!.string()}")
         }
 
-        val bodyStr = response.body?.string()
+        val bodyStr = response.body!!.string()
         val bodyJson = json.parseToJsonElement(bodyStr).jsonObject
 
         val predictions = bodyJson["predictions"]?.jsonArray ?: error("No predictions in response")

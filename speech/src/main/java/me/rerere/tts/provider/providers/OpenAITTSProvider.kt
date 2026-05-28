@@ -51,7 +51,7 @@ class OpenAITTSProvider : TTSProvider<TTSProviderSetting.OpenAI> {
             throw Exception("TTS request failed: ${response.code} ${response.message}")
         }
 
-        val audioData = response.body?.bytes()
+        val audioData = response.body!!.bytes()
 
         emit(
             AudioChunk(

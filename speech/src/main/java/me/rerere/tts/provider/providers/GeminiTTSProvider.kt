@@ -99,7 +99,7 @@ class GeminiTTSProvider : TTSProvider<TTSProviderSetting.Gemini> {
             throw Exception("Gemini TTS request failed: ${response.code} ${response.message}")
         }
 
-        val responseJson = response.body?.string()
+        val responseJson = response.body!!.string()
         val geminiResponse = json.decodeFromString<GeminiTTSResponse>(responseJson)
 
         if (geminiResponse.candidates.isEmpty() ||
