@@ -20,8 +20,6 @@ android {
     defaultConfig {
         applicationId = "me.rerere.rikkahub"
         minSdk = 26
-        multiDexEnabled = true
-        multiDexKeepProguard = file("multidex-keep.pro")
         targetSdk = 37
         versionCode = 162
         versionName = "2.2.6"
