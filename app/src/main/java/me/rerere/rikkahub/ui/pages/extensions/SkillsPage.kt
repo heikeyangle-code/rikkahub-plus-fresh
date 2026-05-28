@@ -196,11 +196,22 @@ fun SkillsPage() {
 
             // 已安装
             item {
-                Text(
-                    "📦 已安装",
-                    style = MaterialTheme.typography.titleSmall,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
-                )
+                ) {
+                    Icon(
+                        HugeIcons.Puzzle,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "已安装",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                }
             }
 
             items(skills, key = { it.name }) { skill ->
