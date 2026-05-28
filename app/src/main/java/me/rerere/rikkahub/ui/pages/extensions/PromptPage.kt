@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -49,8 +50,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalChip
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.HorizontalFloatingToolbar
@@ -87,6 +90,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -958,9 +962,10 @@ private fun LorebookEditSheet(
                 }
 
                 // 有分组的组
-                namedGroups.forEach { (groupName, groupEntries) ->
+                namedGroups.forEachIndexed { idx, (groupName, groupEntries) ->
                     LorebookGroupSection(
                         groupName = groupName,
+                        groupIndex = idx,
                         entries = groupEntries,
                         onGroupSettings = {
                             groupEditState.open(Pair(groupName, groupEntries))
@@ -983,13 +988,24 @@ private fun LorebookEditSheet(
 
                 // 无分组的条目
                 if (ungroupedEntries.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.prompt_page_no_group),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(vertical = 8.dp),
                     )
-                    ungroupedEntries.forEach { entry ->
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.7f),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)) {
+                            Text(
+                                text = stringResource(R.string.prompt_page_no_group),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            )
+                            ungroupedEntries.forEach { entry ->
                         RegexInjectionEntryCard(
                             entry = entry,
                             onEdit = { entryEditState.open(entry) },
@@ -1003,6 +1019,8 @@ private fun LorebookEditSheet(
                                 }
                             },
                         )
+                    }
+                        }
                     }
                 }
 
@@ -1086,13 +1104,26 @@ private fun RegexInjectionEntryCard(
     var editNameValue by remember { mutableStateOf(entry.name) }
     var newKeyword by remember { mutableStateOf("") }
 
-    Card(
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.elevatedCardColors(
             containerColor = CustomColors.listItemColors.containerColor
-        )
+        ),
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            // 左侧 4dp 彩色装饰线
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(12.dp)
+            ) {
             // 第一行：名称 + 启用开关 + 操作按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1239,12 +1270,20 @@ private fun LorebookGroupSection(
     onDeleteEntry: (PromptInjection.RegexInjection) -> Unit,
     onUpdateEntry: (PromptInjection.RegexInjection) -> Unit,
     onAddEntry: () -> Unit,
+    groupIndex: Int = 0,
 ) {
     var expanded by rememberSaveable(groupName) { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
         animationSpec = tween(200),
     )
+
+    val folderColors = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.tertiary,
+        MaterialTheme.colorScheme.secondary,
+    )
+    val folderColor = folderColors[groupIndex % folderColors.size]
 
     Column(
         modifier = Modifier
@@ -1264,7 +1303,7 @@ private fun LorebookGroupSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1279,22 +1318,21 @@ private fun LorebookGroupSection(
                 Icon(
                     HugeIcons.Folder01,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                    tint = folderColor,
                 )
                 Text(
                     text = groupName,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.weight(1f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Tag(type = TagType.INFO) {
-                    Text(
-                        stringResource(R.string.prompt_page_entries_count_format, entries.size),
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
+                FilledTonalChip(
+                    onClick = {},
+                    label = { Text("${entries.size}", style = MaterialTheme.typography.labelSmall) },
+                    modifier = Modifier.height(24.dp),
+                )
                 IconButton(onClick = onGroupSettings, modifier = Modifier.size(28.dp)) {
                     Icon(HugeIcons.Tools, null, modifier = Modifier.size(16.dp))
                 }
