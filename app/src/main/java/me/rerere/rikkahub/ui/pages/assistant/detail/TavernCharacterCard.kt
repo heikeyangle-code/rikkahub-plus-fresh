@@ -1,5 +1,4 @@
 package me.rerere.rikkahub.ui.pages.assistant.detail
-
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 import androidx.compose.animation.*
