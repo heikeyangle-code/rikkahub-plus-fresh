@@ -612,9 +612,9 @@ private fun EntryEditor(
         if (showAdvanced) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    KeywordInput("优先级 (order)", priority) { priority = it }
-                    KeywordInput("深度 (depth)", depth) { depth = it }
-                    KeywordInput("冷却 (cooldown)", cooldown) { cooldown = it }
+                    KeywordInput("优先级 (order)", priority, modifier = Modifier.weight(1f)) { priority = it }
+                    KeywordInput("深度 (depth)", depth, modifier = Modifier.weight(1f)) { depth = it }
+                    KeywordInput("冷却 (cooldown)", cooldown, modifier = Modifier.weight(1f)) { cooldown = it }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected = sticky, onClick = { sticky = !sticky },
@@ -634,12 +634,11 @@ private fun EntryEditor(
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text("组权重", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        KeywordInput("", groupWeight) { groupWeight = it }
+                        KeywordInput("", groupWeight, modifier = Modifier.weight(1f)) { groupWeight = it }
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text("扫描深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        var scanDepthStr by remember(entry) { mutableStateOf(entry.scanDepth.toString()) }
-                        KeywordInput("", scanDepthStr) { scanDepthStr = it }
+                        KeywordInput("", scanDepthStr, modifier = Modifier.weight(1f)) { scanDepthStr = it }
                     }
                 }
                 Text("角色 (role)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -709,8 +708,8 @@ private fun EntryEditor(
 }
 
 @Composable
-private fun KeywordInput(label: String, value: String, onValueChange: (String) -> Unit) {
-    Column {
+private fun KeywordInput(label: String, value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
         if (label.isNotBlank()) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
