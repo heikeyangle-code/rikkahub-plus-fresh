@@ -463,6 +463,7 @@ private fun EntryEditor(
     var groupStr by remember(entry) { mutableStateOf(entry.group) }
     var groupWeight by remember(entry) { mutableStateOf(entry.groupWeight.toString()) }
     var groupOverride by remember(entry) { mutableStateOf(entry.groupOverride) }
+    var scanDepthStr by remember(entry) { mutableStateOf(entry.scanDepth.toString()) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // 顶部：标题 + 收起
@@ -529,7 +530,7 @@ private fun EntryEditor(
         }
 
         // 概率 + 位置
-        Row {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("触发概率", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Slider(
@@ -540,10 +541,15 @@ private fun EntryEditor(
                 )
                 Text("${probability.toInt()}%", style = MaterialTheme.typography.labelSmall)
             }
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text("位置 (position)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                val posOptions = listOf("角色前", "角色后", "用户前", "用户后", "@D深度")
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                // 用 FlowRow 自动换行
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    val posOptions = listOf("角色前", "角色后", "用户前", "用户后", "@D深度")
                     posOptions.forEachIndexed { i, label ->
                         FilterChip(
                             selected = position == i,
@@ -572,12 +578,12 @@ private fun EntryEditor(
         }
         if (showAdvanced) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     KeywordInput("优先级 (order)", priority) { priority = it }
                     KeywordInput("深度 (depth)", depth) { depth = it }
                     KeywordInput("冷却 (cooldown)", cooldown) { cooldown = it }
                 }
-                Row {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected = sticky, onClick = { sticky = !sticky },
                         label = { Text("粘性", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = caseSensitive, onClick = { caseSensitive = !caseSensitive },
@@ -587,7 +593,7 @@ private fun EntryEditor(
                     FilterChip(selected = groupOverride, onClick = { groupOverride = !groupOverride },
                         label = { Text("覆盖同组", style = MaterialTheme.typography.labelSmall) })
                 }
-                Row {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("分组 (group)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = groupStr, onValueChange = { groupStr = it },
@@ -596,6 +602,11 @@ private fun EntryEditor(
                     Column(modifier = Modifier.weight(1f)) {
                         Text("组权重", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         KeywordInput("", groupWeight) { groupWeight = it }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("扫描深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        var scanDepthStr by remember(entry) { mutableStateOf(entry.scanDepth.toString()) }
+                        KeywordInput("", scanDepthStr) { scanDepthStr = it }
                     }
                 }
                 Text("角色 (role)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -609,15 +620,21 @@ private fun EntryEditor(
                         )
                     }
                 }
-                Row {
-                    Text("seletiveLogic", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    val logicLabels = listOf("AND", "OR", "NOT_ANY", "NOT_ALL")
-                    logicLabels.forEachIndexed { i, label ->
-                        FilterChip(
-                            selected = selectiveLogic == i,
-                            onClick = { selectiveLogic = i },
-                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                        )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("seletiveLogic", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                         modifier = Modifier.padding(end = 8.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        val logicLabels = listOf("AND", "OR", "NOT_ANY", "NOT_ALL")
+                        logicLabels.forEachIndexed { i, label ->
+                            FilterChip(
+                                selected = selectiveLogic == i,
+                                onClick = { selectiveLogic = i },
+                                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                            )
+                        }
                     }
                 }
             }

@@ -50,7 +50,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.rerere.rikkahub.R
@@ -245,15 +247,17 @@ private fun ExportCardDialog(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
+    // 独立于对话框的 scope（对话框关闭后仍可执行导出）
+    val exportScope = remember { CoroutineScope(Dispatchers.Main + SupervisorJob()) }
 
     // 头像选取（当没有头像时手动选）
     val pngImagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { pickedUri: Uri? ->
         if (pickedUri == null) return@rememberLauncherForActivityResult
-        doPngExport(context, scope, toaster, assistant, pickedUri, onDismiss)
+        onDismiss()
+        doPngExportInternal(context, exportScope, toaster, assistant, pickedUri)
     }
 
     // 已设头像的 URI
@@ -270,7 +274,8 @@ private fun ExportCardDialog(
                 Text("导出到「下载」文件夹：", style = MaterialTheme.typography.bodyMedium)
                 TextButton(
                     onClick = {
-                        scope.launch {
+                        onDismiss()
+                        exportScope.launch {
                             try {
                                 val json = CardExporter.buildV3CardJson(assistant)
                                 val fileName = "RikkaHub_${assistant.name.replace(" ", "_")}_${System.currentTimeMillis()}.json"
@@ -280,7 +285,6 @@ private fun ExportCardDialog(
                                 toaster.show("导出失败: ${e.message}")
                             }
                         }
-                        onDismiss()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -289,10 +293,9 @@ private fun ExportCardDialog(
                 TextButton(
                     onClick = {
                         if (avatarUri != null) {
-                            // 有头像 → 直接用
-                            doPngExport(context, scope, toaster, assistant, avatarUri, onDismiss)
+                            onDismiss()
+                            doPngExportInternal(context, exportScope, toaster, assistant, avatarUri)
                         } else {
-                            // 没头像 → 选图片
                             pngImagePicker.launch("image/*")
                         }
                     },
@@ -310,13 +313,12 @@ private fun ExportCardDialog(
     )
 }
 
-private fun doPngExport(
+private fun doPngExportInternal(
     context: Context,
-    scope: kotlinx.coroutines.CoroutineScope,
+    scope: CoroutineScope,
     toaster: com.dokar.sonner.ToasterState,
     assistant: Assistant,
     imageUri: Uri,
-    onDismiss: () -> Unit,
 ) {
     scope.launch {
         try {
@@ -329,7 +331,6 @@ private fun doPngExport(
         } catch (e: Exception) {
             toaster.show("导出失败: ${e.message}")
         }
-        onDismiss()
     }
 }
 
