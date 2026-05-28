@@ -464,6 +464,9 @@ private fun EntryEditor(
     var groupWeight by remember(entry) { mutableStateOf(entry.groupWeight.toString()) }
     var groupOverride by remember(entry) { mutableStateOf(entry.groupOverride) }
     var scanDepthStr by remember(entry) { mutableStateOf(entry.scanDepth.toString()) }
+    var keysStr by remember(entry) { mutableStateOf(entry.keys.joinToString(", ")) }
+    var secondaryKeysStr by remember(entry) { mutableStateOf(entry.secondaryKeys.joinToString(", ")) }
+    var commentStr by remember(entry) { mutableStateOf(entry.comment) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // 顶部：标题 + 收起
@@ -481,7 +484,7 @@ private fun EntryEditor(
             }
         }
 
-        // 启用开关
+        // 启用开关 + 名称
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(
                 shape = RoundedCornerShape(4.dp),
@@ -499,21 +502,19 @@ private fun EntryEditor(
                 )
             }
             Spacer(Modifier.width(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { constant = !constant }) {
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = if (constant) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                    else MaterialTheme.colorScheme.surface,
-                ) {
-                    Text(
-                        text = if (constant) "🔵 常驻" else "⚪ 非常驻",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (constant) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = if (constant) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                else MaterialTheme.colorScheme.surface,
+                modifier = Modifier.clickable { constant = !constant },
+            ) {
+                Text(
+                    text = if (constant) "🔵 常驻" else "⚪ 非常驻",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (constant) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             Spacer(Modifier.width(8.dp))
             Surface(
@@ -527,6 +528,38 @@ private fun EntryEditor(
                     style = MaterialTheme.typography.labelSmall,
                 )
             }
+        }
+
+        // 条目名称
+        Text("名称 (comment)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedTextField(
+            value = commentStr,
+            onValueChange = { commentStr = it },
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = MaterialTheme.typography.bodySmall,
+            singleLine = true,
+        )
+
+        // 触发关键词
+        Text("主关键词 (keys, 逗号分隔)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedTextField(
+            value = keysStr,
+            onValueChange = { keysStr = it },
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = MaterialTheme.typography.bodySmall,
+            singleLine = true,
+        )
+
+        // 次级关键词
+        if (selective) {
+            Text("次级关键词 (secondary_keys, 逗号分隔)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(
+                value = secondaryKeysStr,
+                onValueChange = { secondaryKeysStr = it },
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = MaterialTheme.typography.bodySmall,
+                singleLine = true,
+            )
         }
 
         // 概率 + 位置
@@ -656,11 +689,15 @@ private fun EntryEditor(
                     sticky = sticky,
                     cooldown = cooldown.toIntOrNull() ?: 0,
                     depth = depth.toIntOrNull() ?: 4,
+                    scanDepth = scanDepthStr.toIntOrNull() ?: 1000,
                     caseSensitive = caseSensitive,
                     useRegex = useRegex,
                     group = groupStr,
                     groupWeight = groupWeight.toIntOrNull() ?: 100,
                     groupOverride = groupOverride,
+                    keys = keysStr.split(",").map { it.trim() }.filter { it.isNotBlank() },
+                    secondaryKeys = secondaryKeysStr.split(",").map { it.trim() }.filter { it.isNotBlank() },
+                    comment = commentStr,
                 ))
                 onCollapse()
             },
