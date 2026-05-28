@@ -67,6 +67,7 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -1078,11 +1079,8 @@ private fun RegexInjectionEntryCard(
     onDelete: () -> Unit,
     onUpdate: (PromptInjection.RegexInjection) -> Unit = {},
 ) {
-    var expanded by remember { mutableStateOf(false) }
     var editingName by remember { mutableStateOf(false) }
     var editNameValue by remember { mutableStateOf(entry.name) }
-    var newKeyword by remember { mutableStateOf("") }
-    val showAllKeys = expanded || entry.keywords.size <= 4
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1090,7 +1088,7 @@ private fun RegexInjectionEntryCard(
             containerColor = CustomColors.listItemColors.containerColor
         )
     ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             // 第一行：名称 + 启用开关 + 操作按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1127,15 +1125,6 @@ private fun RegexInjectionEntryCard(
                     )
                 }
 
-                Spacer(Modifier.width(4.dp))
-
-                // 启用开关
-                Switch(
-                    checked = entry.enabled,
-                    onCheckedChange = { onUpdate(entry.copy(enabled = it)) },
-                    modifier = Modifier.height(24.dp),
-                )
-
                 IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
                     Icon(HugeIcons.Tools, stringResource(R.string.prompt_page_edit), modifier = Modifier.size(18.dp))
                 }
@@ -1144,78 +1133,44 @@ private fun RegexInjectionEntryCard(
                 }
             }
 
-            // 触发词（如果不够显示则折叠）
+            // 触发词（紧凑显示）
             if (entry.keywords.isNotEmpty() || entry.secondaryKeys.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    val displayKeys = if (showAllKeys) entry.keywords else entry.keywords.take(3)
-                    displayKeys.forEach { keyword ->
-                        InputChip(
-                            selected = false,
-                            onClick = {},
-                            label = { Text(keyword, style = MaterialTheme.typography.labelSmall) },
-                            trailingIcon = {
-                                IconButton(
-                                    onClick = { onUpdate(entry.copy(keywords = entry.keywords - keyword)) },
-                                    modifier = Modifier.size(14.dp)
-                                ) {
-                                    Icon(HugeIcons.Cancel01, null, modifier = Modifier.size(10.dp))
-                                }
-                            },
-                            modifier = Modifier.height(26.dp),
-                        )
-                    }
-                    if (!showAllKeys) {
-                        TextButton(
-                            onClick = { expanded = true },
-                            modifier = Modifier.height(26.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                        ) {
-                            Text("+${entry.keywords.size - 3}", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                    if (expanded && entry.keywords.size > 4) {
-                        TextButton(
-                            onClick = { expanded = false },
-                            modifier = Modifier.height(26.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                        ) {
-                            Text("收起", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                }
+                Text(
+                    text = entry.keywords.joinToString(", ").let {
+                        if (it.length > 100) it.take(100) + "…" else it
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
             }
 
-            // 添加关键词
+            // 添加触发词
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedTextField(
                     value = newKeyword,
-                    onValueChange = { newKeyword = it },
-                    placeholder = { Text("+ 触发词", style = MaterialTheme.typography.bodySmall) },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
+                    onValueChange = { if (it.length <= 20) newKeyword = it },
+                    modifier = Modifier.weight(1f).height(32.dp),
                     textStyle = MaterialTheme.typography.bodySmall,
+                    singleLine = true,
+                    placeholder = { Text("+") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    ),
                 )
-                IconButton(
-                    onClick = {
-                        if (newKeyword.isNotBlank()) {
-                            onUpdate(entry.copy(keywords = entry.keywords + newKeyword.trim()))
-                            newKeyword = ""
-                        }
-                    },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(HugeIcons.Add01, null, modifier = Modifier.size(16.dp))
+                if (newKeyword.isNotBlank()) {
+                    IconButton(onClick = {
+                        onUpdate(entry.copy(keywords = entry.keywords + newKeyword.trim()))
+                        newKeyword = ""
+                    }, modifier = Modifier.size(28.dp)) {
+                        Icon(HugeIcons.Add01, null, modifier = Modifier.size(14.dp))
+                    }
                 }
             }
         }
