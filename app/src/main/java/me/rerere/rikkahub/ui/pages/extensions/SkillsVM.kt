@@ -387,8 +387,9 @@ class SkillsVM(
 
     private fun downloadText(url: String): String? {
         val connection = URL(url).openConnection() as HttpURLConnection
-        connection.connectTimeout = 10_000
+        connection.connectTimeout = 15_000
         connection.readTimeout = 30_000
+        connection.setRequestProperty("User-Agent", "Rikkahub/1.0")
         connection.setRequestProperty("Accept", "application/vnd.github+json")
         return try {
             if (connection.responseCode == 200) connection.inputStream.bufferedReader().readText()

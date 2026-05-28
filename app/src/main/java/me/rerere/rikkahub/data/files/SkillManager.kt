@@ -182,8 +182,10 @@ class SkillManager(
                 name = name,
                 description = description,
                 compatibility = frontmatter["compatibility"],
-                allowedTools = frontmatter["allowed-tools"]?.split(" ")?.filter { it.isNotBlank() }?.toList()
+                allowedTools = frontmatter["allowed-tools"]?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }?.toList()
                     ?: plugin?.allowedTools ?: emptyList(),
+                userInvocable = frontmatter["user-invocable"]?.toBooleanStrictOrNull() ?: false,
+                disableModelInvocation = frontmatter["disable-model-invocation"]?.toBooleanStrictOrNull() ?: false,
                 triggers = frontmatter["triggers"]?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }?.toList()
                     ?: plugin?.triggers ?: emptyList(),
                 category = frontmatter["category"] ?: plugin?.category,
@@ -207,7 +209,7 @@ class SkillManager(
      */
     private fun discoverLinkedFiles(skillDir: File): Map<String, List<String>> {
         val result = mutableMapOf<String, List<String>>()
-        val subdirs = listOf("references", "templates", "scripts", "assets")
+        val subdirs = listOf("references", "templates", "scripts", "assets", "examples", "commands", "hooks", "agents", "evals")
         for (sub in subdirs) {
             val dir = skillDir.resolve(sub)
             if (!dir.isDirectory) continue
@@ -228,6 +230,8 @@ data class SkillMetadata(
     val description: String,
     val compatibility: String? = null,
     val allowedTools: List<String> = emptyList(),
+    val userInvocable: Boolean = false,          // 用户可主动调用（/skill name）
+    val disableModelInvocation: Boolean = false,  // 纯脚本不调模型
     val triggers: List<String> = emptyList(),          // 自动触发关键词
     val category: String? = null,                      // 分类标签
     val injectPosition: String? = null,                // before_system / after_system / in_chat
