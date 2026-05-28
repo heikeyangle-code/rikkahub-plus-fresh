@@ -241,8 +241,8 @@ fun PromptInjection.RegexInjection.isTriggered(context: String, activeSticky: Bo
         // 选择性模式：secondaryKeys 参与逻辑判定
         if (keywords.isEmpty() && secondaryKeys.isEmpty()) return false
 
-        val primaryMatches = keywords.map { keyMatches(it, context) }
-        val secondaryMatches = secondaryKeys.map { keyMatches(it, context) }
+        val primaryMatches = keywords.map { keyMatches(it, context, useRegex, caseSensitive) }
+        val secondaryMatches = secondaryKeys.map { keyMatches(it, context, useRegex, caseSensitive) }
         val allMatches = primaryMatches + secondaryMatches
 
         val anyPrimary = primaryMatches.any { it }
@@ -275,7 +275,7 @@ fun PromptInjection.RegexInjection.isTriggered(context: String, activeSticky: Bo
 }
 
 /** 单个关键词匹配 */
-private fun keyMatches(key: String, context: String): Boolean {
+private fun keyMatches(key: String, context: String, useRegex: Boolean, caseSensitive: Boolean): Boolean {
     return if (useRegex) {
         try {
             val options = if (caseSensitive) emptySet() else setOf(RegexOption.IGNORE_CASE)

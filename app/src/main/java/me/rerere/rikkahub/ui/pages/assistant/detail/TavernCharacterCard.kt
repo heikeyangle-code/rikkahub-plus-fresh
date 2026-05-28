@@ -343,7 +343,7 @@ private fun CollapsibleEntryCard(
                         if (entry.keys.isNotEmpty()) {
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                verticalSpacing = 2.dp,
                             ) {
                                 entry.keys.take(4).forEach { key ->
                                     SuggestionChip(
@@ -480,7 +480,7 @@ private fun EntryEditor(
         }
 
         // 概率 + 位置
-        Row(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row {
             Column(modifier = Modifier.weight(1f)) {
                 Text("触发概率", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Slider(
@@ -523,12 +523,12 @@ private fun EntryEditor(
         }
         if (showAdvanced) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row {
                     KeywordInput("优先级 (order)", priority) { priority = it }
                     KeywordInput("深度 (depth)", depth) { depth = it }
                     KeywordInput("冷却 (cooldown)", cooldown) { cooldown = it }
                 }
-                Row(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row {
                     FilterChip(selected = sticky, onClick = { sticky = !sticky },
                         label = { Text("粘性", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = caseSensitive, onClick = { caseSensitive = !caseSensitive },
@@ -538,7 +538,7 @@ private fun EntryEditor(
                     FilterChip(selected = groupOverride, onClick = { groupOverride = !groupOverride },
                         label = { Text("覆盖同组", style = MaterialTheme.typography.labelSmall) })
                 }
-                Row(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("分组 (group)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = groupStr, onValueChange = { groupStr = it },
@@ -552,15 +552,15 @@ private fun EntryEditor(
                 Text("角色 (role)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     val roleLabels = listOf("system", "user", "assistant")
-                    roleLabels.forEachIndexed { i, label ->
+                    roleLabels.forEachIndexed { _, label ->
                         FilterChip(
-                            selected = role == i,
-                            onClick = { role = i },
+                            selected = role == label,
+                            onClick = { role = label },
                             label = { Text(label, style = MaterialTheme.typography.labelSmall) },
                         )
                     }
                 }
-                Row(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row {
                     Text("seletiveLogic", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     val logicLabels = listOf("AND", "OR", "NOT_ANY", "NOT_ALL")
                     logicLabels.forEachIndexed { i, label ->
@@ -607,7 +607,7 @@ private fun EntryEditor(
 
 @Composable
 private fun KeywordInput(label: String, value: String, onValueChange: (String) -> Unit) {
-    Column(modifier = Modifier.weight(1f)) {
+    Column {
         if (label.isNotBlank()) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

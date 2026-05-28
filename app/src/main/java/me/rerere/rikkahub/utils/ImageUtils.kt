@@ -251,11 +251,12 @@ object ImageUtils {
             if (type == "tEXt" || type == "zTXt") {
                 // tEXt chunk data: keyword\0text
                 // 找 null 分隔符
-                val nullPos = bytes.indexOf(0, dataStart, dataEnd)
-                if (nullPos in dataStart until dataEnd) {
-                    val keyword = String(bytes, dataStart, nullPos - dataStart, StandardCharsets.ISO_8859_1)
+                val nullPos = bytes.copyOfRange(dataStart, dataEnd).indexOf(0.toByte())
+                if (nullPos >= 0) {
+                    val absNull = dataStart + nullPos
+                    val keyword = String(bytes, dataStart, nullPos, StandardCharsets.ISO_8859_1)
                     if (keyword.equals("chara", ignoreCase = true)) {
-                        val rawText = String(bytes, nullPos + 1, dataEnd - nullPos - 1, StandardCharsets.ISO_8859_1)
+                        val rawText = String(bytes, absNull + 1, dataEnd - absNull - 1, StandardCharsets.ISO_8859_1)
 
                         // 去掉 base64 前面的任何垃圾字节（SilveryTavern 也这样做）
                         val cleanB64 = rawText.trim()
