@@ -18,20 +18,21 @@ object CardExporter {
 
     /**
      * 将角色卡 JSON 嵌入到已有图片的 PNG tEXt chunk 中
+     * 直接读取原始 PNG 字节注入，不走 Bitmap 中转（避免流不支持 mark/reset 的问题）
      * 返回 PNG 字节数组
      */
     fun embedCardToPng(imageUri: Uri, context: Context, cardJson: String): ByteArray? {
-        val bitmap = try {
-            context.contentResolver.openInputStream(imageUri)?.use { stream ->
-                BitmapFactory.decodeStream(stream)
-            }
+        val pngBytes = try {
+            context.contentResolver.openInputStream(imageUri)?.use { it.readBytes() }
         } catch (_: Exception) { null } ?: return null
 
-        // 将 bitmap 转为 PNG 字节
-        val pngBytes = ByteArrayOutputStream().use { out ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-            out.toByteArray()
-        }
+        // 验证是有效 PNG（前 8 字节是 PNG 签名）
+        if (pngBytes.size < 8 ||
+            pngBytes[0] != 0x89.toByte() ||
+            pngBytes[1] != 0x50.toByte() || // P
+            pngBytes[2] != 0x4E.toByte() || // N
+            pngBytes[3] != 0x47.toByte()    // G
+        ) return null
 
         // 在 PNG 中注入 tEXt chunk
         return injectTextChunk(pngBytes, "chara", Base64.encodeToString(cardJson.toByteArray(), Base64.NO_WRAP))
