@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package me.rerere.rikkahub.ui.pages.assistant.detail
 
 import me.rerere.hugeicons.HugeIcons
@@ -9,7 +11,15 @@ import me.rerere.hugeicons.stroke.Message02
 import me.rerere.hugeicons.stroke.Settings03
 import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.hugeicons.stroke.Wrench01
+import android.content.ContentValues
 import android.content.Context
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,11 +50,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.files.FilesManager
 import me.rerere.rikkahub.data.model.Assistant
+import me.rerere.rikkahub.data.model.Avatar
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.UIAvatar
@@ -233,21 +246,35 @@ private fun ExportCardDialog(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
-    val filesManager: FilesManager = koinInject()
+
+    // 头像选取（当没有头像时手动选）
+    val pngImagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { pickedUri: Uri? ->
+        if (pickedUri == null) return@rememberLauncherForActivityResult
+        doPngExport(context, scope, toaster, assistant, pickedUri, onDismiss)
+    }
+
+    // 已设头像的 URI
+    val avatarUri = runCatching {
+        val url = (assistant.avatar as? Avatar.Image)?.url ?: return@runCatching null
+        url.toUri()
+    }.getOrNull()
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("导出角色卡") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("选择导出格式：", style = MaterialTheme.typography.bodyMedium)
+                Text("导出到「下载」文件夹：", style = MaterialTheme.typography.bodyMedium)
                 TextButton(
                     onClick = {
                         scope.launch {
                             try {
                                 val json = CardExporter.buildV3CardJson(assistant)
-                                val file = filesManager.createChatTextFile(json)
-                                toaster.show("已导出 JSON: ${file.fileName}")
+                                val fileName = "RikkaHub_${assistant.name.replace(" ", "_")}_${System.currentTimeMillis()}.json"
+                                saveToDownloads(context, fileName, "application/json", json.toByteArray())
+                                toaster.show("已导出 JSON: $fileName")
                             } catch (e: Exception) {
                                 toaster.show("导出失败: ${e.message}")
                             }
@@ -260,20 +287,19 @@ private fun ExportCardDialog(
                 }
                 TextButton(
                     onClick = {
-                        scope.launch {
-                            try {
-                                val json = CardExporter.buildV3CardJson(assistant)
-                                val file = filesManager.createChatTextFile(json)
-                                toaster.show("已导出 JSON (PNG嵌入需选头像): ${file.fileName}")
-                            } catch (e: Exception) {
-                                toaster.show("导出失败: ${e.message}")
-                            }
+                        if (avatarUri != null) {
+                            // 有头像 → 直接用
+                            doPngExport(context, scope, toaster, assistant, avatarUri, onDismiss)
+                        } else {
+                            // 没头像 → 选图片
+                            pngImagePicker.launch("image/*")
                         }
-                        onDismiss()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("🖼️ PNG 嵌入")
+                    val label = if (avatarUri != null) "🖼️ PNG 嵌入（使用当前头像）"
+                                 else "🖼️ PNG 嵌入（需选择头像图片）"
+                    Text(label)
                 }
             }
         },
@@ -281,4 +307,52 @@ private fun ExportCardDialog(
             TextButton(onClick = onDismiss) { Text("关闭") }
         }
     )
+}
+
+private fun doPngExport(
+    context: Context,
+    scope: kotlinx.coroutines.CoroutineScope,
+    toaster: com.dokar.sonner.ToasterState,
+    assistant: Assistant,
+    imageUri: Uri,
+    onDismiss: () -> Unit,
+) {
+    scope.launch {
+        try {
+            val json = CardExporter.buildV3CardJson(assistant)
+            val pngBytes = CardExporter.embedCardToPng(imageUri, context, json)
+                ?: error("嵌入PNG失败，请确认选择的图片是PNG格式")
+            val fileName = "RikkaHub_${assistant.name.replace(" ", "_")}_${System.currentTimeMillis()}.png"
+            saveToDownloads(context, fileName, "image/png", pngBytes)
+            toaster.show("已导出 PNG: $fileName")
+        } catch (e: Exception) {
+            toaster.show("导出失败: ${e.message}")
+        }
+        onDismiss()
+    }
+}
+
+/**
+ * 通过 MediaStore 将字节写入「下载」文件夹
+ */
+private suspend fun saveToDownloads(context: Context, fileName: String, mimeType: String, data: ByteArray) {
+    withContext(Dispatchers.IO) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            }
+            val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            uri?.let {
+                context.contentResolver.openOutputStream(it)?.use { output ->
+                    output.write(data)
+                }
+            } ?: error("无法创建下载文件")
+        } else {
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val file = java.io.File(downloadsDir, fileName)
+            file.writeBytes(data)
+        }
+    }
 }

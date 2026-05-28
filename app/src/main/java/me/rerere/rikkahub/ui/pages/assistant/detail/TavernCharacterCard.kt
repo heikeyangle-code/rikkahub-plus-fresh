@@ -8,18 +8,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,13 +30,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.SuggestionChipDefaults
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.TavernBookEntry
 import me.rerere.rikkahub.data.model.TavernEmbeddedBook
@@ -50,7 +46,6 @@ fun TavernCharacterCard(
 ) {
     val tav = assistant.tavernData ?: return
     var expanded by remember { mutableStateOf(false) }
-    var activeTab by remember { mutableIntStateOf(0) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -148,62 +143,14 @@ fun TavernCharacterCard(
                         HorizontalDivider()
                     }
 
-                    // Tab 切换
-                    val tabs = buildList {
-                        if (tav.description.isNotBlank()) add("📝 描述")
-                        if (tav.personality.isNotBlank()) add("🎭 性格")
-                        if (tav.scenario.isNotBlank()) add("🎬 场景")
-                        if (tav.mesExample.isNotBlank()) add("💬 示例")
-                        if (tav.firstMessage.isNotBlank()) add("👋 开场")
-                    }
-                    if (tabs.size > 1) {
-                        ScrollableTabRow(
-                            selectedTabIndex = activeTab.coerceIn(0, tabs.size - 1),
-                            modifier = Modifier.fillMaxWidth(),
-                            edgePadding = 14.dp,
-                            divider = {},
-                        ) {
-                            tabs.forEachIndexed { i, label ->
-                                Tab(
-                                    selected = activeTab == i,
-                                    onClick = { activeTab = i },
-                                    text = {
-                                        Text(
-                                            label,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            maxLines = 1,
-                                        )
-                                    },
-                                )
-                            }
-                        }
-                    }
-
-                    // Tab 内容
-                    val contentMap = buildMap {
-                        if (tav.description.isNotBlank()) put("📝 描述", tav.description)
-                        if (tav.personality.isNotBlank()) put("🎭 性格", tav.personality)
-                        if (tav.scenario.isNotBlank()) put("🎬 场景", tav.scenario)
-                        if (tav.mesExample.isNotBlank()) put("💬 示例", tav.mesExample)
-                        if (tav.firstMessage.isNotBlank()) put("👋 开场", tav.firstMessage)
-                    }
-                    val selectedKey = tabs.getOrNull(activeTab) ?: tabs.firstOrNull() ?: ""
-
-                    contentMap[selectedKey]?.let { content ->
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        ) {
-                            Text(
-                                text = content,
-                                modifier = Modifier.padding(14.dp),
-                                style = MaterialTheme.typography.bodySmall,
-                                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight,
-                            )
-                        }
+                    // 可折叠字段卡片 — 替代 Tab 切换
+                    CollapsibleField("📝 描述", tav.description)
+                    CollapsibleField("🎭 性格", tav.personality)
+                    CollapsibleField("🎬 场景", tav.scenario)
+                    CollapsibleField("💬 示例消息", tav.mesExample)
+                    if (tav.firstMessage.isNotBlank()) {
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+                        CollapsibleField("👋 开场白", tav.firstMessage)
                     }
 
                     // 备选开场白
@@ -262,6 +209,46 @@ fun TavernCharacterCard(
     }
 }
 
+/**
+ * 可折叠字段组件 — 默认收起，点击展开显示全部
+ */
+@Composable
+private fun CollapsibleField(label: String, content: String) {
+    if (content.isBlank()) return
+    var expanded by remember { mutableStateOf(false) }
+    val previewLines = 3
+
+    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = if (expanded) "▲ 收起" else "▼ 展开",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = if (expanded) content else content.lines().take(previewLines).joinToString("\n")
+                .let { if (it.length < content.length) "$it…" else it },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+            maxLines = if (expanded) Int.MAX_VALUE else previewLines,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
 @Composable
 private fun StatBadge(label: String, active: Boolean) {
     Text(
@@ -275,9 +262,7 @@ private fun StatBadge(label: String, active: Boolean) {
 @Composable
 private fun EmbeddedBookSummary(book: TavernEmbeddedBook) {
     var showEntries by remember { mutableStateOf(false) }
-    var selectedEntry by remember { mutableStateOf<TavernBookEntry?>(null) }
-
-    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -314,419 +299,323 @@ private fun EmbeddedBookSummary(book: TavernEmbeddedBook) {
         AnimatedVisibility(visible = showEntries) {
             Column(
                 modifier = Modifier.padding(top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                book.entries.take(15).forEach { entry ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selectedEntry = entry },
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        ),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(10.dp),
-                            verticalAlignment = Alignment.Top,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                entry.keys.firstOrNull()?.let { key ->
-                                    Text(
-                                        text = key,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                                if (entry.group.isNotBlank()) {
-                                    Spacer(Modifier.height(4.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                    ) {
-                                        Text(
-                                            text = entry.group,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
-                                            color = MaterialTheme.colorScheme.primary,
-                                        )
-                                    }
-                                }
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = entry.content.replace("\n", " "),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.widthIn(max = 200.dp),
-                            )
-                        }
-                    }
-                }
-                if (book.entries.size > 15) {
-                    Text(
-                        text = "... 还有 ${book.entries.size - 15} 条",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                book.entries.forEach { entry ->
+                    CollapsibleEntryCard(
+                        entry = entry,
+                        onUpdate = { updated ->
+                            // TODO: wire up save callback to Assistant model
+                        },
                     )
                 }
             }
         }
     }
+}
 
-    selectedEntry?.let { entry ->
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(
-            onDismissRequest = { selectedEntry = null },
-            sheetState = sheetState,
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        ) {
-            EmbeddedEntryDetail(entry)
+/**
+ * 可折叠世界书条目卡片 — 收起显示 keys+预览，展开显示全部可编辑字段
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CollapsibleEntryCard(
+    entry: TavernBookEntry,
+    onUpdate: (TavernBookEntry) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded },
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            // ======== 收起预览 ========
+            if (!expanded) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (entry.keys.isNotEmpty()) {
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                entry.keys.take(4).forEach { key ->
+                                    SuggestionChip(
+                                        onClick = {},
+                                        label = { Text(key, style = MaterialTheme.typography.labelSmall) },
+                                        shape = RoundedCornerShape(4.dp),
+                                    )
+                                }
+                                if (entry.keys.size > 4) {
+                                    Text(
+                                        text = "+${entry.keys.size - 4}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = entry.content.replace("\n", " ").take(120)
+                                .let { if (it.length < entry.content.length) "$it…" else it },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "▼",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            // ======== 展开编辑 ========
+            if (expanded) {
+                EntryEditor(entry = entry, onUpdate = onUpdate, onCollapse = { expanded = false })
+            }
         }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
-    Column(
-        modifier = Modifier
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-    ) {
-        // Title
-        Text(
-            text = entry.comment.ifBlank { entry.keys.firstOrNull() ?: "未命名条目" },
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.height(8.dp))
+private fun EntryEditor(
+    entry: TavernBookEntry,
+    onUpdate: (TavernBookEntry) -> Unit,
+    onCollapse: () -> Unit,
+) {
+    // 所有字段的状态
+    var enabled by remember(entry) { mutableStateOf(!entry.disable) }
+    var content by remember(entry) { mutableStateOf(entry.content) }
+    var probability by remember(entry) { mutableStateOf(entry.probability.toFloat()) }
+    var position by remember(entry) { mutableStateOf(entry.position) }
+    var priority by remember(entry) { mutableStateOf(entry.priority.toString()) }
+    var role by remember(entry) { mutableStateOf(entry.role) }
+    var constant by remember(entry) { mutableStateOf(entry.constant) }
+    var selective by remember(entry) { mutableStateOf(entry.selective) }
+    var selectiveLogic by remember(entry) { mutableStateOf(entry.selectiveLogic) }
+    var sticky by remember(entry) { mutableStateOf(entry.sticky) }
+    var cooldown by remember(entry) { mutableStateOf(entry.cooldown.toString()) }
+    var depth by remember(entry) { mutableStateOf(entry.depth.toString()) }
+    var caseSensitive by remember(entry) { mutableStateOf(entry.caseSensitive) }
+    var useRegex by remember(entry) { mutableStateOf(entry.useRegex) }
+    var groupStr by remember(entry) { mutableStateOf(entry.group) }
+    var groupWeight by remember(entry) { mutableStateOf(entry.groupWeight.toString()) }
+    var groupOverride by remember(entry) { mutableStateOf(entry.groupOverride) }
 
-        // Enable/disable badge
-        Surface(
-            shape = RoundedCornerShape(4.dp),
-            color = if (entry.disable) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-            else MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
-        ) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // 顶部：标题 + 收起
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = if (entry.disable) "禁用" else "启用",
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = if (entry.disable) MaterialTheme.colorScheme.outline
-                else MaterialTheme.colorScheme.tertiary,
-                fontWeight = FontWeight.Medium,
-            )
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // 📝 核心内容
-        SectionDivider("📝 核心内容")
-        Spacer(Modifier.height(8.dp))
-
-        FieldLabel("主关键词 (keys)")
-        Spacer(Modifier.height(4.dp))
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            entry.keys.forEach { key ->
-                SuggestionChip(
-                    onClick = {},
-                    label = { Text(key, style = MaterialTheme.typography.labelSmall) },
-                    shape = RoundedCornerShape(6.dp),
-                )
-            }
-        }
-
-        if (entry.secondaryKeys.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            FieldLabel("次要关键词 (secondary_keys)")
-            Spacer(Modifier.height(4.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                entry.secondaryKeys.forEach { key ->
-                    SuggestionChip(
-                        onClick = {},
-                        label = { Text(key, style = MaterialTheme.typography.labelSmall) },
-                        shape = RoundedCornerShape(6.dp),
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-        FieldLabel("次要关键词逻辑 (selective_logic)")
-        Spacer(Modifier.height(4.dp))
-        FilterChip(
-            selected = false,
-            onClick = {},
-            label = {
-                Text(
-                    text = when (entry.selectiveLogic) {
-                        0 -> "AND"
-                        1 -> "OR"
-                        2 -> "NOT_ANY"
-                        3 -> "NOT_ALL"
-                        else -> "AND"
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            },
-        )
-
-        Spacer(Modifier.height(8.dp))
-        FieldLabel("内容 (content)")
-        Spacer(Modifier.height(4.dp))
-        var expanded by remember { mutableStateOf(false) }
-        Card(
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
-        ) {
-            val displayContent = if (!expanded && entry.content.lines().size > 10) {
-                entry.content.lines().take(10).joinToString("\n") + "\n..."
-            } else {
-                entry.content
-            }
-            Text(
-                text = displayContent,
-                modifier = Modifier
-                    .padding(12.dp)
-                    .clickable { expanded = !expanded },
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // ⚙️ 触发设置
-        SectionDivider("⚙️ 触发设置")
-        Spacer(Modifier.height(8.dp))
-
-        InfoRow("策略") {
-            val (icon, label) = when {
-                entry.constant -> "🔵" to "常驻"
-                entry.selective -> "🟢" to "关键词触发"
-                else -> "🔗" to "向量"
-            }
-            Text("$icon  $label", style = MaterialTheme.typography.bodyMedium)
-        }
-
-        Spacer(Modifier.height(6.dp))
-        InfoRow("触发概率 (probability)") {
-            Column {
-                LinearProgressIndicator(
-                    progress = { entry.probability / 100f },
-                    modifier = Modifier.fillMaxWidth(0.6f),
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = "${entry.probability}%",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
-        Spacer(Modifier.height(6.dp))
-        InfoRow("扫描深度 (scan_depth)") {
-            Text(
-                text = "${entry.scanDepth ?: entry.depth}",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-
-        Spacer(Modifier.height(6.dp))
-        InfoRow("插入位置 (position)") {
-            val posText = when (entry.position) {
-                0 -> "角色前"
-                1 -> "角色后"
-                2 -> "用户前"
-                3 -> "用户后"
-                4 -> "@D 深度插入"
-                else -> "未知"
-            }
-            Text(posText, style = MaterialTheme.typography.bodyMedium)
-        }
-
-        Spacer(Modifier.height(6.dp))
-        InfoRow("插入顺序 (insertion_order)") {
-            Text("${entry.priority}", style = MaterialTheme.typography.bodyMedium)
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // 🗂️ 分组
-        SectionDivider("🗂️ 分组")
-        Spacer(Modifier.height(8.dp))
-
-        InfoRow("分组 (group)") {
-            Text(
-                text = entry.group.ifBlank { "无" },
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (entry.group.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                else MaterialTheme.colorScheme.onSurface,
-            )
-        }
-
-        Spacer(Modifier.height(6.dp))
-        InfoRow("组权重 (group_weight)") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "${entry.groupWeight}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                if (entry.group.isNotBlank()) {
-                    Spacer(Modifier.width(8.dp))
-                    LinearProgressIndicator(
-                        progress = { entry.groupWeight / 100f },
-                        modifier = Modifier.width(60.dp),
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(6.dp))
-        InfoRow("组覆盖 (group_override)") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (entry.groupOverride) {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.15f),
-                    ) {
-                        Text(
-                            text = "覆盖同组",
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                } else {
-                    Text(
-                        text = "否",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(6.dp))
-        InfoRow("角色 (role)") {
-            val roleText = when (entry.role) {
-                "system" -> "System"
-                "user" -> "User"
-                "assistant" -> "Assistant"
-                else -> entry.role
-            }
-            Text(roleText, style = MaterialTheme.typography.bodyMedium)
-        }
-
-        // ⏱️ 定时效果 (only show if any has value)
-        val hasTiming = entry.sticky || entry.cooldown > 0 || entry.delayUntil > 0
-        if (hasTiming) {
-            Spacer(Modifier.height(12.dp))
-            SectionDivider("⏱️ 定时效果")
-            Spacer(Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                TimingChip("粘性", if (entry.sticky) "是" else "否", entry.sticky)
-                if (entry.cooldown > 0) {
-                    TimingChip("冷却", "${entry.cooldown}轮", true)
-                }
-                if (entry.delayUntil > 0) {
-                    TimingChip("延迟", "${entry.delayUntil}轮", true)
-                }
-            }
-        }
-
-        // 底部留白
-        Spacer(Modifier.height(32.dp))
-    }
-}
-
-@Composable
-private fun SectionDivider(title: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .width(2.dp)
-                .height(16.dp)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(1.dp)),
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-        )
-    }
-}
-
-@Composable
-private fun FieldLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-    )
-}
-
-@Composable
-private fun InfoRow(label: String, content: @Composable ColumnScope.() -> Unit) {
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-        )
-        Spacer(Modifier.height(2.dp))
-        content()
-    }
-}
-
-@Composable
-private fun TimingChip(label: String, value: String, active: Boolean) {
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = if (active) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
-        else MaterialTheme.colorScheme.surfaceVariant,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = value,
+                text = entry.keys.firstOrNull() ?: entry.comment.ifBlank { "Entry #${entry.id}" },
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = if (active) MaterialTheme.colorScheme.tertiary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            )
+            TextButton(onClick = onCollapse) {
+                Text("▲ 收起", style = MaterialTheme.typography.labelSmall)
+            }
         }
+
+        // 启用开关
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = if (enabled) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                modifier = Modifier.clickable { enabled = !enabled },
+            ) {
+                Text(
+                    text = if (enabled) "✓ 启用" else "✗ 禁用",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (enabled) MaterialTheme.colorScheme.tertiary
+                    else MaterialTheme.colorScheme.outline,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { constant = !constant }) {
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (constant) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                    else MaterialTheme.colorScheme.surface,
+                ) {
+                    Text(
+                        text = if (constant) "🔵 常驻" else "⚪ 非常驻",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (constant) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.clickable { selective = !selective },
+            ) {
+                Text(
+                    text = if (selective) "🟢 关键词" else "🔗 向量",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+        }
+
+        // 概率 + 位置
+        Row(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("触发概率", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Slider(
+                    value = probability,
+                    onValueChange = { probability = it },
+                    valueRange = 0f..100f,
+                    steps = 99,
+                )
+                Text("${probability.toInt()}%", style = MaterialTheme.typography.labelSmall)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text("位置 (position)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val posOptions = listOf("角色前", "角色后", "用户前", "用户后", "@D深度")
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    posOptions.forEachIndexed { i, label ->
+                        FilterChip(
+                            selected = position == i,
+                            onClick = { position = i },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                        )
+                    }
+                }
+            }
+        }
+
+        // 内容
+        Text("内容 (content)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedTextField(
+            value = content,
+            onValueChange = { content = it },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp, max = 200.dp),
+            textStyle = MaterialTheme.typography.bodySmall,
+        )
+
+        // 高级设置
+        var showAdvanced by remember { mutableStateOf(false) }
+        TextButton(onClick = { showAdvanced = !showAdvanced }) {
+            Text(if (showAdvanced) "▲ 收起高级设置" else "▼ 展开高级设置",
+                 style = MaterialTheme.typography.labelSmall)
+        }
+        if (showAdvanced) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    KeywordInput("优先级 (order)", priority) { priority = it }
+                    KeywordInput("深度 (depth)", depth) { depth = it }
+                    KeywordInput("冷却 (cooldown)", cooldown) { cooldown = it }
+                }
+                Row(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = sticky, onClick = { sticky = !sticky },
+                        label = { Text("粘性", style = MaterialTheme.typography.labelSmall) })
+                    FilterChip(selected = caseSensitive, onClick = { caseSensitive = !caseSensitive },
+                        label = { Text("区分大小写", style = MaterialTheme.typography.labelSmall) })
+                    FilterChip(selected = useRegex, onClick = { useRegex = !useRegex },
+                        label = { Text("正则", style = MaterialTheme.typography.labelSmall) })
+                    FilterChip(selected = groupOverride, onClick = { groupOverride = !groupOverride },
+                        label = { Text("覆盖同组", style = MaterialTheme.typography.labelSmall) })
+                }
+                Row(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("分组 (group)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedTextField(value = groupStr, onValueChange = { groupStr = it },
+                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true)
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("组权重", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        KeywordInput("", groupWeight) { groupWeight = it }
+                    }
+                }
+                Text("角色 (role)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val roleLabels = listOf("system", "user", "assistant")
+                    roleLabels.forEachIndexed { i, label ->
+                        FilterChip(
+                            selected = role == i,
+                            onClick = { role = i },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                        )
+                    }
+                }
+                Row(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("seletiveLogic", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val logicLabels = listOf("AND", "OR", "NOT_ANY", "NOT_ALL")
+                    logicLabels.forEachIndexed { i, label ->
+                        FilterChip(
+                            selected = selectiveLogic == i,
+                            onClick = { selectiveLogic = i },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                        )
+                    }
+                }
+            }
+        }
+
+        // 保存按钮
+        Button(
+            onClick = {
+                onUpdate(entry.copy(
+                    disable = !enabled,
+                    content = content,
+                    probability = probability.toInt(),
+                    position = position,
+                    priority = priority.toIntOrNull() ?: 100,
+                    role = role,
+                    constant = constant,
+                    selective = selective,
+                    selectiveLogic = selectiveLogic,
+                    sticky = sticky,
+                    cooldown = cooldown.toIntOrNull() ?: 0,
+                    depth = depth.toIntOrNull() ?: 4,
+                    caseSensitive = caseSensitive,
+                    useRegex = useRegex,
+                    group = groupStr,
+                    groupWeight = groupWeight.toIntOrNull() ?: 100,
+                    groupOverride = groupOverride,
+                ))
+                onCollapse()
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("保存修改")
+        }
+    }
+}
+
+@Composable
+private fun KeywordInput(label: String, value: String, onValueChange: (String) -> Unit) {
+    Column(modifier = Modifier.weight(1f)) {
+        if (label.isNotBlank()) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            textStyle = MaterialTheme.typography.bodySmall,
+            singleLine = true,
+        )
     }
 }

@@ -8,9 +8,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
-import com.drew.imaging.ImageMetadataReader
-import com.drew.imaging.png.PngChunkType
-import com.drew.metadata.png.PngDirectory
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.RGBLuminanceSource
@@ -230,34 +227,63 @@ object ImageUtils {
     }
 
     /**
-     * 获取酒馆角色卡中的角色元数据（如果存在）
+     * 从 PNG 字节流中手动查找 "chara" / "Chara" tEXt chunk 并提取 base64 数据
      *
-     * @param context Android上下文
-     * @param uri 图片URI
-     * @return Result<String> 包含角色元数据的Result对象
+     * PNG chunk 结构: [length:4BE][type:4][data:length][CRC:4]
+     * tEXt chunk data: [keyword:Latin1\0][text:Latin1]
+     * SillyTavern 使用 keyword="chara", text=base64(JSON)
+     *
+     * 参考 SillyTavern: public/scripts/characters.js → getPngCharacterCard()
      */
     fun getTavernCharacterMeta(context: Context, uri: Uri): Result<String> = runCatching {
-        val metadata = context.contentResolver.openInputStream(uri)?.use { ImageMetadataReader.readMetadata(it) }
-        if (metadata == null) error("Metadata is null, please check if the image is a character card")
-        if (!metadata.containsDirectoryOfType(PngDirectory::class.java)) error("No PNG directory found, please check if the image is a character card")
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: error("无法读取图片文件")
 
-        val textChunks = metadata.getDirectoriesOfType(PngDirectory::class.java)
-            .filter { it.pngChunkType == PngChunkType.tEXt }
+        // PNG 签名(8 bytes)后开始 chunk
+        var offset = 8
+        while (offset + 8 <= bytes.size) {
+            val length = readInt32BE(bytes, offset)
+            val type = String(bytes, offset + 4, 4, StandardCharsets.US_ASCII)
+            val dataStart = offset + 8
+            val dataEnd = dataStart + length
+            if (dataEnd > bytes.size) break
 
-        // SillyTavern stores character card JSON in PNG tEXt chunks.
-        // The text is raw base64-encoded JSON. Try all tEXt chunks,
-        // return the first one that decodes to valid card JSON.
-        for (dir in textChunks) {
-            val text = dir.getString(PngDirectory.TAG_TEXTUAL_DATA) ?: continue
-            try {
-                val decoded = String(Base64.decode(text, Base64.DEFAULT), StandardCharsets.UTF_8)
-                if (decoded.contains("\"spec\"")) {
-                    return Result.success(text)
+            if (type == "tEXt" || type == "zTXt") {
+                // tEXt chunk data: keyword\0text
+                // 找 null 分隔符
+                val nullPos = bytes.indexOf(0, dataStart, dataEnd)
+                if (nullPos in dataStart until dataEnd) {
+                    val keyword = String(bytes, dataStart, nullPos - dataStart, StandardCharsets.ISO_8859_1)
+                    if (keyword.equals("chara", ignoreCase = true)) {
+                        val rawText = String(bytes, nullPos + 1, dataEnd - nullPos - 1, StandardCharsets.ISO_8859_1)
+
+                        // 去掉 base64 前面的任何垃圾字节（SilveryTavern 也这样做）
+                        val cleanB64 = rawText.trim()
+                        val jsonBytes = Base64.decode(cleanB64, Base64.DEFAULT)
+                        val jsonStr = String(jsonBytes, StandardCharsets.UTF_8)
+
+                        // 找到第一个 { 跳过前导垃圾（兼容性保护）
+                        val braceStart = jsonStr.indexOf('{')
+                        if (braceStart >= 0 && jsonStr.contains("\"spec\"")) {
+                            return Result.success(cleanB64)
+                        }
+                    }
                 }
-            } catch (_: Exception) { continue }
+            }
+
+            // zTXt chunk data 是压缩的，跳过（后续可加 inflate 支持）
+            offset += 12 + length
         }
 
         error("未找到有效的角色卡数据，请确认图片是酒馆角色卡PNG")
+    }
+
+    /** 读取4字节大端整数（PNG chunk length） */
+    private fun readInt32BE(bytes: ByteArray, offset: Int): Int {
+        return ((bytes[offset].toInt() and 0xFF) shl 24) or
+               ((bytes[offset + 1].toInt() and 0xFF) shl 16) or
+               ((bytes[offset + 2].toInt() and 0xFF) shl 8) or
+               (bytes[offset + 3].toInt() and 0xFF)
     }
 
     data class ImageInfo(

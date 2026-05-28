@@ -72,10 +72,9 @@ data class TavernBookEntry(
     val probability: Int = 100,   // 0-100, 触发概率
     val sticky: Boolean = false,  // 激活后持续
     val cooldown: Int = 0,       // 冷却轮数
-    val delayUntil: Int = 0,     // 延迟到第N轮
     val depth: Int = 4,          // @D 模式插入深度
-    val scanDepth: Int? = null,
-    val role: String = "system", // system/user/assistant
+    val scanDepth: Int = 1000,   // 扫描最近N条消息（酒馆默认1000）
+    val role: String = "system", // system/user/assistant（JSON兼容数字和字符串）
     val groupWeight: Int = 100,  // 同组权重（随机选择时使用）
     val groupOverride: Boolean = false, // 是否覆盖同组其他条目
 )

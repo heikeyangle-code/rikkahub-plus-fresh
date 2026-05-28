@@ -46,6 +46,7 @@ import me.rerere.rikkahub.data.model.TavernBookEntry
 import me.rerere.rikkahub.data.model.TavernAsset
 import me.rerere.rikkahub.data.model.SelectiveLogic
 import me.rerere.rikkahub.data.files.FilesManager
+import me.rerere.rikkahub.data.model.Avatar
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.utils.ImageUtils
@@ -142,21 +143,24 @@ private suspend fun importFromUri(
     onImport: (TavernImportResult) -> Unit, toaster: ToasterState
 ) {
     val mime = withContext(Dispatchers.IO) { filesManager.getFileMimeType(uri) }
-    val (jsonString, backgroundStr) = withContext(Dispatchers.IO) {
+    val (jsonString, backgroundStr, avatarUri) = withContext(Dispatchers.IO) {
         when (mime) {
             "image/png" -> {
                 val result = ImageUtils.getTavernCharacterMeta(context, uri)
                 result.map { base64Data ->
                     val json = String(Base64.decode(base64Data, Base64.DEFAULT))
-                    val bg = filesManager.createChatFilesByContents(listOf(uri)).first().toString()
-                    json to bg
+                    // PNG本身既是背景源也是头像
+                    val savedUris = filesManager.createChatFilesByContents(listOf(uri))
+                    val bg = savedUris.first().toString()
+                    val avatar = savedUris.first().toString()
+                    Triple(json, bg, avatar)
                 }.getOrElse { throw it }
             }
             "application/json" -> {
                 val json = context.contentResolver.openInputStream(uri)?.bufferedReader()
                     .use { it?.readText() }
                     ?: error(context.getString(R.string.assistant_importer_read_json_failed))
-                json to null
+                Triple(json, null, null)
             }
             else -> error(context.getString(R.string.assistant_importer_unsupported_file_type, mime ?: "unknown"))
         }
@@ -166,8 +170,8 @@ private suspend fun importFromUri(
         ?: error(context.getString(R.string.assistant_importer_missing_spec_field))
 
     val (assistant, lorebooks) = when (spec) {
-        "chara_card_v2" -> parseV2Card(context, json, backgroundStr)
-        "chara_card_v3" -> parseV3Card(context, json, backgroundStr)
+        "chara_card_v2" -> parseV2Card(context, json, backgroundStr, avatarUri)
+        "chara_card_v3" -> parseV3Card(context, json, backgroundStr, avatarUri)
         else -> error(context.getString(R.string.assistant_importer_unsupported_spec, spec))
     }
 
@@ -177,7 +181,7 @@ private suspend fun importFromUri(
 
 // ==================== V2 Parser ====================
 
-private fun parseV2Card(context: Context, json: JsonObject, background: String?): Pair<Assistant, List<Lorebook>> {
+private fun parseV2Card(context: Context, json: JsonObject, background: String?, avatarUri: String?): Pair<Assistant, List<Lorebook>> {
     val data = json["data"]?.jsonObject ?: error(context.getString(R.string.assistant_importer_missing_data_field))
     val name = data["name"]?.jsonPrimitiveOrNull?.contentOrNull
         ?: error(context.getString(R.string.assistant_importer_missing_name_field))
@@ -207,6 +211,7 @@ private fun parseV2Card(context: Context, json: JsonObject, background: String?)
 
     val assistant = Assistant(
         name = name,
+        avatar = if (avatarUri != null) Avatar.Image(avatarUri) else Avatar.Dummy,
         systemPrompt = systemPrompt,
         presetMessages = presetMessages,
         background = background,
@@ -218,7 +223,7 @@ private fun parseV2Card(context: Context, json: JsonObject, background: String?)
 
 // ==================== V3 Parser ====================
 
-private fun parseV3Card(context: Context, json: JsonObject, background: String?): Pair<Assistant, List<Lorebook>> {
+private fun parseV3Card(context: Context, json: JsonObject, background: String?, avatarUri: String?): Pair<Assistant, List<Lorebook>> {
     val data = json["data"]?.jsonObject ?: error(context.getString(R.string.assistant_importer_missing_data_field))
     val name = data["name"]?.jsonPrimitiveOrNull?.contentOrNull
         ?: error(context.getString(R.string.assistant_importer_missing_name_field))
@@ -251,6 +256,7 @@ private fun parseV3Card(context: Context, json: JsonObject, background: String?)
 
     val assistant = Assistant(
         name = name,
+        avatar = if (avatarUri != null) Avatar.Image(avatarUri) else Avatar.Dummy,
         systemPrompt = systemPrompt,
         presetMessages = presetMessages,
         background = background,
@@ -337,8 +343,8 @@ private fun parseEntriesArray(arr: kotlinx.serialization.json.JsonArray): List<T
                 sticky = e["sticky"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
                 cooldown = e["cooldown"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
                 depth = e["depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 4,
-                scanDepth = e["scan_depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull(),
-                role = e["role"]?.jsonPrimitive?.contentOrNull ?: "system",
+                scanDepth = e["scan_depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 1000,
+                role = parseRoleString(e["role"]),
                 groupWeight = e["group_weight"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 100,
                 groupOverride = e["group_override"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
             )
@@ -370,13 +376,38 @@ private fun parseEntriesMap(obj: JsonObject): List<TavernBookEntry> {
                 sticky = e["sticky"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
                 cooldown = e["cooldown"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
                 depth = e["depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 4,
-                scanDepth = e["scan_depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull(),
-                role = e["role"]?.jsonPrimitive?.contentOrNull ?: "system",
+                scanDepth = e["scan_depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 1000,
+                role = parseRoleString(e["role"]),
                 groupWeight = e["group_weight"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 100,
                 groupOverride = e["group_override"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
             )
         } catch (_: Exception) { null }
     }
+}
+
+/**
+ * 解析 role 字段：酒馆 JSON 可能用 0/1/2 数字或 "system"/"user"/"assistant" 字符串
+ */
+private fun parseRoleString(element: kotlinx.serialization.json.JsonElement?): String {
+    if (element == null) return "system"
+    return try {
+        element.jsonPrimitive.contentOrNull?.let { str ->
+            when (str.lowercase()) {
+                "system" -> "system"
+                "user" -> "user"
+                "assistant" -> "assistant"
+                "0" -> "system"
+                "1" -> "user"
+                "2" -> "assistant"
+                else -> "system"
+            }
+        } ?: when (element.jsonPrimitive.content.toIntOrNull()) {
+            0 -> "system"
+            1 -> "user"
+            2 -> "assistant"
+            else -> "system"
+        }
+    } catch (_: Exception) { "system" }
 }
 
 /**
@@ -396,7 +427,7 @@ private fun tavernEntryToInjection(entry: TavernBookEntry): PromptInjection.Rege
         secondaryKeys = entry.secondaryKeys,
         useRegex = entry.useRegex,
         caseSensitive = entry.caseSensitive,
-        scanDepth = entry.scanDepth ?: 4,
+        scanDepth = entry.scanDepth,
         constantActive = entry.constant,
         selectiveLogic = mapSelectiveLogic(entry.selectiveLogic),
         group = entry.group,
@@ -420,7 +451,7 @@ private fun mapTavernPosition(pos: Int): InjectionPosition = when (pos) {
 private fun mapTavernRole(role: String): me.rerere.ai.core.MessageRole = when (role.lowercase()) {
     "user" -> me.rerere.ai.core.MessageRole.USER
     "assistant" -> me.rerere.ai.core.MessageRole.ASSISTANT
-    else -> me.rerere.ai.core.MessageRole.USER  // system/other → USER (injects as user message)
+    else -> me.rerere.ai.core.MessageRole.USER
 }
 
 private fun mapSelectiveLogic(logic: Int): SelectiveLogic = when (logic) {
