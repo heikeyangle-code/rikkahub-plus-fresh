@@ -1,6 +1,6 @@
-package me.rerere.rikkahub.ui.pages.assistant.detail
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+package me.rerere.rikkahub.ui.pages.assistant.detail
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
