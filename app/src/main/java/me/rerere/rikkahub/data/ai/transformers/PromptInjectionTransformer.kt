@@ -41,6 +41,8 @@ object PromptInjectionTransformer : InputMessageTransformer {
             conversationLorebookIds = ctx.conversationLorebookIds,
             activeStickyEntries = activeSticky,
             cooldownEntries = cooldowns,
+            authorNotePosition = ctx.settings.authorNotePosition,
+            authorNoteDepth = ctx.settings.authorNoteDepth,
         )
 
         return result
@@ -59,6 +61,8 @@ internal fun transformMessages(
     conversationLorebookIds: Set<Uuid> = emptySet(),
     activeStickyEntries: MutableMap<Uuid, Int> = mutableMapOf(),
     cooldownEntries: MutableMap<Uuid, Int> = mutableMapOf(),
+    authorNotePosition: InjectionPosition = InjectionPosition.AFTER_SYSTEM_PROMPT,
+    authorNoteDepth: Int = 4,
 ): List<UIMessage> {
     // 收集所有需要注入的内容
     val injections = collectInjections(
@@ -79,8 +83,26 @@ internal fun transformMessages(
         return messages
     }
 
+    // 解析 AUTHOR_NOTE 到实际位置
+    val resolvedInjections = injections.map { injection ->
+        if (injection.position == InjectionPosition.AUTHOR_NOTE) {
+            when (authorNotePosition) {
+                InjectionPosition.AT_DEPTH -> when (injection) {
+                    is PromptInjection.RegexInjection -> injection.copy(
+                        position = InjectionPosition.AT_DEPTH,
+                        injectDepth = authorNoteDepth,
+                    )
+                    else -> injection.copy(position = InjectionPosition.AT_DEPTH)
+                }
+                else -> injection.copy(position = authorNotePosition)
+            }
+        } else {
+            injection
+        }
+    }
+
     // 按位置和优先级分组
-    val byPosition = injections
+    val byPosition = resolvedInjections
         .sortedByDescending { it.priority }
         .groupBy { it.position }
 

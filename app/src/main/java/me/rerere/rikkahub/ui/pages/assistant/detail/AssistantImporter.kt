@@ -453,8 +453,8 @@ private fun tavernEntryToInjection(entry: TavernBookEntry): PromptInjection.Rege
 private fun mapTavernPosition(pos: Int): InjectionPosition = when (pos) {
     0 -> InjectionPosition.BEFORE_SYSTEM_PROMPT
     1 -> InjectionPosition.AFTER_SYSTEM_PROMPT
-    2 -> InjectionPosition.TOP_OF_CHAT      // before user (AN)
-    3 -> InjectionPosition.BOTTOM_OF_CHAT   // after user (@D)
+    2 -> InjectionPosition.AUTHOR_NOTE        // 跟随用户 AN 位置设置
+    3 -> InjectionPosition.AT_DEPTH           // @D 深度
     4 -> InjectionPosition.AT_DEPTH
     else -> InjectionPosition.AFTER_SYSTEM_PROMPT
 }

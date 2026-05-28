@@ -127,18 +127,17 @@ fun TavernCharacterCard(
                 Column {
                     HorizontalDivider()
 
-                    // 标签
+                    // 标签 (FlowRow 自动换行)
                     if (tav.tags.isNotEmpty()) {
-                        Row(
+                        FlowRow(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             tav.tags.forEach { tag ->
                                 SuggestionChip(
                                     onClick = {},
-                                    label = {
-                                        Text(tag, style = MaterialTheme.typography.labelSmall)
-                                    },
+                                    label = { Text(tag, style = MaterialTheme.typography.labelSmall) },
                                     shape = RoundedCornerShape(6.dp),
                                 )
                             }
@@ -146,24 +145,45 @@ fun TavernCharacterCard(
                         HorizontalDivider()
                     }
 
-                    // 可折叠字段卡片 — 替代 Tab 切换
+                    // 可编辑字段
                     if (tav.systemPrompt.isNotBlank()) {
-                        CollapsibleField("💻 系统提示词", tav.systemPrompt)
+                        EditableField("💻 系统提示词", tav.systemPrompt) { v ->
+                            val newTav = tav.copy(systemPrompt = v)
+                            onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                        }
                     }
-                    CollapsibleField("📝 描述", tav.description)
-                    CollapsibleField("🎭 性格", tav.personality)
-                    CollapsibleField("🎬 场景", tav.scenario)
-                    CollapsibleField("💬 示例消息", tav.mesExample)
+                    EditableField("📝 描述", tav.description) { v ->
+                        val newTav = tav.copy(description = v)
+                        onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                    }
+                    EditableField("🎭 性格", tav.personality) { v ->
+                        val newTav = tav.copy(personality = v)
+                        onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                    }
+                    EditableField("🎬 场景", tav.scenario) { v ->
+                        val newTav = tav.copy(scenario = v)
+                        onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                    }
+                    EditableField("💬 示例消息", tav.mesExample) { v ->
+                        val newTav = tav.copy(mesExample = v)
+                        onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                    }
                     if (tav.postHistoryInstructions.isNotBlank()) {
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
-                        CollapsibleField("📋 历史后续指令", tav.postHistoryInstructions)
+                        EditableField("📋 历史后续指令", tav.postHistoryInstructions) { v ->
+                            val newTav = tav.copy(postHistoryInstructions = v)
+                            onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                        }
                     }
                     if (tav.firstMessage.isNotBlank()) {
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
-                        CollapsibleField("👋 开场白", tav.firstMessage)
+                        EditableField("👋 开场白", tav.firstMessage) { v ->
+                            val newTav = tav.copy(firstMessage = v)
+                            onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                        }
                     }
 
-                    // 备选开场白
+                    // 备选开场白（可编辑）
                     if (tav.alternateGreetings.isNotEmpty()) {
                         HorizontalDivider()
                         Text(
@@ -173,25 +193,15 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         tav.alternateGreetings.forEachIndexed { i, greeting ->
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 3.dp),
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            ) {
-                                Text(
-                                    text = "${i + 1}. ${greeting.take(120)}${if (greeting.length > 120) "…" else ""}",
-                                    modifier = Modifier.padding(10.dp),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+                            EditableField("G${i + 1}", greeting) { v ->
+                                val newGreetings = tav.alternateGreetings.toMutableList().apply { set(i, v) }
+                                val newTav = tav.copy(alternateGreetings = newGreetings)
+                                onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                             }
                         }
                     }
 
-                    // 群聊专用开场白
+                    // 群聊专用开场白（可编辑）
                     if (tav.groupOnlyGreetings.isNotEmpty()) {
                         HorizontalDivider()
                         Text(
@@ -201,20 +211,10 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         tav.groupOnlyGreetings.forEachIndexed { i, greeting ->
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 3.dp),
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            ) {
-                                Text(
-                                    text = "${i + 1}. ${greeting.take(120)}${if (greeting.length > 120) "…" else ""}",
-                                    modifier = Modifier.padding(10.dp),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+                            EditableField("G${i + 1}", greeting) { v ->
+                                val newGreetings = tav.groupOnlyGreetings.toMutableList().apply { set(i, v) }
+                                val newTav = tav.copy(groupOnlyGreetings = newGreetings)
+                                onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                             }
                         }
                     }
@@ -237,21 +237,13 @@ fun TavernCharacterCard(
                         )
                     }
 
-                    // creator notes
+                    // creator notes（可编辑）
                     if (tav.creatorNotes.isNotBlank()) {
                         HorizontalDivider()
-                        Text(
-                            text = "📝 ${tav.creator} 的备注",
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = tav.creatorNotes,
-                            modifier = Modifier.padding(horizontal = 14.dp).padding(bottom = 14.dp),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        EditableField("📝 ${tav.creator.ifBlank { "作者" }} 的备注", tav.creatorNotes) { v ->
+                            val newTav = tav.copy(creatorNotes = v)
+                            onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                        }
                     }
                 }
             }
@@ -260,12 +252,17 @@ fun TavernCharacterCard(
 }
 
 /**
- * 可折叠字段组件 — 默认收起，点击展开显示全部
+ * 可编辑字段组件 — 折叠预览3行，展开后OutlinedTextField可编辑
  */
 @Composable
-private fun CollapsibleField(label: String, content: String) {
-    if (content.isBlank()) return
+private fun EditableField(
+    label: String,
+    value: String,
+    onSave: (String) -> Unit,
+) {
+    if (value.isBlank()) return
     var expanded by remember { mutableStateOf(false) }
+    var editText by remember(value) { mutableStateOf(value) }
     val previewLines = 3
 
     Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) {
@@ -288,14 +285,44 @@ private fun CollapsibleField(label: String, content: String) {
             )
         }
         Spacer(Modifier.height(4.dp))
-        Text(
-            text = if (expanded) content else content.lines().take(previewLines).joinToString("\n")
-                .let { if (it.length < content.length) "$it…" else it },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-            maxLines = if (expanded) Int.MAX_VALUE else previewLines,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (expanded) {
+            OutlinedTextField(
+                value = editText,
+                onValueChange = { editText = it },
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = MaterialTheme.typography.bodySmall,
+                minLines = 4,
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = {
+                    editText = value
+                    expanded = false
+                }) {
+                    Text("取消", style = MaterialTheme.typography.labelSmall)
+                }
+                Spacer(Modifier.width(8.dp))
+                TextButton(onClick = {
+                    onSave(editText)
+                    expanded = false
+                }) {
+                    Text("保存", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        } else {
+            Text(
+                text = value.lines().take(previewLines).joinToString("\n")
+                    .let { if (it.length < value.length) "$it…" else it },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                maxLines = previewLines,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

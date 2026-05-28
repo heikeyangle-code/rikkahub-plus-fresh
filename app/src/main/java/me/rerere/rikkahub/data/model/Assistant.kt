@@ -124,6 +124,9 @@ enum class InjectionPosition {
 
     @SerialName("at_depth")
     AT_DEPTH,               // 在指定深度位置插入（从最新消息往前数）
+
+    @SerialName("author_note")
+    AUTHOR_NOTE,            // Author's Note 位置（由用户设置决定，不固定）
 }
 
 /**

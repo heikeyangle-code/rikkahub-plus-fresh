@@ -544,7 +544,8 @@ private fun InjectionPosition.usesStandaloneMessage(): Boolean = when (this) {
 
     InjectionPosition.TOP_OF_CHAT,
     InjectionPosition.BOTTOM_OF_CHAT,
-    InjectionPosition.AT_DEPTH -> true
+    InjectionPosition.AT_DEPTH,
+    InjectionPosition.AUTHOR_NOTE -> true
 }
 
 @Composable
@@ -554,6 +555,7 @@ private fun getPositionLabel(position: InjectionPosition): String = when (positi
     InjectionPosition.TOP_OF_CHAT -> stringResource(R.string.prompt_page_position_top_of_chat)
     InjectionPosition.BOTTOM_OF_CHAT -> stringResource(R.string.prompt_page_position_bottom_of_chat)
     InjectionPosition.AT_DEPTH -> stringResource(R.string.prompt_page_position_at_depth)
+    InjectionPosition.AUTHOR_NOTE -> stringResource(R.string.prompt_page_position_author_note)
 }
 
 @Composable

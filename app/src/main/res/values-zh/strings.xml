@@ -509,6 +509,7 @@
   <string name="prompt_page_new_keyword">新关键词</string>
   <string name="prompt_page_position_after_system">系统提示词后</string>
   <string name="prompt_page_position_at_depth">在深度</string>
+  <string name="prompt_page_position_author_note">全局 AN 位置</string>
   <string name="prompt_page_position_before_system">系统提示词前</string>
   <string name="prompt_page_position_bottom_of_chat">最新消息前</string>
   <string name="prompt_page_position_top_of_chat">对话开头</string>
