@@ -61,6 +61,8 @@ object AuthorsNoteTransformer : InputMessageTransformer {
                 messages + noteMsg
             InjectionPosition.BOTTOM_OF_CHAT ->
                 messages + noteMsg
+            InjectionPosition.AUTHOR_NOTE ->
+                messages + noteMsg
             InjectionPosition.AT_DEPTH -> {
                 val insertIdx = (messages.size - depth).coerceAtLeast(0)
                 messages.take(insertIdx) + noteMsg + messages.drop(insertIdx)

@@ -84,6 +84,7 @@ import me.rerere.rikkahub.ui.hooks.EditStateContent
 import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.utils.base64Decode
 import me.rerere.rikkahub.utils.navigateToChatPage
+import me.rerere.ai.ui.isEmptyInputMessage
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -182,7 +183,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
             val assistant = setting.getAssistantById(conversation.assistantId)
                 ?: setting.getCurrentAssistant()
             val tav = assistant?.tavernData
-            val allGreetings = listOfNotNull(tav?.firstMessage.takeIf { it.isNotBlank() }) +
+            val allGreetings = listOfNotNull(tav?.firstMessage?.takeIf { it.isNotBlank() }) +
                 (tav?.alternateGreetings?.filter { it.isNotBlank() } ?: emptyList())
             if (allGreetings.size > 1) {
                 showGreetingPicker = true
@@ -341,67 +342,73 @@ private fun ChatPageContent(
                 ChatInput(
                     state = inputState,
                     loading = loadingJob != null,
-                    settings = setting,
                     conversation = conversation,
+                    settings = setting,
                     mcpManager = vm.mcpManager,
                     hazeState = hazeState,
-                    onCancelClick = {
-                        vm.stopGeneration()
-                    },
                     enableSearch = enableWebSearch,
                     onToggleSearch = {
-                        vm.updateSettings(setting.copy(enableWebSearch = !enableWebSearch))
+                        vm.updateSettings(setting.copy(enableWebSearch = it))
                     },
+                    onUpdateChatModel = { model ->
+                        val assistant = setting.getCurrentAssistant()
+                        vm.updateSettings(setting.copy(
+                            assistants = setting.assistants.map {
+                                if (it.id == assistant.id) it.copy(modelId = model.id) else it
+                            }
+                        ))
+                    },
+                    onUpdateAssistant = { assistant ->
+                        vm.updateSettings(setting.copy(assistantId = assistant.id))
+                    },
+                    onUpdateConversation = { vm.updateConversation(it) },
+                    onUpdateSearchService = { index ->
+                        vm.updateSettings(setting.copy(searchServiceSelected = index))
+                    },
+                    onCompressContext = { prompt, tokens, keep ->
+                        vm.handleCompressContext(prompt, tokens, keep)
+                    },
+                    onCancelClick = { vm.stopGeneration() },
                     onSendClick = {
                         if (currentChatModel == null) {
                             toaster.show("请先选择模型", type = ToastType.Error)
-                            return@ChatInput
-                        }
-                        val content = inputState.messageContent
-                        if (content.isEmptyInputMessage()) return@ChatInput
-                        vm.sendMessage(content)
-                        softwareKeyboardController?.hide()
-                    },
-                    onAbortClick = {
-                        vm.stopGeneration()
-                    },
-                    onImageClick = {
-                        vm.startImageGeneration()
-                    },
-                    onVoiceInputClick = {
-                        vm.startVoiceInput()
-                    },
-                    onUploadClick = { uris ->
-                        scope.launch {
-                            vm.sendFiles(uris)
+                        } else {
+                            vm.handleMessageSend(inputState.messageContent)
                         }
                     },
-                    errors = errors,
-                    onDismissError = onDismissError,
-                    onClearAllErrors = onClearAllErrors,
+                    onLongSendClick = { },
                 )
             },
         ) { innerPadding ->
             ChatList(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .let { if (!bigScreen) it.padding(innerPadding) else it },
-                loadingJob = loadingJob,
-                processingStatus = processingStatus,
-                setting = setting,
+                innerPadding = innerPadding,
                 conversation = conversation,
-                chatListState = chatListState,
-                vm = vm,
-                navController = navController,
-                enableWebSearch = enableWebSearch,
-                currentChatModel = currentChatModel,
-                bigScreen = bigScreen,
+                state = chatListState,
+                loading = loadingJob != null,
+                processingStatus = processingStatus,
+                previewMode = previewMode,
+                settings = setting,
+                hazeState = hazeState,
                 errors = errors,
                 onDismissError = onDismissError,
                 onClearAllErrors = onClearAllErrors,
+                onRegenerate = { vm.regenerateAtMessage(it) },
                 onImpersonate = { msg ->
                     inputState.setMessageText(msg.toText())
                 },
+                onEdit = { vm.handleMessageEdit(it.parts, it.id) },
+                onForkMessage = { msg ->
+                    scope.launch { vm.forkMessage(msg) }
+                },
+                onDelete = { vm.deleteMessage(it) },
+                onClickSuggestion = { vm.handleMessageSend(listOf(UIMessagePart.Text(it))) },
+                onTranslate = { msg, locale -> vm.translateMessage(msg, locale) },
+                onClearTranslation = { vm.clearTranslationField(it.id) },
+                onToolApproval = { callId, approved, reason ->
+                    vm.handleToolApproval(callId, approved, reason)
+                },
+                onToolAnswer = { callId, answer -> vm.handleToolAnswer(callId, answer) },
+                onToggleFavorite = { vm.toggleMessageFavorite(it) },
             )
         }
     }
@@ -410,6 +417,75 @@ private fun ChatPageContent(
 /**
  * 开场白选择弹窗 — 新对话有多条开场白时自动弹出
  */
+@Composable
+private fun TopBar(
+    settings: Settings,
+    conversation: Conversation,
+    bigScreen: Boolean,
+    drawerState: DrawerState,
+    previewMode: Boolean,
+    onNewChat: () -> Unit,
+    onClickMenu: () -> Unit,
+    onUpdateTitle: (String) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    TopAppBar(
+        title = {
+            var editingTitle by remember { mutableStateOf(false) }
+            var titleText by remember { mutableStateOf(conversation.title) }
+
+            if (editingTitle) {
+                OutlinedTextField(
+                    value = titleText,
+                    onValueChange = { titleText = it },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.titleMedium,
+                )
+            } else {
+                Text(
+                    text = conversation.title.ifBlank { "Chat" },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { editingTitle = true },
+                )
+            }
+
+            LaunchedEffect(editingTitle) {
+                if (!editingTitle && titleText != conversation.title && titleText.isNotBlank()) {
+                    onUpdateTitle(titleText)
+                }
+            }
+        },
+        navigationIcon = {
+            if (!bigScreen) {
+                IconButton(onClick = {
+                    scope.launch { if (drawerState.isClosed) drawerState.open() else drawerState.close() }
+                }) {
+                    Icon(HugeIcons.Menu03, contentDescription = null)
+                }
+            }
+        },
+        actions = {
+            IconButton(onClick = onClickMenu) {
+                Icon(
+                    if (previewMode) HugeIcons.Cancel01 else HugeIcons.LeftToRightListBullet,
+                    contentDescription = null,
+                )
+            }
+            IconButton(onClick = onNewChat) {
+                Icon(HugeIcons.MessageAdd01, contentDescription = null)
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+        ),
+    )
+}
+
 @Composable
 private fun GreetingPickerDialog(
     greetings: List<String>,

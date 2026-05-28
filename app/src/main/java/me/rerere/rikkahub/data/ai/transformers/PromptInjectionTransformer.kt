@@ -92,9 +92,14 @@ internal fun transformMessages(
                         position = InjectionPosition.AT_DEPTH,
                         injectDepth = authorNoteDepth,
                     )
-                    else -> injection.copy(position = InjectionPosition.AT_DEPTH)
+                    is PromptInjection.ModeInjection -> injection.copy(
+                        position = InjectionPosition.AT_DEPTH,
+                    )
                 }
-                else -> injection.copy(position = authorNotePosition)
+                else -> when (injection) {
+                    is PromptInjection.RegexInjection -> injection.copy(position = authorNotePosition)
+                    is PromptInjection.ModeInjection -> injection.copy(position = authorNotePosition)
+                }
             }
         } else {
             injection

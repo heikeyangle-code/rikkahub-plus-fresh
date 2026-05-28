@@ -12,7 +12,12 @@ import me.rerere.hugeicons.stroke.Share03
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.MagicWand01
 import me.rerere.hugeicons.stroke.Cancel01
+import me.rerere.hugeicons.stroke.ArrowRight01
+import me.rerere.hugeicons.stroke.Folder01
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -835,6 +840,39 @@ private fun LorebookEditSheet(
             onEdit(book.copy(entries = book.entries + edited))
         }
     }
+    val groupEditState = useEditState<Pair<String, List<PromptInjection.RegexInjection>>> { pair ->
+        val (newGroupName, updatedEntries) = pair
+        val oldGroupName = book.entries.firstOrNull { it.id == updatedEntries.firstOrNull()?.id }?.group ?: return@useEditState
+        val newEntries = book.entries.map { entry ->
+            if (entry.group == oldGroupName) {
+                val base = updatedEntries.first()
+                entry.copy(
+                    name = base.name,
+                    enabled = base.enabled,
+                    priority = base.priority,
+                    position = base.position,
+                    content = base.content,
+                    injectDepth = base.injectDepth,
+                    role = base.role,
+                    keywords = base.keywords,
+                    secondaryKeys = base.secondaryKeys,
+                    useRegex = base.useRegex,
+                    caseSensitive = base.caseSensitive,
+                    scanDepth = base.scanDepth,
+                    constantActive = base.constantActive,
+                    selective = base.selective,
+                    selectiveLogic = base.selectiveLogic,
+                    probability = base.probability,
+                    sticky = base.sticky,
+                    cooldown = base.cooldown,
+                    group = newGroupName,
+                    groupWeight = base.groupWeight,
+                    groupOverride = base.groupOverride,
+                )
+            } else entry
+        }
+        onEdit(book.copy(entries = newEntries))
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -894,7 +932,11 @@ private fun LorebookEditSheet(
                     }
                 )
 
-                // 条目列表
+                // 条目列表（按分组）
+                val groupedEntries = book.entries.groupBy { it.group }
+                val namedGroups = groupedEntries.filterKeys { it.isNotBlank() }
+                val ungroupedEntries = groupedEntries[""] ?: emptyList()
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -911,13 +953,62 @@ private fun LorebookEditSheet(
                     }
                 }
 
-                book.entries.forEach { entry ->
-                    RegexInjectionEntryCard(
-                        entry = entry,
-                        onEdit = { entryEditState.open(entry) },
-                        onDelete = {
-                            onEdit(book.copy(entries = book.entries - entry))
-                        }
+                // 有分组的组
+                namedGroups.forEach { (groupName, groupEntries) ->
+                    LorebookGroupSection(
+                        groupName = groupName,
+                        entries = groupEntries,
+                        onGroupSettings = {
+                            groupEditState.open(Pair(groupName, groupEntries))
+                        },
+                        onEditEntry = { entryEditState.open(it) },
+                        onDeleteEntry = {
+                            onEdit(book.copy(entries = book.entries - it))
+                        },
+                        onUpdateEntry = { edited ->
+                            val idx = book.entries.indexOfFirst { it.id == edited.id }
+                            if (idx >= 0) {
+                                onEdit(book.copy(entries = book.entries.toMutableList().apply { set(idx, edited) }))
+                            }
+                        },
+                        onAddEntry = {
+                            entryEditState.open(PromptInjection.RegexInjection(group = groupName))
+                        },
+                    )
+                }
+
+                // 无分组的条目
+                if (ungroupedEntries.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.prompt_page_no_group),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                    )
+                    ungroupedEntries.forEach { entry ->
+                        RegexInjectionEntryCard(
+                            entry = entry,
+                            onEdit = { entryEditState.open(entry) },
+                            onDelete = {
+                                onEdit(book.copy(entries = book.entries - entry))
+                            },
+                            onUpdate = { edited ->
+                                val idx = book.entries.indexOfFirst { it.id == edited.id }
+                                if (idx >= 0) {
+                                    onEdit(book.copy(entries = book.entries.toMutableList().apply { set(idx, edited) }))
+                                }
+                            },
+                        )
+                    }
+                }
+
+                // 没有条目时提示
+                if (book.entries.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.prompt_page_no_entries),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 16.dp),
                     )
                 }
             }
@@ -946,57 +1037,483 @@ private fun LorebookEditSheet(
             )
         }
     }
+    if (groupEditState.isEditing) {
+        groupEditState.currentState?.let { (groupName, entries) ->
+            GroupSettingsDialog(
+                groupName = groupName,
+                entries = entries,
+                onDismiss = { groupEditState.dismiss() },
+                onConfirm = { newGroupName, template ->
+                    groupEditState.confirm(Pair(newGroupName, entries.map { it.copy(
+                        name = template.name,
+                        enabled = template.enabled,
+                        priority = template.priority,
+                        position = template.position,
+                        content = template.content,
+                        injectDepth = template.injectDepth,
+                        role = template.role,
+                        useRegex = template.useRegex,
+                        caseSensitive = template.caseSensitive,
+                        scanDepth = template.scanDepth,
+                        constantActive = template.constantActive,
+                        selective = template.selective,
+                        selectiveLogic = template.selectiveLogic,
+                        probability = template.probability,
+                        sticky = template.sticky,
+                        cooldown = template.cooldown,
+                        groupWeight = template.groupWeight,
+                        groupOverride = template.groupOverride,
+                    ) }))
+                },
+            )
+        }
+    }
 }
 
 @Composable
 private fun RegexInjectionEntryCard(
     entry: PromptInjection.RegexInjection,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onUpdate: (PromptInjection.RegexInjection) -> Unit = {},
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+    var expanded by remember { mutableStateOf(false) }
+    var editingName by remember { mutableStateOf(false) }
+    var editNameValue by remember { mutableStateOf(entry.name) }
+    var newKeyword by remember { mutableStateOf("") }
+    val showAllKeys = expanded || entry.keywords.size <= 4
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = CustomColors.listItemColors.containerColor
+        )
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            // 第一行：名称 + 启用开关 + 操作按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = entry.name.ifEmpty { stringResource(R.string.prompt_page_unnamed_entry) },
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                if (entry.keywords.isNotEmpty()) {
+                // 条目名称（可点击编辑）
+                if (editingName) {
+                    OutlinedTextField(
+                        value = editNameValue,
+                        onValueChange = { editNameValue = it },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                    )
+                    IconButton(
+                        onClick = {
+                            onUpdate(entry.copy(name = editNameValue))
+                            editingName = false
+                        },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(HugeIcons.Add01, null, modifier = Modifier.size(16.dp))
+                    }
+                } else {
                     Text(
-                        text = stringResource(R.string.prompt_page_keywords_format, entry.keywords.joinToString(", ")),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = entry.name.ifEmpty { stringResource(R.string.prompt_page_unnamed_entry) },
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { editingName = true; editNameValue = entry.name },
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
+
+                Spacer(Modifier.width(4.dp))
+
+                // 启用开关
+                Switch(
+                    checked = entry.enabled,
+                    onCheckedChange = { onUpdate(entry.copy(enabled = it)) },
+                    modifier = Modifier.height(24.dp),
+                )
+
+                IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                    Icon(HugeIcons.Tools, stringResource(R.string.prompt_page_edit), modifier = Modifier.size(18.dp))
+                }
+                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                    Icon(HugeIcons.Delete01, stringResource(R.string.prompt_page_delete), modifier = Modifier.size(18.dp))
+                }
+            }
+
+            // 触发词（如果不够显示则折叠）
+            if (entry.keywords.isNotEmpty() || entry.secondaryKeys.isNotEmpty()) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    if (!entry.enabled) {
-                        Tag(type = TagType.WARNING) {
-                            Text(stringResource(R.string.prompt_page_disabled))
+                    val displayKeys = if (showAllKeys) entry.keywords else entry.keywords.take(3)
+                    displayKeys.forEach { keyword ->
+                        InputChip(
+                            selected = false,
+                            onClick = {},
+                            label = { Text(keyword, style = MaterialTheme.typography.labelSmall) },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { onUpdate(entry.copy(keywords = entry.keywords - keyword)) },
+                                    modifier = Modifier.size(14.dp)
+                                ) {
+                                    Icon(HugeIcons.Cancel01, null, modifier = Modifier.size(10.dp))
+                                }
+                            },
+                            modifier = Modifier.height(26.dp),
+                        )
+                    }
+                    if (!showAllKeys) {
+                        TextButton(
+                            onClick = { expanded = true },
+                            modifier = Modifier.height(26.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                        ) {
+                            Text("+${entry.keywords.size - 3}", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                    if (expanded && entry.keywords.size > 4) {
+                        TextButton(
+                            onClick = { expanded = false },
+                            modifier = Modifier.height(26.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                        ) {
+                            Text("收起", style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
             }
-            IconButton(onClick = onEdit) {
-                Icon(HugeIcons.Tools, stringResource(R.string.prompt_page_edit))
-            }
-            IconButton(onClick = onDelete) {
-                Icon(HugeIcons.Delete01, stringResource(R.string.prompt_page_delete))
+
+            // 添加关键词
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = newKeyword,
+                    onValueChange = { newKeyword = it },
+                    placeholder = { Text("+ 触发词", style = MaterialTheme.typography.bodySmall) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodySmall,
+                )
+                IconButton(
+                    onClick = {
+                        if (newKeyword.isNotBlank()) {
+                            onUpdate(entry.copy(keywords = entry.keywords + newKeyword.trim()))
+                            newKeyword = ""
+                        }
+                    },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(HugeIcons.Add01, null, modifier = Modifier.size(16.dp))
+                }
             }
         }
     }
+}
+
+@Composable
+private fun LorebookGroupSection(
+    groupName: String,
+    entries: List<PromptInjection.RegexInjection>,
+    onGroupSettings: () -> Unit,
+    onEditEntry: (PromptInjection.RegexInjection) -> Unit,
+    onDeleteEntry: (PromptInjection.RegexInjection) -> Unit,
+    onUpdateEntry: (PromptInjection.RegexInjection) -> Unit,
+    onAddEntry: () -> Unit,
+) {
+    var expanded by rememberSaveable(groupName) { mutableStateOf(false) }
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (expanded) 90f else 0f,
+        animationSpec = tween(200),
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        // 组头
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded },
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    HugeIcons.ArrowRight01,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .graphicsLayer { rotationZ = rotationAngle },
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Icon(
+                    HugeIcons.Folder01,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = groupName,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Tag(type = TagType.INFO) {
+                    Text(
+                        stringResource(R.string.prompt_page_entries_count_format, entries.size),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+                IconButton(onClick = onGroupSettings, modifier = Modifier.size(28.dp)) {
+                    Icon(HugeIcons.Tools, null, modifier = Modifier.size(16.dp))
+                }
+                IconButton(onClick = onAddEntry, modifier = Modifier.size(28.dp)) {
+                    Icon(HugeIcons.Add01, null, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+
+        // 组内条目
+        AnimatedVisibility(visible = expanded) {
+            Column(
+                modifier = Modifier.padding(start = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                entries.forEach { entry ->
+                    RegexInjectionEntryCard(
+                        entry = entry,
+                        onEdit = { onEditEntry(entry) },
+                        onDelete = { onDeleteEntry(entry) },
+                        onUpdate = { edited -> onUpdateEntry(edited) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GroupSettingsDialog(
+    groupName: String,
+    entries: List<PromptInjection.RegexInjection>,
+    onDismiss: () -> Unit,
+    onConfirm: (String, PromptInjection.RegexInjection) -> Unit,
+) {
+    val template = remember(entries) { entries.firstOrNull() ?: PromptInjection.RegexInjection() }
+    var edited by remember { mutableStateOf(template) }
+    var editGroupName by remember { mutableStateOf(groupName) }
+    var newKeyword by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.prompt_page_group_settings, groupName))
+                IconButton(onClick = onDismiss) {
+                    Icon(HugeIcons.Cancel01, null, modifier = Modifier.size(20.dp))
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // 组名称
+                OutlinedTextField(
+                    value = editGroupName,
+                    onValueChange = { editGroupName = it },
+                    label = { Text(stringResource(R.string.prompt_page_group)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+
+                // 启用
+                FormItem(
+                    label = { Text(stringResource(R.string.prompt_page_enabled)) },
+                    tail = {
+                        Switch(
+                            checked = edited.enabled,
+                            onCheckedChange = { edited = edited.copy(enabled = it) }
+                        )
+                    }
+                )
+
+                // 优先级
+                OutlinedTextField(
+                    value = edited.priority.toString(),
+                    onValueChange = { it.toIntOrNull()?.let { p -> edited = edited.copy(priority = p) } },
+                    label = { Text(stringResource(R.string.prompt_page_priority_label)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+
+                // 注入位置
+                Text(stringResource(R.string.prompt_page_injection_position), style = MaterialTheme.typography.titleSmall)
+                InjectionPositionSelector(
+                    position = edited.position,
+                    onSelect = { edited = edited.copy(position = it) }
+                )
+
+                AnimatedVisibility(visible = edited.position == InjectionPosition.AT_DEPTH) {
+                    OutlinedTextField(
+                        value = edited.injectDepth.toString(),
+                        onValueChange = { it.toIntOrNull()?.let { d -> edited = edited.copy(injectDepth = d) } },
+                        label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    )
+                }
+
+                // 概率
+                Text(
+                    stringResource(R.string.prompt_page_probability, edited.probability),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Slider(
+                    value = edited.probability.toFloat(),
+                    onValueChange = { edited = edited.copy(probability = it.toInt()) },
+                    valueRange = 0f..100f,
+                    steps = 99,
+                )
+
+                // 粘性 + 冷却
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FormItem(
+                        modifier = Modifier.weight(1f),
+                        label = { Text(stringResource(R.string.prompt_page_sticky)) },
+                        description = { Text(stringResource(R.string.prompt_page_sticky_desc)) },
+                        tail = {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(
+                                    value = edited.sticky.toString(),
+                                    onValueChange = { it.toIntOrNull()?.let { s -> edited = edited.copy(sticky = s) } },
+                                    modifier = Modifier.width(72.dp),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    textStyle = MaterialTheme.typography.bodySmall,
+                                )
+                                Text("轮", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    )
+                    OutlinedTextField(
+                        value = edited.cooldown.toString(),
+                        onValueChange = { it.toIntOrNull()?.let { c -> edited = edited.copy(cooldown = c) } },
+                        label = { Text(stringResource(R.string.prompt_page_cooldown)) },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                    )
+                }
+
+                // 注入角色
+                AnimatedVisibility(visible = edited.position.usesStandaloneMessage()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.prompt_page_injection_role), style = MaterialTheme.typography.titleSmall)
+                        InjectionRoleSelector(
+                            role = edited.role,
+                            onSelect = { edited = edited.copy(role = it) }
+                        )
+                    }
+                }
+
+                // 注入内容
+                OutlinedTextField(
+                    value = edited.content,
+                    onValueChange = { edited = edited.copy(content = it) },
+                    label = { Text(stringResource(R.string.prompt_page_injection_content)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    minLines = 3,
+                )
+
+                // 组权重 + 覆盖
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = edited.groupWeight.toString(),
+                        onValueChange = { it.toIntOrNull()?.let { w -> edited = edited.copy(groupWeight = w) } },
+                        label = { Text(stringResource(R.string.prompt_page_group_weight)) },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                    )
+                    FormItem(
+                        modifier = Modifier.weight(1f),
+                        label = { Text(stringResource(R.string.prompt_page_group_override)) },
+                        tail = {
+                            Switch(
+                                checked = edited.groupOverride,
+                                onCheckedChange = { edited = edited.copy(groupOverride = it) }
+                            )
+                        }
+                    )
+                }
+
+                // 常驻激活
+                FormItem(
+                    label = { Text(stringResource(R.string.prompt_page_constant_active)) },
+                    description = { Text(stringResource(R.string.prompt_page_constant_active_desc)) },
+                    tail = {
+                        Switch(
+                            checked = edited.constantActive,
+                            onCheckedChange = { edited = edited.copy(constantActive = it) }
+                        )
+                    }
+                )
+
+                // 扫描深度
+                OutlinedTextField(
+                    value = edited.scanDepth.toString(),
+                    onValueChange = { it.toIntOrNull()?.let { d -> edited = edited.copy(scanDepth = d) } },
+                    label = { Text(stringResource(R.string.prompt_page_scan_depth)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(editGroupName, edited) }) {
+                Text(stringResource(R.string.prompt_page_apply_to_group, entries.size))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.prompt_page_cancel))
+            }
+        },
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)

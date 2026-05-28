@@ -37,6 +37,11 @@ import androidx.compose.ui.unit.dp
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.TavernBookEntry
 import me.rerere.rikkahub.data.model.TavernEmbeddedBook
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.rikkahub.ui.theme.CustomColors
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 
 /**
  * 酒馆角色卡信息面板 — 简洁高级，分层展示
@@ -49,12 +54,17 @@ fun TavernCharacterCard(
 ) {
     val tav = assistant.tavernData ?: return
     var expanded by remember { mutableStateOf(false) }
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (expanded) 90f else 0f,
+        animationSpec = tween(200),
+    )
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(
+            containerColor = CustomColors.listItemColors.containerColor
+        ),
         shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column {
             // 紧凑头部
@@ -62,42 +72,51 @@ fun TavernCharacterCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { expanded = !expanded }
-                    .padding(14.dp),
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                Icon(
+                    HugeIcons.ArrowRight01,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .graphicsLayer { rotationZ = rotationAngle },
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Icon(
+                    HugeIcons.Book01,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "🧩 角色卡",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.height(2.dp))
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = tav.spec.removePrefix("chara_card_").uppercase(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
+                            text = "角色卡",
+                            style = MaterialTheme.typography.titleSmall,
                         )
-                        if (tav.creator.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                        ) {
                             Text(
-                                text = "· ${tav.creator}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        if (tav.characterVersion.isNotBlank()) {
-                            Text(
-                                text = "· v${tav.characterVersion}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = tav.spec.removePrefix("chara_card_").uppercase(),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
                             )
                         }
                     }
                     // 统计行
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 4.dp),
+                    ) {
                         StatBadge("描述", tav.description.isNotBlank())
                         StatBadge("性格", tav.personality.isNotBlank())
                         StatBadge("场景", tav.scenario.isNotBlank())
@@ -110,12 +129,6 @@ fun TavernCharacterCard(
                         }
                     }
                 }
-                IconButton(onClick = { expanded = !expanded }) {
-                    Text(
-                        text = if (expanded) "▲" else "▼",
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                }
             }
 
             // 展开内容
@@ -125,9 +138,11 @@ fun TavernCharacterCard(
                 exit = shrinkVertically() + fadeOut(),
             ) {
                 Column {
-                    HorizontalDivider()
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    )
 
-                    // 标签 (FlowRow 自动换行)
+                    // 标签
                     if (tav.tags.isNotEmpty()) {
                         FlowRow(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -142,55 +157,66 @@ fun TavernCharacterCard(
                                 )
                             }
                         }
-                        HorizontalDivider()
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(horizontal = 14.dp),
+                        )
                     }
 
                     // 可编辑字段
                     if (tav.systemPrompt.isNotBlank()) {
-                        EditableField("💻 系统提示词", tav.systemPrompt) { v ->
+                        EditableField("系统提示词", tav.systemPrompt) { v ->
                             val newTav = tav.copy(systemPrompt = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
                     }
-                    EditableField("📝 描述", tav.description) { v ->
+                    EditableField("描述", tav.description) { v ->
                         val newTav = tav.copy(description = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
-                    EditableField("🎭 性格", tav.personality) { v ->
+                    EditableField("性格", tav.personality) { v ->
                         val newTav = tav.copy(personality = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
-                    EditableField("🎬 场景", tav.scenario) { v ->
+                    EditableField("场景", tav.scenario) { v ->
                         val newTav = tav.copy(scenario = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
-                    EditableField("💬 示例消息", tav.mesExample) { v ->
+                    EditableField("示例消息", tav.mesExample) { v ->
                         val newTav = tav.copy(mesExample = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
                     if (tav.postHistoryInstructions.isNotBlank()) {
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
-                        EditableField("📋 历史后续指令", tav.postHistoryInstructions) { v ->
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(horizontal = 14.dp),
+                        )
+                        EditableField("历史后续指令", tav.postHistoryInstructions) { v ->
                             val newTav = tav.copy(postHistoryInstructions = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
                     }
                     if (tav.firstMessage.isNotBlank()) {
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
-                        EditableField("👋 开场白", tav.firstMessage) { v ->
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(horizontal = 14.dp),
+                        )
+                        EditableField("开场白", tav.firstMessage) { v ->
                             val newTav = tav.copy(firstMessage = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
                     }
 
-                    // 备选开场白（可编辑）
+                    // 备选开场白
                     if (tav.alternateGreetings.isNotEmpty()) {
-                        HorizontalDivider()
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        )
                         Text(
                             text = "备选开场白 (${tav.alternateGreetings.size})",
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                         tav.alternateGreetings.forEachIndexed { i, greeting ->
                             EditableField("G${i + 1}", greeting) { v ->
@@ -201,14 +227,16 @@ fun TavernCharacterCard(
                         }
                     }
 
-                    // 群聊专用开场白（可编辑）
+                    // 群聊专用开场白
                     if (tav.groupOnlyGreetings.isNotEmpty()) {
-                        HorizontalDivider()
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        )
                         Text(
                             text = "群聊专用开场白 (${tav.groupOnlyGreetings.size})",
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                         tav.groupOnlyGreetings.forEachIndexed { i, greeting ->
                             EditableField("G${i + 1}", greeting) { v ->
@@ -221,7 +249,9 @@ fun TavernCharacterCard(
 
                     // 内嵌世界书
                     tav.embeddedBook?.let { book ->
-                        HorizontalDivider()
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        )
                         EmbeddedBookSummary(
                             book = book,
                             onEntryUpdate = { updated ->
@@ -237,17 +267,68 @@ fun TavernCharacterCard(
                         )
                     }
 
-                    // creator notes（可编辑）
+                    // creator notes
                     if (tav.creatorNotes.isNotBlank()) {
-                        HorizontalDivider()
-                        EditableField("📝 ${tav.creator.ifBlank { "作者" }} 的备注", tav.creatorNotes) { v ->
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        )
+                        EditableField("${tav.creator.ifBlank { "作者" }} 的备注", tav.creatorNotes) { v ->
                             val newTav = tav.copy(creatorNotes = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                        }
+                    }
+
+                    // 作者信息
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        if (tav.creator.isNotBlank()) {
+                            Text(
+                                text = "作者: ${tav.creator}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (tav.characterVersion.isNotBlank()) {
+                            Text(
+                                text = "版本: v${tav.characterVersion}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+private fun StatBadge(label: String, active: Boolean) {
+    val bgColor = if (active)
+        MaterialTheme.colorScheme.primaryContainer
+    else
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    val textColor = if (active)
+        MaterialTheme.colorScheme.onPrimaryContainer
+    else
+        MaterialTheme.colorScheme.onSurfaceVariant
+
+    Surface(
+        shape = RoundedCornerShape(4.dp),
+        color = bgColor,
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = textColor,
+        )
     }
 }
 

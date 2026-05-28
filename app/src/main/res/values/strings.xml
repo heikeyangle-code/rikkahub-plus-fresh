@@ -1118,6 +1118,10 @@
   <string name="prompt_page_sticky">Sticky</string>
   <string name="prompt_page_cooldown">Cooldown (turns)</string>
   <string name="prompt_page_sticky_desc">0 = off, N = persist for N turns</string>
+  <string name="prompt_page_no_group">Ungrouped</string>
+  <string name="prompt_page_no_entries">No entries yet. Tap + to add one.</string>
+  <string name="prompt_page_group_settings">Group Settings: %s</string>
+  <string name="prompt_page_apply_to_group">Apply to %d entries</string>
   <string name="impersonate">Reply as User</string>
 </resources>
 
