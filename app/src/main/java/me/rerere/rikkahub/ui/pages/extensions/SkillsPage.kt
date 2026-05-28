@@ -506,11 +506,15 @@ private fun SkillCard(
                     }
                     val fileCount = skill.linkedFiles.values.sumOf { it.size }
                     if (fileCount > 0) {
-                        Text(
-                            "📎$fileCount",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(HugeIcons.Book01, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.width(2.dp))
+                            Text(
+                                "$fileCount",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
                 if (!skill.compatibility.isNullOrBlank()) {

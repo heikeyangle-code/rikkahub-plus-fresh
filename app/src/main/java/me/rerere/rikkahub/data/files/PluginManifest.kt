@@ -52,6 +52,38 @@ fun parsePluginManifest(skillDir: File): PluginManifest? {
 }
 
 /**
+ * 解析 .mcp.json（可选）
+ * Claude Code 格式：{ "mcpServers": { "name": { "command": "...", "args": [...], "env": {} } } }
+ */
+fun parseMcpJson(skillDir: File): List<PluginMcpServer> {
+    val file = skillDir.resolve(".mcp.json")
+    if (!file.exists()) return emptyList()
+    return try {
+        val json = Json { ignoreUnknownKeys = true }.decodeFromString<McpJsonFile>(file.readText())
+        json.mcpServers.map { (name, config) ->
+            PluginMcpServer(
+                name = name,
+                transport = "stdio",
+                url = "${config.command} ${config.args?.joinToString(" ") ?: ""}",
+            )
+        }
+    } catch (_: Exception) { emptyList() }
+}
+
+@Serializable
+private data class McpJsonFile(
+    val mcpServers: Map<String, McpServerConfig> = emptyMap(),
+)
+
+@Serializable
+private data class McpServerConfig(
+    val command: String = "",
+    val args: List<String>? = null,
+    val env: Map<String, String>? = null,
+)
+
+/**
+ * 列出 commands/ 目录下的 .md 文件
  * 列出 commands/ 目录下的 .md 文件
  */
 fun listCommands(skillDir: File): List<CommandFile> {

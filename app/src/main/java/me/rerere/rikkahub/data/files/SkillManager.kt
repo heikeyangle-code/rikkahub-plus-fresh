@@ -195,7 +195,7 @@ class SkillManager(
                 linkedFiles = linked,
                 skillDir = skillDir,
                 commands = commands,
-                mcpServers = plugin?.mcpServers ?: emptyList(),
+                mcpServers = (plugin?.mcpServers ?: emptyList()) + parseMcpJson(skillDir),
             )
         }.getOrElse {
             Log.w(TAG, "parseSkillFile: Failed to parse ${skillFile.absolutePath}", it)
