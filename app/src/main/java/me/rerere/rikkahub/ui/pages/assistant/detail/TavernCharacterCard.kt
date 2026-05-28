@@ -168,24 +168,24 @@ fun TavernCharacterCard(
 
                     // 可编辑字段
                     if (tav.systemPrompt.isNotBlank()) {
-                        EditableField("系统提示词", tav.systemPrompt) { v: String ->
+                        EditableField("系统提示词", tav.systemPrompt) { v ->
                             val newTav = tav.copy(systemPrompt = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
                     }
-                    EditableField("描述", tav.description) { v: String ->
+                    EditableField("描述", tav.description) { v ->
                         val newTav = tav.copy(description = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
-                    EditableField("性格", tav.personality) { v: String ->
+                    EditableField("性格", tav.personality) { v ->
                         val newTav = tav.copy(personality = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
-                    EditableField("场景", tav.scenario) { v: String ->
+                    EditableField("场景", tav.scenario) { v ->
                         val newTav = tav.copy(scenario = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
-                    EditableField("示例消息", tav.mesExample) { v: String ->
+                    EditableField("示例消息", tav.mesExample) { v ->
                         val newTav = tav.copy(mesExample = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
@@ -194,7 +194,7 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             modifier = Modifier.padding(horizontal = 14.dp),
                         )
-                        EditableField("历史后续指令", tav.postHistoryInstructions) { v: String ->
+                        EditableField("历史后续指令", tav.postHistoryInstructions) { v ->
                             val newTav = tav.copy(postHistoryInstructions = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
@@ -204,7 +204,7 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             modifier = Modifier.padding(horizontal = 14.dp),
                         )
-                        EditableField("开场白", tav.firstMessage, previewLines = 1) { v: String ->
+                        EditableField("开场白", tav.firstMessage, previewLines = 1) { v ->
                             val newTav = tav.copy(firstMessage = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
@@ -222,7 +222,7 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.primary,
                         )
                         tav.alternateGreetings.forEachIndexed { i, greeting ->
-                            EditableField("G${i + 1}", greeting) { v: String ->
+                            EditableField("G${i + 1}", greeting) { v ->
                                 val newGreetings = tav.alternateGreetings.toMutableList().apply { set(i, v) }
                                 val newTav = tav.copy(alternateGreetings = newGreetings)
                                 onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
@@ -242,7 +242,7 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.primary,
                         )
                         tav.groupOnlyGreetings.forEachIndexed { i, greeting ->
-                            EditableField("G${i + 1}", greeting) { v: String ->
+                            EditableField("G${i + 1}", greeting) { v ->
                                 val newGreetings = tav.groupOnlyGreetings.toMutableList().apply { set(i, v) }
                                 val newTav = tav.copy(groupOnlyGreetings = newGreetings)
                                 onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
@@ -275,7 +275,7 @@ fun TavernCharacterCard(
                         HorizontalDivider(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         )
-                        EditableField("${tav.creator.ifBlank { "作者" }} 的备注", tav.creatorNotes) { v: String ->
+                        EditableField("${tav.creator.ifBlank { "作者" }} 的备注", tav.creatorNotes) { v ->
                             val newTav = tav.copy(creatorNotes = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
@@ -522,15 +522,30 @@ private fun CollapsibleEntryCard(
                                 }
                             }
                         }
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = entry.content.replace("\n", " ").take(120)
-                                .let { if (it.length < entry.content.length) "$it…" else it },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        // 状态行
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(top = 4.dp),
+                        ) {
+                            val posNames = listOf("前", "后", "前", "后", "@D")
+                            Text(
+                                text = "P${entry.probability}% · ${if (entry.constant) "常驻" else "触发"} · ${if (!entry.disable) "启用" else "禁用"}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                            if (entry.content.isNotBlank()) {
+                                Text(
+                                    text = entry.content.replace("\n", " ").take(60)
+                                        .let { if (it.length < entry.content.length) "$it…" else it },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
                     }
                     Spacer(Modifier.width(8.dp))
                     Icon(
@@ -615,35 +630,35 @@ private fun EntryEditor(
             )
         }
 
-        // 条目名称
-        Text("名称 (comment)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // 名称
         OutlinedTextField(
             value = commentStr,
             onValueChange = { commentStr = it },
             modifier = Modifier.fillMaxWidth(),
             textStyle = MaterialTheme.typography.bodySmall,
             singleLine = true,
+            label = { Text("名称") },
         )
 
-        // 触发关键词
-        Text("主关键词 (keys, 逗号分隔)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // 触发词
         OutlinedTextField(
             value = keysStr,
             onValueChange = { keysStr = it },
             modifier = Modifier.fillMaxWidth(),
             textStyle = MaterialTheme.typography.bodySmall,
             singleLine = true,
+            label = { Text("触发词") },
         )
 
-        // 次级关键词
+        // 次级触发词
         if (selective) {
-            Text("次级关键词 (secondary_keys, 逗号分隔)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedTextField(
                 value = secondaryKeysStr,
                 onValueChange = { secondaryKeysStr = it },
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = MaterialTheme.typography.bodySmall,
                 singleLine = true,
+                label = { Text("次级触发词") },
             )
         }
 
@@ -661,8 +676,7 @@ private fun EntryEditor(
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("位置 (position)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                // 用 FlowRow 自动换行
+                Text("插入位置", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -680,12 +694,12 @@ private fun EntryEditor(
         }
 
         // 内容
-        Text("内容 (content)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(
             value = content,
             onValueChange = { content = it },
             modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp, max = 200.dp),
             textStyle = MaterialTheme.typography.bodySmall,
+            label = { Text("内容") },
         )
 
         // 高级设置
