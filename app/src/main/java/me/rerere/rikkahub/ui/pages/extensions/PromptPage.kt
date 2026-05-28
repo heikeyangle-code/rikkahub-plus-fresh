@@ -1148,29 +1148,78 @@ private fun RegexInjectionEntryCard(
                 )
             }
 
-            // 添加触发词
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = newKeyword,
-                    onValueChange = { if (it.length <= 20) newKeyword = it },
-                    modifier = Modifier.weight(1f).height(32.dp),
-                    textStyle = MaterialTheme.typography.bodySmall,
-                    singleLine = true,
-                    placeholder = { Text("+") },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                    ),
-                )
-                if (newKeyword.isNotBlank()) {
-                    IconButton(onClick = {
-                        onUpdate(entry.copy(keywords = entry.keywords + newKeyword.trim()))
-                        newKeyword = ""
-                    }, modifier = Modifier.size(28.dp)) {
-                        Icon(HugeIcons.Add01, null, modifier = Modifier.size(14.dp))
+            // 注入内容预览（可展开编辑）
+            var contentExpanded by remember { mutableStateOf(false) }
+            var editContent by remember(entry.content) { mutableStateOf(entry.content) }
+            Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                if (contentExpanded) {
+                    OutlinedTextField(
+                        value = editContent,
+                        onValueChange = { editContent = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 80.dp, max = 200.dp),
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        ),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.End,
+                        horizontalAlignment = Alignment.CenterVertically,
+                    ) {
+                        TextButton(
+                            onClick = {
+                                contentExpanded = false
+                                editContent = entry.content
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            Text(stringResource(R.string.prompt_page_cancel), style = MaterialTheme.typography.labelSmall)
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        TextButton(
+                            onClick = {
+                                onUpdate(entry.copy(content = editContent))
+                                contentExpanded = false
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            Text(stringResource(R.string.prompt_page_confirm), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                } else if (entry.content.isNotBlank()) {
+                    Surface(
+                        onClick = { contentExpanded = true; editContent = entry.content },
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = entry.content.lines().take(3).joinToString("\n")
+                                .let { if (it.length < entry.content.length) "$it…" else it },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(10.dp),
+                        )
+                    }
+                } else {
+                    Surface(
+                        onClick = { contentExpanded = true },
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.prompt_page_add_content),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(10.dp),
+                        )
                     }
                 }
             }

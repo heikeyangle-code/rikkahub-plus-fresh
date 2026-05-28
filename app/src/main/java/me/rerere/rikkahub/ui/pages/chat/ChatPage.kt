@@ -362,7 +362,12 @@ private fun ChatPageContent(
                         ))
                     },
                     onUpdateAssistant = { assistant ->
-                        vm.updateSettings(setting.copy(assistantId = assistant.id))
+                        vm.updateSettings(setting.copy(
+                            assistants = setting.assistants.map {
+                                if (it.id == assistant.id) assistant else it
+                            },
+                            assistantId = assistant.id
+                        ))
                     },
                     onUpdateConversation = { vm.updateConversation(it) },
                     onUpdateSearchService = { index ->

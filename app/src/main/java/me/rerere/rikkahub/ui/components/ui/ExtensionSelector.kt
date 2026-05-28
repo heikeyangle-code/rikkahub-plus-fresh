@@ -175,6 +175,7 @@ fun ExtensionSelector(
                 2 -> {
                     if (settings.lorebooks.isNotEmpty()) {
                         LorebooksContent(
+                            modifier = Modifier.weight(1f),
                             lorebooks = settings.lorebooks,
                             selectedIds = selectedLorebookIds,
                             onToggle = { id, checked ->
@@ -203,6 +204,7 @@ fun ExtensionSelector(
                 3 -> {
                     if (skills.isNotEmpty()) {
                         SkillsContent(
+                            modifier = Modifier.weight(1f),
                             skills = skills,
                             enabledSkills = assistant.enabledSkills,
                             onToggle = { name, checked ->
