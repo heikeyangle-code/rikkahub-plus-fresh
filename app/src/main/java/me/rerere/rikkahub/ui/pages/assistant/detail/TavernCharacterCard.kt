@@ -168,24 +168,24 @@ fun TavernCharacterCard(
 
                     // 可编辑字段
                     if (tav.systemPrompt.isNotBlank()) {
-                        EditableField("系统提示词", tav.systemPrompt) { v ->
+                        EditableField("系统提示词", tav.systemPrompt) { v: String ->
                             val newTav = tav.copy(systemPrompt = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
                     }
-                    EditableField("描述", tav.description) { v ->
+                    EditableField("描述", tav.description) { v: String ->
                         val newTav = tav.copy(description = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
-                    EditableField("性格", tav.personality) { v ->
+                    EditableField("性格", tav.personality) { v: String ->
                         val newTav = tav.copy(personality = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
-                    EditableField("场景", tav.scenario) { v ->
+                    EditableField("场景", tav.scenario) { v: String ->
                         val newTav = tav.copy(scenario = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
-                    EditableField("示例消息", tav.mesExample) { v ->
+                    EditableField("示例消息", tav.mesExample) { v: String ->
                         val newTav = tav.copy(mesExample = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
@@ -194,7 +194,7 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             modifier = Modifier.padding(horizontal = 14.dp),
                         )
-                        EditableField("历史后续指令", tav.postHistoryInstructions) { v ->
+                        EditableField("历史后续指令", tav.postHistoryInstructions) { v: String ->
                             val newTav = tav.copy(postHistoryInstructions = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
@@ -204,7 +204,7 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             modifier = Modifier.padding(horizontal = 14.dp),
                         )
-                        EditableField("开场白", tav.firstMessage, previewLines = 1) { v ->
+                        EditableField("开场白", tav.firstMessage, previewLines = 1) { v: String ->
                             val newTav = tav.copy(firstMessage = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
@@ -222,7 +222,7 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.primary,
                         )
                         tav.alternateGreetings.forEachIndexed { i, greeting ->
-                            EditableField("G${i + 1}", greeting) { v ->
+                            EditableField("G${i + 1}", greeting) { v: String ->
                                 val newGreetings = tav.alternateGreetings.toMutableList().apply { set(i, v) }
                                 val newTav = tav.copy(alternateGreetings = newGreetings)
                                 onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
@@ -242,7 +242,7 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.primary,
                         )
                         tav.groupOnlyGreetings.forEachIndexed { i, greeting ->
-                            EditableField("G${i + 1}", greeting) { v ->
+                            EditableField("G${i + 1}", greeting) { v: String ->
                                 val newGreetings = tav.groupOnlyGreetings.toMutableList().apply { set(i, v) }
                                 val newTav = tav.copy(groupOnlyGreetings = newGreetings)
                                 onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
@@ -275,7 +275,7 @@ fun TavernCharacterCard(
                         HorizontalDivider(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         )
-                        EditableField("${tav.creator.ifBlank { "作者" }} 的备注", tav.creatorNotes) { v ->
+                        EditableField("${tav.creator.ifBlank { "作者" }} 的备注", tav.creatorNotes) { v: String ->
                             val newTav = tav.copy(creatorNotes = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
