@@ -1063,7 +1063,7 @@ private fun LorebookEditSheet(
                         cooldown = template.cooldown,
                         groupWeight = template.groupWeight,
                         groupOverride = template.groupOverride,
-                    ) }))
+                    ) })
                     groupEditState.confirm()
                 },
             )

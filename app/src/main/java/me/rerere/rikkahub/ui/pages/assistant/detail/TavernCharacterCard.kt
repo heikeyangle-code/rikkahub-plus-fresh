@@ -311,6 +311,7 @@ fun TavernCharacterCard(
     }
 }
 
+@Composable
 private fun StatBadge(label: String, active: Boolean) {
     val bgColor = if (active)
         MaterialTheme.colorScheme.primaryContainer
@@ -407,16 +408,6 @@ private fun EditableField(
             )
         }
     }
-}
-
-@Composable
-private fun StatBadge(label: String, active: Boolean) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelSmall,
-        color = if (active) MaterialTheme.colorScheme.onSurface
-        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-    )
 }
 
 @Composable

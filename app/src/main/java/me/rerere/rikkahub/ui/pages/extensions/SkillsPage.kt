@@ -68,10 +68,9 @@ import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.hugeicons.stroke.GlobalSearch
 import me.rerere.hugeicons.stroke.Book01
-import me.rerere.rikkahub.data.files.SkillFrontmatterParser
-import me.rerere.rikkahub.data.files.SkillMetadata
-import me.rerere.rikkahub.data.files.SkillRegistry
 import me.rerere.rikkahub.Screen
+import me.rerere.rikkahub.data.files.SkillMetadata
+import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.RikkaConfirmDialog
 import me.rerere.rikkahub.ui.context.LocalNavController
@@ -94,7 +93,7 @@ fun SkillsPage() {
 
     // File picker launcher (.zip / .md)
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
+        contract = ActivityResultContracts.OpenDocument(arrayOf("*/*"))
     ) { uri ->
         uri?.let {
             vm.importFromLocalFile(it, context) { success, msg ->
@@ -429,38 +428,6 @@ fun SkillsPage() {
         onDismiss = { deleteTarget = null },
     ) {
         Text(stringResource(R.string.skills_page_delete_message, deleteTarget?.name ?: ""))
-    }
-}
-
-@Composable
-private fun RegistrySkillCard(
-    entry: SkillRegistry.RegistryEntry,
-    onInstall: () -> Unit,
-) {
-    Card(
-        onClick = onInstall,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-        ),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(entry.name, style = MaterialTheme.typography.bodyMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
-                Text(entry.description, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(entry.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    Text("· ${entry.author}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            TextButton(onClick = onInstall) { Text("安装") }
-        }
     }
 }
 

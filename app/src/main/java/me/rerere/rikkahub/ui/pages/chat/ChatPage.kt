@@ -197,7 +197,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
         val assistant = setting.getAssistantById(conversation.assistantId)
             ?: setting.getCurrentAssistant()
         val tav = assistant?.tavernData
-        val allGreetings = listOfNotNull(tav?.firstMessage.takeIf { it.isNotBlank() }) +
+        val allGreetings = listOfNotNull(tav?.firstMessage?.takeIf { it.isNotBlank() }) +
             (tav?.alternateGreetings?.filter { it.isNotBlank() } ?: emptyList())
 
         GreetingPickerDialog(
