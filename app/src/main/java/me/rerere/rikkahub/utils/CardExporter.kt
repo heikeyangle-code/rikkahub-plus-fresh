@@ -18,24 +18,46 @@ object CardExporter {
 
     /**
      * 将角色卡 JSON 嵌入到已有图片的 PNG tEXt chunk 中
-     * 直接读取原始 PNG 字节注入，不走 Bitmap 中转（避免流不支持 mark/reset 的问题）
-     * 返回 PNG 字节数组
+     * 支持传入任意格式图片（JPEG/WebP/BMP等），自动转PNG
      */
     fun embedCardToPng(imageUri: Uri, context: Context, cardJson: String): ByteArray? {
-        val pngBytes = try {
+        val originalBytes = try {
             context.contentResolver.openInputStream(imageUri)?.use { it.readBytes() }
         } catch (_: Exception) { null } ?: return null
 
-        // 验证是有效 PNG（前 8 字节是 PNG 签名）
-        if (pngBytes.size < 8 ||
-            pngBytes[0] != 0x89.toByte() ||
-            pngBytes[1] != 0x50.toByte() || // P
-            pngBytes[2] != 0x4E.toByte() || // N
-            pngBytes[3] != 0x47.toByte()    // G
-        ) return null
+        // 检查是否为有效 PNG
+        val isPng = originalBytes.size >= 8 &&
+            originalBytes[0] == 0x89.toByte() &&
+            originalBytes[1] == 0x50.toByte()
 
-        // 在 PNG 中注入 tEXt chunk
-        return injectTextChunk(pngBytes, "chara", Base64.encodeToString(cardJson.toByteArray(), Base64.NO_WRAP))
+        val pngBytes = if (isPng) {
+            originalBytes
+        } else {
+            // 非PNG格式 → 转PNG
+            val bitmap = try {
+                BitmapFactory.decodeByteArray(originalBytes, 0, originalBytes.size)
+            } catch (_: Exception) { null } ?: return null
+            val stream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            bitmap.recycle()
+            stream.toByteArray()
+        }
+
+        // 注入 chara chunk (V2 兼容) + ccv3 chunk (V3)
+        val charaB64 = Base64.encodeToString(cardJson.toByteArray(), Base64.NO_WRAP)
+        val result = injectTextChunk(pngBytes, "chara", charaB64)
+
+        // 写 ccv3 chunk：修改 spec 和 spec_version
+        val v3Json = try {
+            val parsed = Json.parseToJsonElement(cardJson).jsonObject
+            JsonObject(parsed.toMap() + mapOf(
+                "spec" to JsonPrimitive("chara_card_v3"),
+                "spec_version" to JsonPrimitive("3.0")
+            )).toString()
+        } catch (_: Exception) { null } ?: return result
+
+        val ccv3B64 = Base64.encodeToString(v3Json.toByteArray(), Base64.NO_WRAP)
+        return injectTextChunk(result, "ccv3", ccv3B64)
     }
 
     /**

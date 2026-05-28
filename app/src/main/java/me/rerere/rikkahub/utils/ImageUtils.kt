@@ -241,6 +241,7 @@ object ImageUtils {
 
         // PNG 签名(8 bytes)后开始 chunk
         var offset = 8
+        var charaResult: String? = null
         while (offset + 8 <= bytes.size) {
             val length = readInt32BE(bytes, offset)
             val type = String(bytes, offset + 4, 4, StandardCharsets.US_ASCII)
@@ -255,7 +256,7 @@ object ImageUtils {
                 if (nullPos >= 0) {
                     val absNull = dataStart + nullPos
                     val keyword = String(bytes, dataStart, nullPos, StandardCharsets.ISO_8859_1)
-                    if (keyword.equals("chara", ignoreCase = true)) {
+                    if (keyword.equals("chara", ignoreCase = true) || keyword.equals("ccv3", ignoreCase = true)) {
                         val rawText = String(bytes, absNull + 1, dataEnd - absNull - 1, StandardCharsets.ISO_8859_1)
 
                         // 去掉 base64 前面的任何垃圾字节（SilveryTavern 也这样做）
@@ -266,7 +267,13 @@ object ImageUtils {
                         // 找到第一个 { 跳过前导垃圾（兼容性保护）
                         val braceStart = jsonStr.indexOf('{')
                         if (braceStart >= 0 && jsonStr.contains("\"spec\"")) {
-                            return Result.success(cleanB64)
+                            // ccv3 优先，但如果已经找到 chara 且现在又找到 ccv3，覆盖
+                            // ccv3 在 chunk 顺序中通常在 chara 之后
+                            if (keyword.equals("ccv3", ignoreCase = true)) {
+                                return Result.success(cleanB64)
+                            }
+                            // chara 暂存，继续找 ccv3
+                            charaResult = cleanB64
                         }
                     }
                 }
@@ -274,6 +281,11 @@ object ImageUtils {
 
             // zTXt chunk data 是压缩的，跳过（后续可加 inflate 支持）
             offset += 12 + length
+        }
+
+        // 没找到 ccv3，用 chara
+        if (charaResult != null) {
+            return Result.success(charaResult)
         }
 
         error("未找到有效的角色卡数据，请确认图片是酒馆角色卡PNG")

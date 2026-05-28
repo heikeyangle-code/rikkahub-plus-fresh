@@ -111,6 +111,17 @@ object DefaultPlaceholderProvider : PlaceholderProvider {
         placeholder("user", { Text(stringResource(R.string.placeholder_user)) }) {
             it.settingsStore.settingsFlow.value.displaySetting.userNickname.ifBlank { "user" }
         }
+
+        // 角色卡字段（用于世界书注入内容）
+        placeholder("description", { Text("角色描述") }) {
+            it.assistant.tavernData?.description ?: ""
+        }
+        placeholder("personality", { Text("角色性格") }) {
+            it.assistant.tavernData?.personality ?: ""
+        }
+        placeholder("scenario", { Text("角色场景") }) {
+            it.assistant.tavernData?.scenario ?: ""
+        }
     }
 
     private fun Temporal.toDateString() = DateTimeFormatter
