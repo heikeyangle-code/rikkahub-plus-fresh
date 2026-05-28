@@ -39,7 +39,7 @@ import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Lorebook
 import me.rerere.rikkahub.data.model.PromptInjection
 import me.rerere.rikkahub.data.model.InjectionPosition
-import me.rerere.rikkahub.data.model.MessageRole
+import me.rerere.ai.core.MessageRole
 import me.rerere.rikkahub.data.model.TavernCharacterData
 import me.rerere.rikkahub.data.model.TavernEmbeddedBook
 import me.rerere.rikkahub.data.model.TavernBookEntry
@@ -171,7 +171,7 @@ private suspend fun importFromUri(
         else -> error(context.getString(R.string.assistant_importer_unsupported_spec, spec))
     }
 
-    toaster.show(context.getString(R.string.assistant_importer_import_success, assistant.name))
+    toaster.show(context.getString(R.string.app_name, assistant.name))
     onImport(TavernImportResult(assistant, lorebooks))
 }
 

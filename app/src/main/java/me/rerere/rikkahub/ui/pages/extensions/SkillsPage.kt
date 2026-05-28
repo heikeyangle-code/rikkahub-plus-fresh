@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -85,7 +86,6 @@ fun SkillsPage() {
     val toaster = LocalToaster.current
     val context = LocalContext.current
     var showImportSheet by rememberSaveable { mutableStateOf(false) }
-    var showMarketplaceDialog by rememberSaveable { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<SkillMetadata?>(null) }
 
     // File picker launcher (.zip / .md)
@@ -147,7 +147,6 @@ fun SkillsPage() {
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                SmallFloatingActionButton(onClick = { showMarketplaceDialog = true }) {
                     Icon(
                         HugeIcons.Puzzle,
                         contentDescription = "从 Market 导入",
@@ -327,7 +326,7 @@ fun SkillsPage() {
                             )
                         }
                         Icon(
-                            HugeIcons.ArrowRight01,
+                            HugeIcons.ChevronRight,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -353,7 +352,7 @@ fun SkillsPage() {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            HugeIcons.Book01,
+                            HugeIcons.Book,
                             contentDescription = null,
                             modifier = Modifier.size(28.dp),
                             tint = MaterialTheme.colorScheme.primary,
@@ -372,7 +371,7 @@ fun SkillsPage() {
                             )
                         }
                         Icon(
-                            HugeIcons.ArrowRight01,
+                            HugeIcons.ChevronRight,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -382,12 +381,8 @@ fun SkillsPage() {
         }
     }
 
-    if (showMarketplaceDialog) {
-        MarketplaceDialog(
-            onDismiss = { showMarketplaceDialog = false },
             onConfirm = { url ->
                 vm.fetchRemoteMarketplace(url) { success, message ->
-                    showMarketplaceDialog = false
                     toaster.show(if (success) message else "失败: $message")
                 }
             },

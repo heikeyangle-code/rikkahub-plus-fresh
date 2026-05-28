@@ -1105,5 +1105,6 @@
   <string name="web_search_enabled">Web search enabled</string>
   <string name="setting_theme_page_delete_theme_title">Delete Theme</string>
   <string name="setting_theme_page_delete_theme_message">Are you sure you want to delete this theme?</string>
+    <string name="assistant_importer_import_success">角色卡导入成功</string>
 </resources>
 

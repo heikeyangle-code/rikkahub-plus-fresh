@@ -117,6 +117,7 @@ fun GroupChatListPage() {
                             Checkbox(
                                 checked = a.id in selectedIds,
                                 onCheckedChange = { checked ->
+            scope.launch {
                                     selectedIds = if (checked) selectedIds + a.id
                                     else selectedIds - a.id
                                 },

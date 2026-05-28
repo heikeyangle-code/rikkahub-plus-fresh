@@ -4,7 +4,9 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Text
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -272,7 +274,7 @@ private fun EmbeddedBookSummary(book: TavernEmbeddedBook) {
         ) {
             Text("📖 内嵌世界书", style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.width(8.dp))
-            FilledTonalChip(
+            FilterChip(
                 onClick = { showEntries = !showEntries },
                 label = {
                     Text(
@@ -457,7 +459,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         Spacer(Modifier.height(8.dp))
         FieldLabel("次要关键词逻辑 (selective_logic)")
         Spacer(Modifier.height(4.dp))
-        FilledTonalChip(
+        FilterChip(
             onClick = {},
             label = {
                 Text(

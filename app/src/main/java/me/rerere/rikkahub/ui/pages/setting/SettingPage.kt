@@ -209,19 +209,19 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                     )
                     item(
                         onClick = { navController.navigate(Screen.Persona) },
-                        leadingContent = { Icon(HugeIcons.Edit02, null) },
+                        leadingContent = { Icon(HugeIcons.Edit01, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_persona_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_persona)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.AuthorsNote) },
-                        leadingContent = { Icon(HugeIcons.Notebook01, null) },
+                        leadingContent = { Icon(HugeIcons.Notebook, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_authors_note_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_authors_note)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.GroupChatList) },
-                        leadingContent = { Icon(HugeIcons.MessageMultiple01, null) },
+                        leadingContent = { Icon(HugeIcons.MessageMultiple, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_group_chat_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_group_chat)) },
                     )

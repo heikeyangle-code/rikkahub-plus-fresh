@@ -1,4 +1,7 @@
 package me.rerere.rikkahub.ui.pages.assistant.detail
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.ArrowDown01
