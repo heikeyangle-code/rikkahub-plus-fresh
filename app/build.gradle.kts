@@ -15,12 +15,14 @@ plugins {
 
 android {
     namespace = "me.rerere.rikkahub"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "me.rerere.rikkahub"
         minSdk = 26
-        targetSdk = 37
+        multiDexEnabled = true
+        multiDexKeepProguard = file("multidex-keep.pro")
+        targetSdk = 35
         versionCode = 162
         versionName = "2.2.6"
 
