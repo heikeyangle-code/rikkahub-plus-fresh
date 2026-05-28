@@ -399,6 +399,9 @@ private fun ChatPageContent(
                 errors = errors,
                 onDismissError = onDismissError,
                 onClearAllErrors = onClearAllErrors,
+                onImpersonate = { msg ->
+                    inputState.setMessageText(msg.toText())
+                },
             )
         }
     }
