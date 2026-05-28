@@ -983,13 +983,25 @@ private fun LorebookEditSheet(
 
                 // 无分组的条目
                 if (ungroupedEntries.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.prompt_page_no_group),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                    // 虚线分隔符（模拟）
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(vertical = 8.dp),
                     )
-                    ungroupedEntries.forEach { entry ->
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.7f),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)) {
+                            Text(
+                                text = stringResource(R.string.prompt_page_no_group),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            )
+                            ungroupedEntries.forEach { entry ->
                         RegexInjectionEntryCard(
                             entry = entry,
                             onEdit = { entryEditState.open(entry) },
@@ -1003,6 +1015,8 @@ private fun LorebookEditSheet(
                                 }
                             },
                         )
+                    }
+                        }
                     }
                 }
 
@@ -1086,13 +1100,26 @@ private fun RegexInjectionEntryCard(
     var editNameValue by remember { mutableStateOf(entry.name) }
     var newKeyword by remember { mutableStateOf("") }
 
-    Card(
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.elevatedCardColors(
             containerColor = CustomColors.listItemColors.containerColor
-        )
+        ),
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            // 左侧 4dp 彩色装饰线
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(12.dp)
+            ) {
             // 第一行：名称 + 启用开关 + 操作按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),
