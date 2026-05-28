@@ -115,9 +115,9 @@ fun TavernCharacterCard(
                         }
                     }
                     // 统计行
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
                         modifier = Modifier.padding(top = 4.dp),
                     ) {
                         StatBadge("描述", tav.description.isNotBlank())
@@ -344,68 +344,54 @@ private fun EditableField(
     label: String,
     value: String,
     onSave: (String) -> Unit,
-    previewLines: Int = 3,
+    previewLines: Int = 2,
 ) {
     if (value.isBlank()) return
     var expanded by remember { mutableStateOf(false) }
     var editText by remember(value) { mutableStateOf(value) }
-    val previewLinesVal = previewLines
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (expanded) 90f else 0f,
+        animationSpec = tween(200),
+    )
 
-    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = !expanded },
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Icon(
+                HugeIcons.ArrowRight01,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(14.dp)
+                    .graphicsLayer { rotationZ = rotationAngle },
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(6.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
             )
-            Text(
-                text = if (expanded) "▲ 收起" else "▼ 展开",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
-        Spacer(Modifier.height(4.dp))
         if (expanded) {
             OutlinedTextField(
                 value = editText,
                 onValueChange = { editText = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(start = 20.dp, top = 4.dp),
                 textStyle = MaterialTheme.typography.bodySmall,
-                minLines = 4,
+                minLines = 3,
             )
-            Spacer(Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                TextButton(onClick = {
-                    editText = value
-                    expanded = false
-                }) {
-                    Text("取消", style = MaterialTheme.typography.labelSmall)
-                }
-                Spacer(Modifier.width(8.dp))
-                TextButton(onClick = {
-                    onSave(editText)
-                    expanded = false
-                }) {
-                    Text("保存", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary)
-                }
-            }
         } else {
             Text(
-                text = value.lines().take(previewLinesVal).joinToString("\n")
+                text = value.lines().take(previewLines).joinToString("\n")
                     .let { if (it.length < value.length) "$it…" else it },
+                modifier = Modifier.padding(start = 20.dp),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-                maxLines = previewLinesVal,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = previewLines,
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -418,25 +404,46 @@ private fun EmbeddedBookSummary(
     onEntryUpdate: (TavernBookEntry) -> Unit = {},
 ) {
     var showEntries by remember { mutableStateOf(false) }
-        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (showEntries) 90f else 0f,
+        animationSpec = tween(200),
+    )
+    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { showEntries = !showEntries },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("📖 内嵌世界书", style = MaterialTheme.typography.labelMedium)
-            Spacer(Modifier.width(8.dp))
-            FilterChip(
-                selected = false,
-                onClick = { showEntries = !showEntries },
-                label = {
-                    Text(
-                        text = "${book.entries.size}",
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                },
+            Icon(
+                HugeIcons.ArrowRight01,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(14.dp)
+                    .graphicsLayer { rotationZ = rotationAngle },
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Spacer(Modifier.width(6.dp))
+            Icon(
+                HugeIcons.Book01,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("内嵌世界书", style = MaterialTheme.typography.labelMedium)
+            Spacer(Modifier.width(6.dp))
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+            ) {
+                Text(
+                    text = "${book.entries.size}",
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
             if (book.name.isNotBlank()) {
                 Spacer(Modifier.width(4.dp))
                 Text(
@@ -445,13 +452,7 @@ private fun EmbeddedBookSummary(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Spacer(Modifier.weight(1f))
-            Text(
-                text = if (showEntries) "▲" else "▼",
-                style = MaterialTheme.typography.labelSmall,
-            )
         }
-
         AnimatedVisibility(visible = showEntries) {
             Column(
                 modifier = Modifier.padding(top = 8.dp),
