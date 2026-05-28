@@ -222,10 +222,20 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.primary,
                         )
                         tav.alternateGreetings.forEachIndexed { i, greeting ->
-                            EditableField("G${i + 1}", greeting) { v ->
-                                val newGreetings = tav.alternateGreetings.toMutableList().apply { set(i, v) }
-                                val newTav = tav.copy(alternateGreetings = newGreetings)
-                                onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                            ElevatedCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 3.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.elevatedCardColors(
+                                    containerColor = CustomColors.listItemColors.containerColor
+                                ),
+                            ) {
+                                EditableField("G${i + 1}", greeting) { v ->
+                                    val newGreetings = tav.alternateGreetings.toMutableList().apply { set(i, v) }
+                                    val newTav = tav.copy(alternateGreetings = newGreetings)
+                                    onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                                }
                             }
                         }
                     }
