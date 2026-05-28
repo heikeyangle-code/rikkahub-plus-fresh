@@ -429,6 +429,7 @@ private fun tavernEntryToInjection(entry: TavernBookEntry): PromptInjection.Rege
         caseSensitive = entry.caseSensitive,
         scanDepth = entry.scanDepth,
         constantActive = entry.constant,
+        selective = entry.selective,
         selectiveLogic = mapSelectiveLogic(entry.selectiveLogic),
         group = entry.group,
         probability = entry.probability,

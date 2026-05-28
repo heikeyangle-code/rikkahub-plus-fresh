@@ -18,18 +18,32 @@ import kotlin.random.Random
  * 根据 Assistant 关联的 ModeInjection 和 Lorebook 进行提示词注入
  */
 object PromptInjectionTransformer : InputMessageTransformer {
+
+    // 粘性追踪：assistantId → 当前激活的粘性注入ID集
+    private val stickyTracker = mutableMapOf<String, MutableSet<Uuid>>()
+    // 冷却追踪：assistantId → (injectionId → 剩余冷却轮数)
+    private val cooldownTracker = mutableMapOf<String, MutableMap<Uuid, Int>>()
+
     override suspend fun transform(
         ctx: TransformerContext,
         messages: List<UIMessage>,
     ): List<UIMessage> {
-        return transformMessages(
+        val key = ctx.assistant.id.toString()
+        val activeSticky = stickyTracker.getOrPut(key) { mutableSetOf() }
+        val cooldowns = cooldownTracker.getOrPut(key) { mutableMapOf() }
+
+        val result = transformMessages(
             messages = messages,
             assistant = ctx.assistant,
             modeInjections = ctx.settings.modeInjections,
             lorebooks = ctx.settings.lorebooks,
             conversationModeInjectionIds = ctx.conversationModeInjectionIds,
             conversationLorebookIds = ctx.conversationLorebookIds,
+            activeStickyEntries = activeSticky,
+            cooldownEntries = cooldowns,
         )
+
+        return result
     }
 }
 
@@ -43,6 +57,8 @@ internal fun transformMessages(
     lorebooks: List<Lorebook>,
     conversationModeInjectionIds: Set<Uuid> = emptySet(),
     conversationLorebookIds: Set<Uuid> = emptySet(),
+    activeStickyEntries: MutableSet<Uuid> = mutableSetOf(),
+    cooldownEntries: MutableMap<Uuid, Int> = mutableMapOf(),
 ): List<UIMessage> {
     // 收集所有需要注入的内容
     val injections = collectInjections(
@@ -52,9 +68,13 @@ internal fun transformMessages(
         lorebooks = lorebooks,
         conversationModeInjectionIds = conversationModeInjectionIds,
         conversationLorebookIds = conversationLorebookIds,
+        activeStickyEntries = activeStickyEntries,
+        cooldownEntries = cooldownEntries,
     )
 
     if (injections.isEmpty()) {
+        // 无注入时仍要推进冷却状态
+        tickCooldowns(cooldownEntries)
         return messages
     }
 
@@ -64,7 +84,12 @@ internal fun transformMessages(
         .groupBy { it.position }
 
     // 应用注入
-    return applyInjections(messages, byPosition)
+    val result = applyInjections(messages, byPosition)
+
+    // 推进冷却
+    tickCooldowns(cooldownEntries)
+
+    return result
 }
 
 /**
@@ -77,6 +102,8 @@ internal fun collectInjections(
     lorebooks: List<Lorebook>,
     conversationModeInjectionIds: Set<Uuid> = emptySet(),
     conversationLorebookIds: Set<Uuid> = emptySet(),
+    activeStickyEntries: MutableSet<Uuid> = mutableSetOf(),
+    cooldownEntries: MutableMap<Uuid, Int> = mutableMapOf(),
 ): List<PromptInjection> {
     val injections = mutableListOf<PromptInjection>()
     val effectiveModeInjectionIds = if (assistant.allowConversationPromptInjection) {
@@ -104,41 +131,96 @@ internal fun collectInjections(
         val nonSystemMessages = messages.filter { it.role != MessageRole.SYSTEM }
 
         enabledLorebooks.forEach { lorebook ->
-            val triggered = lorebook.entries
-                .filter { entry ->
-                    val context = extractContextForMatching(nonSystemMessages, entry.scanDepth)
-                    entry.isTriggered(context)
+            // 对每条 Lorebook 条目检查触发
+            val newlyTriggered = mutableListOf<PromptInjection.RegexInjection>()
+
+            for (entry in lorebook.entries) {
+                // 冷却中的条目跳过
+                if (cooldownEntries.containsKey(entry.id)) continue
+
+                // 粘性条目：只要在 activeSticky 中就自动包含
+                val isStickyActive = activeStickyEntries.contains(entry.id)
+
+                if (isStickyActive) {
+                    newlyTriggered.add(entry)
+                    continue
                 }
+
+                // 正常触发检查
+                val context = extractContextForMatching(nonSystemMessages, entry.scanDepth)
+                if (entry.isTriggered(context)) {
+                    newlyTriggered.add(entry)
+                }
+            }
+
             // 同组条目权重随机选择：同一 group 的条目只选一条
-            val grouped = triggered.filter { it.group.isNotBlank() }.groupBy { it.group }
-            val ungrouped = triggered.filter { it.group.isBlank() }
+            val grouped = newlyTriggered.filter { it.group.isNotBlank() }.groupBy { it.group }
+            val ungrouped = newlyTriggered.filter { it.group.isBlank() }
+
             // 无 group 的条目直接加入
-            injections.addAll(ungrouped)
+            for (entry in ungrouped) {
+                injections.add(entry)
+                // 粘性/冷却处理
+                handleStickyCooldown(entry, activeStickyEntries, cooldownEntries)
+            }
+
             // 每个 group 按 weight 随机选一条
             for ((_, entries) in grouped) {
                 val override = entries.find { it.groupOverride }
-                if (override != null) {
-                    injections.add(override)
-                    continue
-                }
-                val totalWeight = entries.sumOf { it.groupWeight.toLong() }
-                if (totalWeight <= 0) {
-                    injections.add(entries.first())
-                    continue
-                }
-                var roll = Random.nextLong(totalWeight)
-                for (entry in entries) {
-                    roll -= entry.groupWeight.toLong()
-                    if (roll < 0) {
-                        injections.add(entry)
-                        break
+                val selected = if (override != null) {
+                    override
+                } else {
+                    val totalWeight = entries.sumOf { it.groupWeight.toLong() }
+                    if (totalWeight <= 0) {
+                        entries.first()
+                    } else {
+                        var roll = Random.nextLong(totalWeight)
+                        var picked = entries.first()
+                        for (entry in entries) {
+                            roll -= entry.groupWeight.toLong()
+                            if (roll < 0) {
+                                picked = entry
+                                break
+                            }
+                        }
+                        picked
                     }
                 }
+                injections.add(selected)
+                // 粘性/冷却处理
+                handleStickyCooldown(selected, activeStickyEntries, cooldownEntries)
             }
         }
     }
 
     return injections
+}
+
+/** 处理粘性和冷却状态 */
+private fun handleStickyCooldown(
+    entry: PromptInjection.RegexInjection,
+    activeStickyEntries: MutableSet<Uuid>,
+    cooldownEntries: MutableMap<Uuid, Int>,
+) {
+    if (entry.sticky) {
+        activeStickyEntries.add(entry.id)
+    }
+    if (entry.cooldown > 0) {
+        cooldownEntries[entry.id] = entry.cooldown
+    }
+}
+
+/** 推进冷却计数器：每次调用减1，到0移除 */
+private fun tickCooldowns(cooldownEntries: MutableMap<Uuid, Int>) {
+    val toRemove = mutableListOf<Uuid>()
+    for ((id, remaining) in cooldownEntries) {
+        if (remaining <= 1) {
+            toRemove.add(id)
+        } else {
+            cooldownEntries[id] = remaining - 1
+        }
+    }
+    toRemove.forEach { cooldownEntries.remove(it) }
 }
 
 /**

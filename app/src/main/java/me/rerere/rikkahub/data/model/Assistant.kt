@@ -177,8 +177,9 @@ sealed class PromptInjection {
         val secondaryKeys: List<String> = emptyList(), // 二级触发关键词
         val useRegex: Boolean = false,                  // 是否使用正则匹配
         val caseSensitive: Boolean = false,             // 大小写敏感
-        val scanDepth: Int = 4,                         // 扫描最近N条消息
+        val scanDepth: Int = 1000,                      // 扫描最近N条消息（酒馆默认1000）
         val constantActive: Boolean = false,            // 常驻激活（无需匹配）
+        val selective: Boolean = false,                 // 是否启用二级关键词逻辑
         val selectiveLogic: SelectiveLogic = SelectiveLogic.AND_ANY, // 触发逻辑
         val group: String = "",                         // 分组标签（同组条目互斥时只激活一个）
         val groupWeight: Int = 100,                     // 同组权重（随机选择时使用）
@@ -226,49 +227,63 @@ data class Lorebook(
  */
 fun PromptInjection.RegexInjection.isTriggered(context: String, activeSticky: Boolean = false): Boolean {
     if (!enabled) return false
-    if (constantActive && probability >= 100) return true
-    
+
+    // 常驻条目无条件触发（无视概率）
+    if (constantActive) return true
+
     // 粘性条目在激活后持续生效
     if (sticky && activeSticky) return true
-    
+
+    // 没有关键词 → 不触发
     if (keywords.isEmpty() && secondaryKeys.isEmpty()) return false
 
-    val allKeys = keywords + secondaryKeys
-    
-    // 检查概率
-    if (probability < 100 && kotlin.random.Random.nextInt(100) >= probability) return false
+    if (selective) {
+        // 选择性模式：secondaryKeys 参与逻辑判定
+        if (keywords.isEmpty() && secondaryKeys.isEmpty()) return false
 
-    // 计算每个触发词的匹配情况
-    val matchResults = allKeys.map { key ->
-        if (useRegex) {
-            try {
-                val options = if (caseSensitive) emptySet() else setOf(RegexOption.IGNORE_CASE)
-                Regex(key, options).containsMatchIn(context)
-            } catch (e: Exception) { false }
-        } else {
-            if (caseSensitive) context.contains(key)
-            else context.contains(key, ignoreCase = true)
-        }
-    }
-    
-    val primaryMatch = keywords.any { key ->
-        if (useRegex) {
-            try {
-                val options = if (caseSensitive) emptySet() else setOf(RegexOption.IGNORE_CASE)
-                Regex(key, options).containsMatchIn(context)
-            } catch (e: Exception) { false }
-        } else {
-            if (caseSensitive) context.contains(key)
-            else context.contains(key, ignoreCase = true)
-        }
-    }
+        val primaryMatches = keywords.map { keyMatches(it, context) }
+        val secondaryMatches = secondaryKeys.map { keyMatches(it, context) }
+        val allMatches = primaryMatches + secondaryMatches
 
-    return when (selectiveLogic) {
-        SelectiveLogic.AND_ANY -> primaryMatch  // 主触发词中任一匹配
-        SelectiveLogic.AND_ALL -> matchResults.all { it }  // 全部匹配
-        SelectiveLogic.OR_ANY -> matchResults.any { it }   // 任一匹配
-        SelectiveLogic.NOT_ANY -> !matchResults.any { it } // 全不匹配
-        SelectiveLogic.NOT_ALL -> !matchResults.all { it } // 不全匹配
+        val anyPrimary = primaryMatches.any { it }
+        val anySecondary = secondaryMatches.any { it }
+        val allPrimary = primaryMatches.all { it }
+        val allSecondary = secondaryMatches.all { it }
+        val anyAll = allMatches.any { it }
+        val allAll = allMatches.all { it }
+
+        // 概率过滤（常驻在上面已返回）
+        if (probability < 100 && kotlin.random.Random.nextInt(100) >= probability) return false
+
+        return when (selectiveLogic) {
+            SelectiveLogic.AND_ANY -> anyPrimary && anySecondary
+            SelectiveLogic.AND_ALL -> allPrimary && allSecondary
+            SelectiveLogic.OR_ANY -> anyAll
+            SelectiveLogic.NOT_ANY -> !anyAll
+            SelectiveLogic.NOT_ALL -> !allAll
+        }
+    } else {
+        // 非选择性模式：只检查主关键词
+        if (keywords.isEmpty()) return false
+        val hasMatch = keywords.any { keyMatches(it, context) }
+
+        // 概率过滤
+        if (probability < 100 && kotlin.random.Random.nextInt(100) >= probability) return false
+
+        return hasMatch
+    }
+}
+
+/** 单个关键词匹配 */
+private fun keyMatches(key: String, context: String): Boolean {
+    return if (useRegex) {
+        try {
+            val options = if (caseSensitive) emptySet() else setOf(RegexOption.IGNORE_CASE)
+            Regex(key, options).containsMatchIn(context)
+        } catch (_: Exception) { false }
+    } else {
+        if (caseSensitive) context.contains(key)
+        else context.contains(key, ignoreCase = true)
     }
 }
 
