@@ -85,6 +85,8 @@ import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.utils.base64Decode
 import me.rerere.rikkahub.utils.navigateToChatPage
 import me.rerere.ai.ui.isEmptyInputMessage
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -354,7 +356,7 @@ private fun ChatPageContent(
                         val assistant = setting.getCurrentAssistant()
                         vm.updateSettings(setting.copy(
                             assistants = setting.assistants.map {
-                                if (it.id == assistant.id) it.copy(modelId = model.id) else it
+                                if (it.id == assistant.id) it.copy(chatModelId = model.id) else it
                             }
                         ))
                     },

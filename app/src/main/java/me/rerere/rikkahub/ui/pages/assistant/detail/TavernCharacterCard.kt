@@ -38,6 +38,8 @@ import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.TavernBookEntry
 import me.rerere.rikkahub.data.model.TavernEmbeddedBook
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.ArrowRight01
+import me.rerere.hugeicons.stroke.Book01
 import me.rerere.rikkahub.ui.theme.CustomColors
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween

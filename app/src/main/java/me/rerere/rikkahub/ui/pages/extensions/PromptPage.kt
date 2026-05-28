@@ -1044,7 +1044,7 @@ private fun LorebookEditSheet(
                 entries = entries,
                 onDismiss = { groupEditState.dismiss() },
                 onConfirm = { newGroupName, template ->
-                    groupEditState.confirm(Pair(newGroupName, entries.map { it.copy(
+                    groupEditState.currentState = Pair(newGroupName, entries.map { it.copy(
                         name = template.name,
                         enabled = template.enabled,
                         priority = template.priority,
@@ -1064,6 +1064,7 @@ private fun LorebookEditSheet(
                         groupWeight = template.groupWeight,
                         groupOverride = template.groupOverride,
                     ) }))
+                    groupEditState.confirm()
                 },
             )
         }

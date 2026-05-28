@@ -94,7 +94,7 @@ fun SkillsPage() {
 
     // File picker launcher (.zip / .md)
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let {
             vm.importFromLocalFile(it, context) { success, msg ->
@@ -325,55 +325,7 @@ fun SkillsPage() {
 
                 Spacer(Modifier.height(4.dp))
 
-                // Option 3: Browse marketplace
-                Surface(
-                    onClick = {
-                        showImportSheet = false
-                        vm.fetchRemoteMarketplace(SkillRegistry.OFFICIAL_MARKETPLACE_URL) { success, msg ->
-                            if (success) toaster.show(msg)
-                            else toaster.show(msg)
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            HugeIcons.GlobalSearch,
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "浏览官方 Marketplace",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                            )
-                            Text(
-                                "从 Anthropic 官方插件目录导入技能",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Icon(
-                            HugeIcons.ArrowRight01,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(4.dp))
-
-                // Option 4: Import from GitHub
+                // Option 3: Import from GitHub
                 Surface(
                     onClick = {
                         showImportSheet = false
