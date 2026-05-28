@@ -30,6 +30,7 @@ fun GroupChatListPage() {
     val navController = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var showCreate by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -117,9 +118,10 @@ fun GroupChatListPage() {
                             Checkbox(
                                 checked = a.id in selectedIds,
                                 onCheckedChange = { checked ->
-            scope.launch {
-                                    selectedIds = if (checked) selectedIds + a.id
-                                    else selectedIds - a.id
+                                    scope.launch {
+                                        selectedIds = if (checked) selectedIds + a.id
+                                        else selectedIds - a.id
+                                    }
                                 },
                             )
                             Text(a.name.ifBlank { "(未命名)" }, style = MaterialTheme.typography.bodyMedium)
@@ -135,7 +137,9 @@ fun GroupChatListPage() {
                                 name = name,
                                 memberIds = selectedIds.toList(),
                             )
-                            settingsStore.update(settings.copy(groupChats = settings.groupChats + gc))
+                            scope.launch {
+                                settingsStore.update(settings.copy(groupChats = settings.groupChats + gc))
+                            }
                             showCreate = false
                         }
                     }

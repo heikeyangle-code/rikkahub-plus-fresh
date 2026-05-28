@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -246,7 +247,7 @@ private fun ExportCardDialog(
                             try {
                                 val json = CardExporter.buildV3CardJson(assistant)
                                 val file = filesManager.createChatTextFile(json)
-                                toaster.show("已导出 JSON: ${file.lastPathSegment}")
+                                toaster.show("已导出 JSON: ${file.fileName}")
                             } catch (e: Exception) {
                                 toaster.show("导出失败: ${e.message}")
                             }
@@ -263,7 +264,7 @@ private fun ExportCardDialog(
                             try {
                                 val json = CardExporter.buildV3CardJson(assistant)
                                 val file = filesManager.createChatTextFile(json)
-                                toaster.show("已导出 JSON (PNG嵌入需选头像): ${file.lastPathSegment}")
+                                toaster.show("已导出 JSON (PNG嵌入需选头像): ${file.fileName}")
                             } catch (e: Exception) {
                                 toaster.show("导出失败: ${e.message}")
                             }

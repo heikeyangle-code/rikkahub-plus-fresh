@@ -796,6 +796,39 @@ class ChatService(
         }
     }
 
+    /**
+     * 为指定 Assistant 生成回复（群聊用），不涉及 Conversation 状态管理
+     */
+    suspend fun generateForAssistant(
+        assistant: Assistant,
+        settings: Settings,
+        prompt: String,
+        history: List<UIMessage>,
+    ): String {
+        val model = settings.findModelById(assistant.chatModelId ?: settings.chatModelId)
+            ?: error("No model configured for assistant '${assistant.name}'")
+
+        val messages = history + UIMessage.user(prompt)
+        var result = ""
+
+        generationHandler.generateText(
+            settings = settings,
+            model = model,
+            messages = messages,
+            assistant = assistant,
+        ).collect { chunk ->
+            when (chunk) {
+                is GenerationChunk.Messages -> {
+                    result = chunk.messages.lastOrNull()
+                        ?.toText()
+                        ?: ""
+                }
+            }
+        }
+
+        return result
+    }
+
     // ---- 压缩对话历史 ----
 
     suspend fun compressConversation(

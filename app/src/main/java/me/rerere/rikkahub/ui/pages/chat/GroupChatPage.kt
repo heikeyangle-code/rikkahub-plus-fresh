@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -114,8 +115,8 @@ fun GroupChatPage(groupId: String) {
                         state = inputState,
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("输入消息...") },
-                        maxLines = 3,
                         shape = RoundedCornerShape(20.dp),
+                        lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 3),
                     )
 
                     Spacer(Modifier.width(8.dp))
@@ -179,7 +180,7 @@ fun GroupChatPage(groupId: String) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(vertical = 8.dp),
         ) {
-            items(messages, key = { msg.id }) { msg ->
+            items(messages, key = { it.id }) { msg ->
                 GroupMessageBubble(msg, members)
             }
             if (isGenerating) {

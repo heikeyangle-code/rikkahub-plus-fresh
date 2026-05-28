@@ -7,6 +7,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -275,6 +284,7 @@ private fun EmbeddedBookSummary(book: TavernEmbeddedBook) {
             Text("📖 内嵌世界书", style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.width(8.dp))
             FilterChip(
+                selected = false,
                 onClick = { showEntries = !showEntries },
                 label = {
                     Text(
@@ -282,7 +292,6 @@ private fun EmbeddedBookSummary(book: TavernEmbeddedBook) {
                         style = MaterialTheme.typography.labelSmall,
                     )
                 },
-                shape = RoundedCornerShape(8.dp),
             )
             if (book.name.isNotBlank()) {
                 Spacer(Modifier.width(4.dp))
@@ -460,6 +469,7 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
         FieldLabel("次要关键词逻辑 (selective_logic)")
         Spacer(Modifier.height(4.dp))
         FilterChip(
+            selected = false,
             onClick = {},
             label = {
                 Text(
@@ -473,7 +483,6 @@ private fun EmbeddedEntryDetail(entry: TavernBookEntry) {
                     style = MaterialTheme.typography.labelSmall,
                 )
             },
-            shape = RoundedCornerShape(6.dp),
         )
 
         Spacer(Modifier.height(8.dp))

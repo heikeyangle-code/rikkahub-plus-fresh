@@ -78,7 +78,7 @@ fun LoggingPaging(vm: DeveloperVM) {
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(logs, key = { log.hashCode() }) { log ->
+        items(logs, key = { it.hashCode() }) { log ->
             when (log) {
                 is AILogging.Generation -> {
                     Card {
