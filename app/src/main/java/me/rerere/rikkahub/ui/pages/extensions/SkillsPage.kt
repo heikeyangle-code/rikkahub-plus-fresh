@@ -197,6 +197,7 @@ fun SkillsPage() {
 
             // 已安装
             item {
+                Text(
                     "📦 已安装",
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),

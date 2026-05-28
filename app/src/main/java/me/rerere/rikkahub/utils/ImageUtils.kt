@@ -16,7 +16,7 @@ import com.google.zxing.MultiFormatReader
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import android.util.Base64
-import java.nio.charset.Charsets
+import java.nio.charset.StandardCharsets
 
 /**
  * 图片处理工具类
@@ -250,7 +250,7 @@ object ImageUtils {
         for (dir in textChunks) {
             val text = dir.getString(PngDirectory.TAG_TEXTUAL_DATA) ?: continue
             try {
-                val decoded = String(Base64.decode(text, Base64.DEFAULT), Charsets.UTF_8)
+                val decoded = String(Base64.decode(text, Base64.DEFAULT), StandardCharsets.UTF_8)
                 if (decoded.contains("\"spec\"")) {
                     return Result.success(text)
                 }
