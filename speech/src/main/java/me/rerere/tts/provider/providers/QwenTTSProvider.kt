@@ -51,12 +51,12 @@ class QwenTTSProvider : TTSProvider<TTSProviderSetting.Qwen> {
         val response = httpClient.newCall(httpRequest).execute()
 
         if (!response.isSuccessful) {
-            val errorBody = response.body.string()
+            val errorBody = response.body?.string()
             Log.e(TAG, "Qwen TTS request failed: ${response.code} ${response.message}, body: $errorBody")
             throw Exception("Qwen TTS request failed: ${response.code} ${response.message}")
         }
 
-        val reader = response.body.byteStream().bufferedReader()
+        val reader = response.body?.byteStream().bufferedReader()
 
         try {
             var currentData = StringBuilder()

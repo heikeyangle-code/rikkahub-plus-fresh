@@ -3,7 +3,7 @@ package me.rerere.rikkahub.ui.components.ai
 import me.rerere.rikkahub.data.files.CommandFile
 
 /**
- * 斜杠命令 — 来自 skill 的 commands/*.md
+ * 斜杠命令 — 来自 skill 的 commands 目录下的 .md 文件
  * Claude Code 风格：每个 commands/xxx.md 自动变成 /xxx 命令
  */
 data class SlashCommand(

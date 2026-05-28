@@ -52,7 +52,7 @@ class XAITTSProvider : TTSProvider<TTSProviderSetting.XAI> {
             throw Exception("xAI TTS request failed: ${response.code} ${response.message}")
         }
 
-        val audioData = response.body.bytes()
+        val audioData = response.body?.bytes()
 
         emit(
             AudioChunk(

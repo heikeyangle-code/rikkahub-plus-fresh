@@ -6,7 +6,7 @@ import java.io.File
 
 /**
  * Claude Code plugin.json 格式支持
- * 与 SKILL.md 互补——plugin.json 提供元数据，commands/*.md 提供指令
+ * 与 SKILL.md 互补——plugin.json 提供元数据，commands 目录下的 .md 文件提供指令
  */
 @Serializable
 data class PluginManifest(

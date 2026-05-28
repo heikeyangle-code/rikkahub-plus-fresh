@@ -89,7 +89,7 @@ class ResponseAPI(
 
         val response = client.newCall(request).await()
         if (!response.isSuccessful) {
-            throw Exception("Failed to get response: ${response.code} ${response.body.string()}")
+            throw Exception("Failed to get response: ${response.code} ${response.body?.string()}")
         }
 
         val bodyStr = response.body?.string() ?: ""

@@ -52,7 +52,7 @@ class GroqTTSProvider : TTSProvider<TTSProviderSetting.Groq> {
             throw Exception("Groq TTS request failed: ${response.code} ${response.message}")
         }
 
-        val audioData = response.body.bytes()
+        val audioData = response.body?.bytes()
 
         emit(
             AudioChunk(

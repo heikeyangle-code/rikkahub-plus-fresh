@@ -100,7 +100,7 @@ class OpenAIProvider(
             error("Failed to get balance: ${response.code} ${response.body?.string()}")
         }
 
-        val bodyStr = response.body.string()
+        val bodyStr = response.body?.string()
         val bodyJson = json.parseToJsonElement(bodyStr).jsonObject
         val value = bodyJson.getByKey(providerSetting.balanceOption.resultPath)
         val digitalValue = value.toFloatOrNull()
@@ -342,12 +342,12 @@ class OpenAIProvider(
 
         val response = client.newCall(request).await()
         if (!response.isSuccessful) {
-            error("Failed to download generated image: ${response.code} ${response.body.string()}")
+            error("Failed to download generated image: ${response.code} ${response.body?.string()}")
         }
 
         val body = response.body
-        val mimeType = body.contentType()?.toString() ?: "image/png"
-        val base64 = Base64.encode(body.bytes())
+        val mimeType = body?.contentType()?.toString() ?: "image/png"
+        val base64 = Base64.encode(body?.bytes())
 
         return ImageGenerationItem(
             data = base64,
