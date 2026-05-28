@@ -43,6 +43,7 @@ import me.rerere.rikkahub.data.model.TavernEmbeddedBook
 fun TavernCharacterCard(
     assistant: Assistant,
     modifier: Modifier = Modifier,
+    onAssistantUpdate: ((Assistant) -> Unit)? = null,
 ) {
     val tav = assistant.tavernData ?: return
     var expanded by remember { mutableStateOf(false) }
@@ -343,7 +344,7 @@ private fun CollapsibleEntryCard(
                         if (entry.keys.isNotEmpty()) {
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalSpacing = 2.dp,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
                             ) {
                                 entry.keys.take(4).forEach { key ->
                                     SuggestionChip(

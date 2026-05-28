@@ -265,7 +265,7 @@ fun PromptInjection.RegexInjection.isTriggered(context: String, activeSticky: Bo
     } else {
         // 非选择性模式：只检查主关键词
         if (keywords.isEmpty()) return false
-        val hasMatch = keywords.any { keyMatches(it, context) }
+        val hasMatch = keywords.any { keyMatches(it, context, useRegex, caseSensitive) }
 
         // 概率过滤
         if (probability < 100 && kotlin.random.Random.nextInt(100) >= probability) return false
