@@ -67,7 +67,7 @@ object BraveSearchService : SearchService<SearchServiceOptions.BraveOptions> {
 
             val response = httpClient.newCall(request).await()
             if (response.isSuccessful) {
-                val responseBody = response.body.string()
+                val responseBody = response.body!!.string()
                 val searchResponse = json.decodeFromString<BraveSearchResponse>(responseBody)
 
                 val items = searchResponse.web?.results?.map { result ->

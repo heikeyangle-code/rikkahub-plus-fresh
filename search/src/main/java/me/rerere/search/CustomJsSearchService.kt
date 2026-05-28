@@ -140,7 +140,7 @@ object CustomJsSearchService : SearchService<SearchServiceOptions.CustomJsOption
             }
 
             val response = httpClient.newCall(requestBuilder.build()).execute()
-            val responseBody = response.body.string()
+            val responseBody = response.body!!.string()
             val code = response.code
             val message = response.message
             response.close()

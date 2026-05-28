@@ -101,7 +101,7 @@ object GrokSearchService : SearchService<SearchServiceOptions.GrokOptions> {
 
             val response = httpClient.newCall(request).await()
             if (response.isSuccessful) {
-                val responseBody = response.body.string().let {
+                val responseBody = response.body!!.string().let {
                     json.decodeFromString<GrokResponse>(it)
                 }
 

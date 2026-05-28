@@ -103,7 +103,7 @@ object TavilySearchService : SearchService<SearchServiceOptions.TavilyOptions> {
                 .build()
             val response = httpClient.newCall(request).await()
             if (response.isSuccessful) {
-                val response = response.body.string().let {
+                val response = response.body!!.string().let {
                     json.decodeFromString<SearchResponse>(it)
                 }
 
@@ -144,7 +144,7 @@ object TavilySearchService : SearchService<SearchServiceOptions.TavilyOptions> {
                 .build()
             val response = httpClient.newCall(request).await()
             if (response.isSuccessful) {
-                val response = response.body.string().let {
+                val response = response.body!!.string().let {
                     json.decodeFromString<ScrapeResponse>(it)
                 }
                 return@withContext Result.success(

@@ -92,7 +92,7 @@ object PerplexitySearchService : SearchService<SearchServiceOptions.PerplexityOp
 
             val response = httpClient.newCall(request).await()
             if (response.isSuccessful) {
-                val responseBody = response.body.string().let {
+                val responseBody = response.body!!.string().let {
                     json.decodeFromString<PerplexityResponse>(it)
                 }
 
