@@ -1081,6 +1081,7 @@ private fun RegexInjectionEntryCard(
 ) {
     var editingName by remember { mutableStateOf(false) }
     var editNameValue by remember { mutableStateOf(entry.name) }
+    var newKeyword by remember { mutableStateOf("") }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
