@@ -353,6 +353,12 @@ private fun EditableField(
         targetValue = if (expanded) 90f else 0f,
         animationSpec = tween(200),
     )
+    // 折叠时自动保存
+    LaunchedEffect(expanded) {
+        if (!expanded && editText != value) {
+            onSave(editText)
+        }
+    }
 
     Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
         Row(
@@ -485,9 +491,8 @@ private fun CollapsibleEntryCard(
             .fillMaxWidth()
             .clickable { expanded = !expanded },
         shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
@@ -522,16 +527,16 @@ private fun CollapsibleEntryCard(
                             text = entry.content.replace("\n", " ").take(120)
                                 .let { if (it.length < entry.content.length) "$it…" else it },
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
                     Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = "▼",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Icon(
+                        HugeIcons.ArrowRight01, contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -580,60 +585,34 @@ private fun EntryEditor(
             Text(
                 text = entry.keys.firstOrNull() ?: entry.comment.ifBlank { "Entry #${entry.id}" },
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            TextButton(onClick = onCollapse) {
-                Text("▲ 收起", style = MaterialTheme.typography.labelSmall)
+            IconButton(onClick = onCollapse, modifier = Modifier.size(28.dp)) {
+                Icon(HugeIcons.ArrowRight01, contentDescription = "收起",
+                    modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = 90f })
             }
         }
 
-        // 启用开关 + 名称
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = if (enabled) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
-                else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                modifier = Modifier.clickable { enabled = !enabled },
-            ) {
-                Text(
-                    text = if (enabled) "✓ 启用" else "✗ 禁用",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (enabled) MaterialTheme.colorScheme.tertiary
-                    else MaterialTheme.colorScheme.outline,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = if (constant) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                else MaterialTheme.colorScheme.surface,
-                modifier = Modifier.clickable { constant = !constant },
-            ) {
-                Text(
-                    text = if (constant) "🔵 常驻" else "⚪ 非常驻",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (constant) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.clickable { selective = !selective },
-            ) {
-                Text(
-                    text = if (selective) "🟢 关键词" else "🔗 向量",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            }
+        // 状态切换行
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FilterChip(
+                selected = enabled,
+                onClick = { enabled = !enabled },
+                label = { Text(if (enabled) "启用" else "禁用", style = MaterialTheme.typography.labelSmall) },
+            )
+            FilterChip(
+                selected = constant,
+                onClick = { constant = !constant },
+                label = { Text(if (constant) "常驻" else "非常驻", style = MaterialTheme.typography.labelSmall) },
+            )
+            FilterChip(
+                selected = selective,
+                onClick = { selective = !selective },
+                label = { Text(if (selective) "关键词" else "向量", style = MaterialTheme.typography.labelSmall) },
+            )
         }
 
         // 条目名称
@@ -711,9 +690,18 @@ private fun EntryEditor(
 
         // 高级设置
         var showAdvanced by remember { mutableStateOf(false) }
-        TextButton(onClick = { showAdvanced = !showAdvanced }) {
-            Text(if (showAdvanced) "▲ 收起高级设置" else "▼ 展开高级设置",
-                 style = MaterialTheme.typography.labelSmall)
+        val advRotation by animateFloatAsState(
+            targetValue = if (showAdvanced) 90f else 0f, animationSpec = tween(200),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable { showAdvanced = !showAdvanced }.padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(HugeIcons.ArrowRight01, null, modifier = Modifier.size(14.dp).graphicsLayer { rotationZ = advRotation },
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.width(6.dp))
+            Text(if (showAdvanced) "收起高级设置" else "展开高级设置",
+                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (showAdvanced) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -782,7 +770,7 @@ private fun EntryEditor(
         }
 
         // 保存按钮
-        Button(
+        TextButton(
             onClick = {
                 onUpdate(entry.copy(
                     disable = !enabled,
