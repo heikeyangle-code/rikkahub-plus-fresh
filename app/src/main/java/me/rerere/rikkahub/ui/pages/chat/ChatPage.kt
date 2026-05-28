@@ -433,26 +433,44 @@ private fun TopBar(
     onUpdateTitle: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val toaster = LocalToaster.current
+    val titleState = useEditState<String> {
+        onUpdateTitle(it)
+    }
     TopAppBar(
         title = {
-            Column {
-                val assistant = settings.getCurrentAssistant()
-                val model = settings.getCurrentChatModel()
-                val provider = model?.findProvider(providers = settings.providers, checkOverwrite = false)
-                Text(
-                    text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                if (model != null && provider != null) {
+            val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
+            Surface(
+                onClick = {
+                    if (conversation.messageNodes.isNotEmpty()) {
+                        titleState.open(conversation.title)
+                    } else {
+                        toaster.show(editTitleWarning, type = ToastType.Warning)
+                    }
+                },
+                color = Color.Transparent,
+            ) {
+                Column {
+                    val assistant = settings.getCurrentAssistant()
+                    val model = settings.getCurrentChatModel()
+                    val provider = model?.findProvider(providers = settings.providers, checkOverwrite = false)
                     Text(
-                        text = "${assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${model.displayName} (${provider.name})",
-                        overflow = TextOverflow.Ellipsis,
+                        text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
                         maxLines = 1,
-                        color = LocalContentColor.current.copy(alpha = 0.65f),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.bodyMedium,
+                        overflow = TextOverflow.Ellipsis,
                     )
+                    if (model != null && provider != null) {
+                        Text(
+                            text = "${assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${model.displayName} (${provider.name})",
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                            color = LocalContentColor.current.copy(0.65f),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 8.sp,
+                            )
+                        )
+                    }
                 }
             }
         },
@@ -480,6 +498,30 @@ private fun TopBar(
             containerColor = Color.Transparent,
         ),
     )
+    titleState.EditStateContent { title, onUpdate ->
+        AlertDialog(
+            onDismissRequest = { titleState.dismiss() },
+            title = { Text(stringResource(R.string.chat_page_edit_title)) },
+            text = {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = onUpdate,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { titleState.confirm() }) {
+                    Text(stringResource(R.string.chat_page_save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { titleState.dismiss() }) {
+                    Text(stringResource(R.string.chat_page_cancel))
+                }
+            },
+        )
+    }
 }
 
 @Composable
