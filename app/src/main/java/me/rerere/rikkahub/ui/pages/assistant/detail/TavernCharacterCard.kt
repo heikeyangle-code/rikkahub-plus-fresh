@@ -171,6 +171,7 @@ fun TavernCharacterCard(
                         EditableField("系统提示词", tav.systemPrompt) { v ->
                             val newTav = tav.copy(systemPrompt = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                            Unit
                         }
                     }
                     EditableField("描述", tav.description) { v ->
@@ -197,6 +198,7 @@ fun TavernCharacterCard(
                         EditableField("历史后续指令", tav.postHistoryInstructions) { v ->
                             val newTav = tav.copy(postHistoryInstructions = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                            Unit
                         }
                     }
                     if (tav.firstMessage.isNotBlank()) {
@@ -207,6 +209,7 @@ fun TavernCharacterCard(
                         EditableField("开场白", tav.firstMessage, previewLines = 1) { v ->
                             val newTav = tav.copy(firstMessage = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                            Unit
                         }
                     }
 
@@ -278,6 +281,7 @@ fun TavernCharacterCard(
                         EditableField("${tav.creator.ifBlank { "作者" }} 的备注", tav.creatorNotes) { v ->
                             val newTav = tav.copy(creatorNotes = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                            Unit
                         }
                     }
 
