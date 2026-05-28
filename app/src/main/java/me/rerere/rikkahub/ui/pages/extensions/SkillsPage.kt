@@ -66,6 +66,7 @@ import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Download01
 import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.hugeicons.stroke.Puzzle
+import me.rerere.hugeicons.stroke.GlobalSearch
 import me.rerere.hugeicons.stroke.Book01
 import me.rerere.rikkahub.data.files.SkillFrontmatterParser
 import me.rerere.rikkahub.data.files.SkillMetadata
@@ -88,6 +89,7 @@ fun SkillsPage() {
     val toaster = LocalToaster.current
     val context = LocalContext.current
     var showImportSheet by rememberSaveable { mutableStateOf(false) }
+    var showGitHubDialog by rememberSaveable { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<SkillMetadata?>(null) }
 
     // File picker launcher (.zip / .md)
@@ -128,34 +130,12 @@ fun SkillsPage() {
             LargeFlexibleTopAppBar(
                 title = { Text(stringResource(R.string.skills_page_title)) },
                 navigationIcon = { BackButton() },
-                actions = {
-                    TextButton(onClick = {
-                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                            val uri = android.net.Uri.parse(vm.getSkillsDir().absolutePath)
-                            setDataAndType(uri, "resource/folder")
-                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        try { context.startActivity(intent) } catch (_: Exception) {}
-                    }) {
-                        Text("📂 打开目录", style = MaterialTheme.typography.labelMedium)
-                    }
-                },
                 scrollBehavior = scrollBehavior,
                 colors = CustomColors.topBarColors,
             )
         },
         floatingActionButton = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                    Icon(
-                        HugeIcons.Puzzle,
-                        contentDescription = "从 Market 导入",
-                        tint = MaterialTheme.colorScheme.tertiary,
-                    )
-                }
-                FloatingActionButton(
+            FloatingActionButton(
                     onClick = { showImportSheet = true },
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -215,45 +195,8 @@ fun SkillsPage() {
                 }
             }
 
-            // Skill 市场
+            // 已安装
             item {
-                Text(
-                    "🧩 Skill 市场",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-                Text(
-                    "点击即可安装",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            SkillRegistry.byCategory().forEach { (category, entries) ->
-                item {
-                    Text(
-                        category,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
-                entries.forEach { entry ->
-                    item {
-                        RegistrySkillCard(
-                            entry = entry,
-                            onInstall = {
-                                vm.installFromRegistry(entry) { success, msg ->
-                                    if (success) toaster.show("已安装: $msg")
-                                    else toaster.show("失败: $msg")
-                                }
-                            },
-                        )
-                    }
-                }
-            }
-
-            item {
-                Text(
                     "📦 已安装",
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
@@ -378,8 +321,99 @@ fun SkillsPage() {
                         )
                     }
                 }
+
+                Spacer(Modifier.height(4.dp))
+
+                // Option 3: Import from GitHub
+                Surface(
+                    onClick = {
+                        showImportSheet = false
+                        showGitHubDialog = true
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            HugeIcons.GlobalSearch,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "从 GitHub 导入",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                "输入 GitHub 仓库中 SKILL.md 的 URL",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Icon(
+                            HugeIcons.ArrowRight01,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
+    }
+
+    // GitHub URL 输入对话框
+    if (showGitHubDialog) {
+        var repoUrl by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showGitHubDialog = false },
+            title = { Text("从 GitHub 导入") },
+            text = {
+                Column {
+                    Text(
+                        "输入包含 SKILL.md 的 GitHub 仓库 URL：",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = repoUrl,
+                        onValueChange = { repoUrl = it },
+                        placeholder = { Text("https://github.com/owner/repo") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (repoUrl.isNotBlank()) {
+                            showGitHubDialog = false
+                            vm.importSkillFromGitHub(repoUrl.trim()) { success, msg ->
+                                if (success) toaster.show(context.getString(R.string.skills_page_install_success, msg))
+                                else toaster.show(msg)
+                            }
+                        }
+                    },
+                    enabled = repoUrl.isNotBlank(),
+                ) {
+                    Text("安装")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGitHubDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 
     RikkaConfirmDialog(

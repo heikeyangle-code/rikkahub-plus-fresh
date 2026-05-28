@@ -15,6 +15,8 @@ import com.google.zxing.BinaryBitmap
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.HybridBinarizer
+import android.util.Base64
+import java.nio.charset.Charsets
 
 /**
  * 图片处理工具类
@@ -239,16 +241,23 @@ object ImageUtils {
         if (metadata == null) error("Metadata is null, please check if the image is a character card")
         if (!metadata.containsDirectoryOfType(PngDirectory::class.java)) error("No PNG directory found, please check if the image is a character card")
 
-        val pngDirectory = metadata.getDirectoriesOfType(PngDirectory::class.java)
-            .firstOrNull { directory ->
-                directory.pngChunkType == PngChunkType.tEXt
-                    && directory.getString(PngDirectory.TAG_TEXTUAL_DATA).startsWith("[chara:")
-            } ?: error("No tEXt chunk found, please check if the image is a character card")
+        val textChunks = metadata.getDirectoriesOfType(PngDirectory::class.java)
+            .filter { it.pngChunkType == PngChunkType.tEXt }
 
-        val value = pngDirectory.getString(PngDirectory.TAG_TEXTUAL_DATA)
+        // SillyTavern stores character card JSON in PNG tEXt chunks.
+        // The text is raw base64-encoded JSON. Try all tEXt chunks,
+        // return the first one that decodes to valid card JSON.
+        for (dir in textChunks) {
+            val text = dir.getString(PngDirectory.TAG_TEXTUAL_DATA) ?: continue
+            try {
+                val decoded = String(Base64.decode(text, Base64.DEFAULT), Charsets.UTF_8)
+                if (decoded.contains("\"spec\"")) {
+                    return Result.success(text)
+                }
+            } catch (_: Exception) { continue }
+        }
 
-        val regex = Regex("""\[chara:\s*(.+?)]""")
-        return Result.success(regex.find(value)?.groupValues?.get(1) ?: error("No character data found"))
+        error("未找到有效的角色卡数据，请确认图片是酒馆角色卡PNG")
     }
 
     data class ImageInfo(

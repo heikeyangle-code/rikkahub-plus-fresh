@@ -271,7 +271,7 @@ private fun parseStringArray(element: kotlinx.serialization.json.JsonElement?): 
 
 private fun parseExtensions(obj: JsonObject?): Map<String, String> {
     if (obj == null) return emptyMap()
-    return obj.entries.associate { (k, v) -> k to (v.jsonPrimitive?.contentOrNull ?: v.toString()) }
+    return obj.entries.associate { (k, v) -> k to (v.jsonPrimitiveOrNull?.contentOrNull ?: v.toString()) }
 }
 
 private fun parseAssets(arr: kotlinx.serialization.json.JsonArray?): List<TavernAsset> {
