@@ -37,6 +37,9 @@
 # keep Application class
 -keep class me.rerere.rikkahub.RikkaHubApp { *; }
 
+# keep all app classes (prevent R8 from stripping everything)
+-keep class me.rerere.rikkahub.** { *; }
+
 # java.beans is not available on Android; Jackson references it only on JVM
 -dontwarn java.beans.ConstructorProperties
 -dontwarn java.beans.Transient
