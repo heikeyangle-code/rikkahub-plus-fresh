@@ -185,7 +185,19 @@ fun TavernCharacterCard(
                     // 内嵌世界书
                     tav.embeddedBook?.let { book ->
                         HorizontalDivider()
-                        EmbeddedBookSummary(book)
+                        EmbeddedBookSummary(
+                            book = book,
+                            onEntryUpdate = { updated ->
+                                val tav = assistant.tavernData ?: return@EmbeddedBookSummary
+                                val oldBook = tav.embeddedBook ?: return@EmbeddedBookSummary
+                                val newEntries = oldBook.entries.map {
+                                    if (it.id == updated.id) updated else it
+                                }
+                                val newBook = oldBook.copy(entries = newEntries)
+                                val newTav = tav.copy(embeddedBook = newBook)
+                                onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
+                            },
+                        )
                     }
 
                     // creator notes
@@ -261,7 +273,10 @@ private fun StatBadge(label: String, active: Boolean) {
 }
 
 @Composable
-private fun EmbeddedBookSummary(book: TavernEmbeddedBook) {
+private fun EmbeddedBookSummary(
+    book: TavernEmbeddedBook,
+    onEntryUpdate: (TavernBookEntry) -> Unit = {},
+) {
     var showEntries by remember { mutableStateOf(false) }
         Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
         Row(
@@ -305,9 +320,7 @@ private fun EmbeddedBookSummary(book: TavernEmbeddedBook) {
                 book.entries.forEach { entry ->
                     CollapsibleEntryCard(
                         entry = entry,
-                        onUpdate = { updated ->
-                            // TODO: wire up save callback to Assistant model
-                        },
+                        onUpdate = onEntryUpdate,
                     )
                 }
             }

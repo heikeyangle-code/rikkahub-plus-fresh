@@ -137,6 +137,7 @@ fun AssistantDetailPage(id: String) {
                     TavernCharacterCard(
                         assistant = assistant,
                         modifier = Modifier.padding(horizontal = 8.dp),
+                        onAssistantUpdate = { updated -> vm.update(updated) },
                     )
                 }
             }
