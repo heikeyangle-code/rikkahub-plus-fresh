@@ -145,10 +145,17 @@ fun TavernCharacterCard(
                     }
 
                     // 可折叠字段卡片 — 替代 Tab 切换
+                    if (tav.systemPrompt.isNotBlank()) {
+                        CollapsibleField("💻 系统提示词", tav.systemPrompt)
+                    }
                     CollapsibleField("📝 描述", tav.description)
                     CollapsibleField("🎭 性格", tav.personality)
                     CollapsibleField("🎬 场景", tav.scenario)
                     CollapsibleField("💬 示例消息", tav.mesExample)
+                    if (tav.postHistoryInstructions.isNotBlank()) {
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+                        CollapsibleField("📋 历史后续指令", tav.postHistoryInstructions)
+                    }
                     if (tav.firstMessage.isNotBlank()) {
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
                         CollapsibleField("👋 开场白", tav.firstMessage)
@@ -164,6 +171,34 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         tav.alternateGreetings.forEachIndexed { i, greeting ->
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 3.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                            ) {
+                                Text(
+                                    text = "${i + 1}. ${greeting.take(120)}${if (greeting.length > 120) "…" else ""}",
+                                    modifier = Modifier.padding(10.dp),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+
+                    // 群聊专用开场白
+                    if (tav.groupOnlyGreetings.isNotEmpty()) {
+                        HorizontalDivider()
+                        Text(
+                            text = "群聊专用开场白 (${tav.groupOnlyGreetings.size})",
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        tav.groupOnlyGreetings.forEachIndexed { i, greeting ->
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()

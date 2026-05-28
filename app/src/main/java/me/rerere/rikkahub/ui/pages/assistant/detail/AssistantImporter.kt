@@ -464,64 +464,66 @@ private fun mapSelectiveLogic(logic: Int): SelectiveLogic = when (logic) {
 }
 
 /**
- * 从内嵌世界书构建 Lorebook 列表
+ * 从内嵌世界书 + PHI + creator_notes 构建 Lorebook 列表
  */
 private fun buildEmbeddedLorebooks(tavData: TavernCharacterData): List<Lorebook> {
-    val book = tavData.embeddedBook ?: return emptyList()
-    val injections = book.entries.map { tavernEntryToInjection(it) }
-    if (injections.isEmpty()) return emptyList()
+    val entries = mutableListOf<PromptInjection.RegexInjection>()
+
+    // 内嵌世界书条目
+    tavData.embeddedBook?.let { book ->
+        entries.addAll(book.entries.map { tavernEntryToInjection(it) })
+    }
+
+    // PHI（post_history_instructions）→ 常驻底部注入
+    if (tavData.postHistoryInstructions.isNotBlank()) {
+        entries.add(PromptInjection.RegexInjection(
+            id = Uuid.random(),
+            name = "历史后续指令",
+            enabled = true,
+            priority = 0,
+            position = InjectionPosition.BOTTOM_OF_CHAT,
+            content = tavData.postHistoryInstructions,
+            constantActive = true,
+        ))
+    }
+
+    // creator_notes → 常驻底部注入
+    if (tavData.creatorNotes.isNotBlank()) {
+        entries.add(PromptInjection.RegexInjection(
+            id = Uuid.random(),
+            name = "作者备注",
+            enabled = true,
+            priority = 0,
+            position = InjectionPosition.BOTTOM_OF_CHAT,
+            content = tavData.creatorNotes,
+            constantActive = true,
+        ))
+    }
+
+    if (entries.isEmpty()) return emptyList()
 
     return listOf(
         Lorebook(
             id = Uuid.random(),
-            name = book.name.ifEmpty { "${tavData.name}的世界书" },
-            description = book.description,
+            name = tavData.embeddedBook?.name?.ifEmpty { "${tavData.name}的世界书" } ?: "${tavData.name}的世界书",
+            description = tavData.embeddedBook?.description ?: "",
             enabled = true,
-            entries = injections,
+            entries = entries,
         )
     )
 }
 
 /**
- * 构建保留结构的 system prompt（原始各字段 + mes_example）
+ * 构建 system prompt — 只使用卡片原始的 system_prompt 字段，不拍平其他字段
+ * 其他字段（description/personality/scenario/mes_example）由上下文模板展开
+ * phi/creator_notes 由独立的注入系统处理
  */
 private fun buildTavernSystemPrompt(d: TavernCharacterData): String {
     return buildString {
         appendLine("[Character: ${d.name}]")
         appendLine()
-
         if (d.systemPrompt.isNotBlank()) {
-            appendLine(d.systemPrompt)
-            appendLine()
-        }
-
-        if (d.description.isNotBlank()) {
-            appendLine("## Description")
-            appendLine(d.description)
-            appendLine()
-        }
-
-        if (d.personality.isNotBlank()) {
-            appendLine("## Personality")
-            appendLine(d.personality)
-            appendLine()
-        }
-
-        if (d.scenario.isNotBlank()) {
-            appendLine("## Scenario")
-            appendLine(d.scenario)
-            appendLine()
-        }
-
-        if (d.mesExample.isNotBlank()) {
-            appendLine("## Example Messages")
-            appendLine(d.mesExample)
-            appendLine()
-        }
-
-        if (d.postHistoryInstructions.isNotBlank()) {
-            appendLine("## Instructions")
-            appendLine(d.postHistoryInstructions)
+            append(d.systemPrompt)
         }
     }.trim()
 }

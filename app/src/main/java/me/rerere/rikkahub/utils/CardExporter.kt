@@ -39,13 +39,13 @@ object CardExporter {
     }
 
     /**
-     * 构建 V3 spec JSON
+     * 构建 V3 spec JSON — 对齐 SillyTavern chara_card_v3 官方格式
      */
     fun buildV3CardJson(assistant: me.rerere.rikkahub.data.model.Assistant): String {
         val tav = assistant.tavernData
         return buildJsonObject {
             put("spec", "chara_card_v3")
-            put("spec_version", "3.0")
+            put("spec_version", "2.0")
             putJsonObject("data") {
                 put("name", tav?.name ?: assistant.name)
                 put("description", tav?.description ?: "")
@@ -60,6 +60,19 @@ object CardExporter {
                 put("post_history_instructions", tav?.postHistoryInstructions ?: "")
                 putJsonArray("tags") { tav?.tags?.forEach { add(it) } }
                 putJsonArray("alternate_greetings") { tav?.alternateGreetings?.forEach { add(it) } }
+                putJsonArray("group_only_greetings") { tav?.groupOnlyGreetings?.forEach { add(it) } }
+                if (tav?.assets?.isNotEmpty() == true) {
+                    putJsonArray("assets") {
+                        tav.assets.forEach { asset ->
+                            addJsonObject {
+                                put("type", asset.type)
+                                put("name", asset.name)
+                                put("uri", asset.uri)
+                                put("ext", asset.ext)
+                            }
+                        }
+                    }
+                }
                 if (tav?.extensions?.isNotEmpty() == true) {
                     putJsonObject("extensions") {
                         tav.extensions.forEach { (k, v) -> put(k, v) }
