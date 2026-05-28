@@ -21,6 +21,10 @@ import me.rerere.rikkahub.data.files.SkillMetadata
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.AssistantMemory
 import me.rerere.rikkahub.data.model.Avatar
+import me.rerere.rikkahub.data.model.Lorebook
+import me.rerere.rikkahub.data.model.InjectionPosition
+import me.rerere.rikkahub.data.model.PromptInjection
+import me.rerere.rikkahub.data.model.SelectiveLogic
 import me.rerere.rikkahub.data.model.Tag
 import me.rerere.rikkahub.data.repository.MemoryRepository
 import kotlin.uuid.Uuid
@@ -152,18 +156,67 @@ class AssistantDetailVM(
     fun update(assistant: Assistant) {
         viewModelScope.launch {
             val settings = settings.value
+            val updatedLorebooks = syncEmbeddedToExternal(assistant, settings.lorebooks)
             settingsStore.update(
                 settings = settings.copy(
+                    lorebooks = updatedLorebooks,
                     assistants = settings.assistants.map {
                         if (it.id == assistant.id) {
-                            checkAvatarDelete(old = it, new = assistant) // 删除旧头像
-                            checkBackgroundDelete(old = it, new = assistant) // 删除旧背景
+                            checkAvatarDelete(old = it, new = assistant)
+                            checkBackgroundDelete(old = it, new = assistant)
                             assistant
                         } else {
                             it
                         }
                     })
             )
+        }
+    }
+
+    /** 内嵌世界书 → 外置 lorebook 同步 */
+    private fun syncEmbeddedToExternal(
+        assistant: Assistant,
+        lorebooks: List<Lorebook>,
+    ): List<Lorebook> {
+        val tav = assistant.tavernData ?: return lorebooks
+        val book = tav.embeddedBook ?: return lorebooks
+        if (assistant.lorebookIds.isEmpty() || book.entries.isEmpty()) return lorebooks
+        return lorebooks.map { lb ->
+            if (lb.id !in assistant.lorebookIds) return@map lb
+            val synced = book.entries.mapIndexed { i, e ->
+                val existing = lb.entries.getOrNull(i)
+                PromptInjection.RegexInjection(
+                    id = existing?.id ?: Uuid.random(),
+                    name = e.comment.ifEmpty { e.keys.firstOrNull() ?: "Entry ${e.id}" },
+                    enabled = !e.disable,
+                    priority = e.priority,
+                    position = when (e.position) {
+                        0 -> InjectionPosition.BEFORE_SYSTEM_PROMPT
+                        1 -> InjectionPosition.AFTER_SYSTEM_PROMPT
+                        2 -> InjectionPosition.AUTHOR_NOTE
+                        3, 4 -> InjectionPosition.AT_DEPTH
+                        else -> InjectionPosition.AFTER_SYSTEM_PROMPT
+                    },
+                    injectDepth = e.depth,
+                    content = e.content,
+                    role = when (e.role) { "assistant" -> me.rerere.ai.core.MessageRole.ASSISTANT; else -> me.rerere.ai.core.MessageRole.USER },
+                    keywords = e.keys,
+                    secondaryKeys = e.secondaryKeys,
+                    useRegex = e.useRegex,
+                    caseSensitive = e.caseSensitive,
+                    scanDepth = e.scanDepth,
+                    constantActive = e.constant,
+                    selective = e.selective,
+                    selectiveLogic = when (e.selectiveLogic) { 1 -> SelectiveLogic.OR_ANY; 2 -> SelectiveLogic.NOT_ANY; 3 -> SelectiveLogic.NOT_ALL; else -> SelectiveLogic.AND_ANY },
+                    group = e.group,
+                    probability = e.probability,
+                    sticky = e.sticky,
+                    cooldown = e.cooldown,
+                    groupWeight = e.groupWeight,
+                    groupOverride = e.groupOverride,
+                )
+            }
+            lb.copy(entries = synced)
         }
     }
 

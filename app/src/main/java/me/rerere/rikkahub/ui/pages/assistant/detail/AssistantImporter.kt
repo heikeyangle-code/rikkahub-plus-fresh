@@ -464,13 +464,63 @@ private fun mapTavernRole(role: String): me.rerere.ai.core.MessageRole = when (r
     "assistant" -> me.rerere.ai.core.MessageRole.ASSISTANT
     else -> me.rerere.ai.core.MessageRole.USER
 }
-
+/** 映射酒馆 selectiveLogic Int 到 SelectiveLogic 枚举 */
 private fun mapSelectiveLogic(logic: Int): SelectiveLogic = when (logic) {
     0 -> SelectiveLogic.AND_ANY
     1 -> SelectiveLogic.OR_ANY
     2 -> SelectiveLogic.NOT_ANY
     3 -> SelectiveLogic.NOT_ALL
     else -> SelectiveLogic.AND_ANY
+}
+
+/** 反向转换：RegexInjection → TavernBookEntry（用于外置世界书→内嵌同步） */
+private fun injectionToTavernEntry(
+    injection: PromptInjection.RegexInjection,
+    template: TavernBookEntry,
+): TavernBookEntry {
+    return template.copy(
+        keys = injection.keywords,
+        secondaryKeys = injection.secondaryKeys,
+        content = injection.content,
+        comment = injection.name,
+        constant = injection.constantActive,
+        selective = injection.selective,
+        selectiveLogic = when (injection.selectiveLogic) {
+            SelectiveLogic.AND_ANY -> 0
+            SelectiveLogic.AND_ALL -> 1
+            SelectiveLogic.OR_ANY -> 2
+            SelectiveLogic.NOT_ANY -> 3
+            SelectiveLogic.NOT_ALL -> 4
+        },
+        group = injection.group,
+        position = mapInjectionToPosition(injection.position),
+        priority = injection.priority,
+        disable = !injection.enabled,
+        caseSensitive = injection.caseSensitive,
+        useRegex = injection.useRegex,
+        probability = injection.probability,
+        sticky = injection.sticky,
+        cooldown = injection.cooldown,
+        depth = injection.injectDepth,
+        scanDepth = injection.scanDepth,
+        role = when (injection.role) {
+            me.rerere.ai.core.MessageRole.USER -> "user"
+            me.rerere.ai.core.MessageRole.ASSISTANT -> "assistant"
+            else -> "system"
+        },
+        groupWeight = injection.groupWeight,
+        groupOverride = injection.groupOverride,
+    )
+}
+
+/** 反向映射 InjectionPosition → 酒馆 position 数字 */
+private fun mapInjectionToPosition(pos: InjectionPosition): Int = when (pos) {
+    InjectionPosition.BEFORE_SYSTEM_PROMPT -> 0
+    InjectionPosition.AFTER_SYSTEM_PROMPT -> 1
+    InjectionPosition.TOP_OF_CHAT -> 2
+    InjectionPosition.BOTTOM_OF_CHAT -> 3
+    InjectionPosition.AT_DEPTH -> 4
+    InjectionPosition.AUTHOR_NOTE -> 2
 }
 
 /**
