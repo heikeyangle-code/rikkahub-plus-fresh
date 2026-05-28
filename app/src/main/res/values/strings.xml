@@ -1106,5 +1106,15 @@
   <string name="setting_theme_page_delete_theme_title">Delete Theme</string>
   <string name="setting_theme_page_delete_theme_message">Are you sure you want to delete this theme?</string>
     <string name="assistant_importer_import_success">角色卡导入成功</string>
+  <string name="prompt_page_secondary_keys_label">Secondary Keywords</string>
+  <string name="prompt_page_selective">Selective Mode</string>
+  <string name="prompt_page_selective_desc">Use secondary keywords for advanced trigger logic</string>
+  <string name="prompt_page_selective_logic">Trigger Logic</string>
+  <string name="prompt_page_group">Group</string>
+  <string name="prompt_page_group_weight">Group Weight</string>
+  <string name="prompt_page_group_override">Override Group</string>
+  <string name="prompt_page_probability">Probability: %d%%</string>
+  <string name="prompt_page_sticky">Sticky</string>
+  <string name="prompt_page_cooldown">Cooldown (turns)</string>
 </resources>
 
