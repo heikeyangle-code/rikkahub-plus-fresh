@@ -340,7 +340,7 @@ private fun parseEntriesArray(arr: kotlinx.serialization.json.JsonArray): List<T
                 caseSensitive = e["caseSensitive"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
                 useRegex = e["useRegex"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
                 probability = e["probability"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 100,
-                sticky = e["sticky"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
+                sticky = parseStickyInt(e["sticky"]),
                 cooldown = e["cooldown"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
                 depth = e["depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 4,
                 scanDepth = e["scan_depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 1000,
@@ -373,7 +373,7 @@ private fun parseEntriesMap(obj: JsonObject): List<TavernBookEntry> {
                 caseSensitive = e["caseSensitive"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
                 useRegex = e["useRegex"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
                 probability = e["probability"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 100,
-                sticky = e["sticky"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
+                sticky = parseStickyInt(e["sticky"]),
                 cooldown = e["cooldown"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
                 depth = e["depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 4,
                 scanDepth = e["scan_depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 1000,
@@ -408,6 +408,16 @@ private fun parseRoleString(element: kotlinx.serialization.json.JsonElement?): S
             else -> "system"
         }
     } catch (_: Exception) { "system" }
+}
+
+/** 解析 sticky：兼容数字和布尔值（酒馆旧格式） */
+private fun parseStickyInt(element: kotlinx.serialization.json.JsonElement?): Int {
+    if (element == null) return 0
+    return try {
+        element.jsonPrimitive.contentOrNull?.let { str ->
+            str.toIntOrNull() ?: if (str.toBooleanStrictOrNull() == true) 1 else 0
+        } ?: 0
+    } catch (_: Exception) { 0 }
 }
 
 /**
@@ -523,17 +533,13 @@ private fun buildTavernSystemPrompt(d: TavernCharacterData): String {
 }
 
 /**
- * 构建 presetMessages（first_mes + alternate_greetings 合并为对话预设）
+ * 构建 presetMessages — 只使用 first_mes，alternate_greetings 由角色卡 UI 选择
+ * 用户在角色卡页面点「使用此开场白」时替换 presetMessages
  */
 private fun buildPresetMessages(d: TavernCharacterData): List<UIMessage> {
     val messages = mutableListOf<UIMessage>()
     if (d.firstMessage.isNotBlank()) {
         messages.add(UIMessage.assistant(d.firstMessage))
-    }
-    for (greeting in d.alternateGreetings) {
-        if (greeting.isNotBlank() && greeting != d.firstMessage) {
-            messages.add(UIMessage.assistant(greeting))
-        }
     }
     return messages
 }

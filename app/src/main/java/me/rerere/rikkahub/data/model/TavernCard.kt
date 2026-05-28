@@ -70,7 +70,7 @@ data class TavernBookEntry(
     val caseSensitive: Boolean = false,
     val useRegex: Boolean = false,
     val probability: Int = 100,   // 0-100, 触发概率
-    val sticky: Boolean = false,  // 激活后持续
+    val sticky: Int = 0,          // 激活后持续保留N轮（0=不粘）
     val cooldown: Int = 0,       // 冷却轮数
     val depth: Int = 4,          // @D 模式插入深度
     val scanDepth: Int = 1000,   // 扫描最近N条消息（酒馆默认1000）

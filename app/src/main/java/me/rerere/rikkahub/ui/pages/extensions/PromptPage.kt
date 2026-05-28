@@ -1274,11 +1274,21 @@ private fun RegexInjectionEditDialog(
                     FormItem(
                         modifier = Modifier.weight(1f),
                         label = { Text(stringResource(R.string.prompt_page_sticky)) },
+                        description = { Text(stringResource(R.string.prompt_page_sticky_desc)) },
                         tail = {
-                            Switch(
-                                checked = entry.sticky,
-                                onCheckedChange = { onEdit(entry.copy(sticky = it)) }
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(
+                                    value = entry.sticky.toString(),
+                                    onValueChange = { it.toIntOrNull()?.let { s -> onEdit(entry.copy(sticky = s)) } },
+                                    modifier = Modifier.width(72.dp),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    textStyle = MaterialTheme.typography.bodySmall,
+                                )
+                                Text("轮", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     )
                     OutlinedTextField(

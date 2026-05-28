@@ -31,6 +31,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.TavernBookEntry
@@ -455,7 +457,7 @@ private fun EntryEditor(
     var constant by remember(entry) { mutableStateOf(entry.constant) }
     var selective by remember(entry) { mutableStateOf(entry.selective) }
     var selectiveLogic by remember(entry) { mutableStateOf(entry.selectiveLogic) }
-    var sticky by remember(entry) { mutableStateOf(entry.sticky) }
+    var sticky by remember(entry) { mutableStateOf(entry.sticky.toString()) }
     var cooldown by remember(entry) { mutableStateOf(entry.cooldown.toString()) }
     var depth by remember(entry) { mutableStateOf(entry.depth.toString()) }
     var caseSensitive by remember(entry) { mutableStateOf(entry.caseSensitive) }
@@ -617,8 +619,11 @@ private fun EntryEditor(
                     KeywordInput("冷却 (cooldown)", cooldown, onValueChange = { cooldown = it }, modifier = Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = sticky, onClick = { sticky = !sticky },
-                        label = { Text("粘性", style = MaterialTheme.typography.labelSmall) })
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("粘性 (轮)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedTextField(value = sticky, onValueChange = { sticky = it },
+                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                    }
                     FilterChip(selected = caseSensitive, onClick = { caseSensitive = !caseSensitive },
                         label = { Text("区分大小写", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = useRegex, onClick = { useRegex = !useRegex },
@@ -685,7 +690,7 @@ private fun EntryEditor(
                     constant = constant,
                     selective = selective,
                     selectiveLogic = selectiveLogic,
-                    sticky = sticky,
+                    sticky = sticky.toIntOrNull() ?: 0,
                     cooldown = cooldown.toIntOrNull() ?: 0,
                     depth = depth.toIntOrNull() ?: 4,
                     scanDepth = scanDepthStr.toIntOrNull() ?: 1000,

@@ -1116,5 +1116,6 @@
   <string name="prompt_page_probability">Probability: %d%%</string>
   <string name="prompt_page_sticky">Sticky</string>
   <string name="prompt_page_cooldown">Cooldown (turns)</string>
+  <string name="prompt_page_sticky_desc">0 = off, N = persist for N turns</string>
 </resources>
 

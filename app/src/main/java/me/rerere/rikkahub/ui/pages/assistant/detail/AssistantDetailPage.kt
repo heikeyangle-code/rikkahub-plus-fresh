@@ -11,6 +11,7 @@ import me.rerere.hugeicons.stroke.Message02
 import me.rerere.hugeicons.stroke.Settings03
 import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.hugeicons.stroke.Wrench01
+import me.rerere.hugeicons.stroke.Cancel01
 import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
@@ -19,23 +20,40 @@ import android.os.Environment
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.net.toUri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,14 +65,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import me.rerere.ai.ui.UIMessage
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.files.FilesManager
@@ -84,6 +107,8 @@ fun AssistantDetailPage(id: String) {
     val assistant by vm.assistant.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scope = rememberCoroutineScope()
+    var showGreetingPicker by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -140,6 +165,19 @@ fun AssistantDetailPage(id: String) {
                         assistant = assistant,
                         modifier = Modifier.padding(horizontal = 8.dp),
                         onAssistantUpdate = { updated -> vm.update(updated) },
+                    )
+                }
+
+                // 开场白选择
+                item {
+                    GreetingSelectorCard(
+                        assistant = assistant,
+                        onSelectGreeting = { greeting ->
+                            vm.update(assistant.copy(
+                                presetMessages = listOf(UIMessage.assistant(greeting))
+                            ))
+                        },
+                        modifier = Modifier.padding(horizontal = 8.dp),
                     )
                 }
             }
@@ -237,6 +275,210 @@ private fun AssistantHeader(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+    }
+}
+
+/**
+ * 开场白选择器卡片 — 显示当前开场白，点击弹出底部选单
+ */
+@Composable
+private fun GreetingSelectorCard(
+    assistant: Assistant,
+    onSelectGreeting: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tav = assistant.tavernData ?: return
+    val allGreetings = listOfNotNull(tav.firstMessage.takeIf { it.isNotBlank() }) +
+        tav.alternateGreetings.filter { it.isNotBlank() }
+    if (allGreetings.isEmpty()) return
+
+    val currentGreeting = assistant.presetMessages
+        .firstOrNull { it.role == me.rerere.ai.core.MessageRole.ASSISTANT }
+        ?.toText() ?: ""
+
+    var showSheet by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = modifier.fillMaxWidth().clickable { showSheet = true },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+        shape = RoundedCornerShape(14.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                HugeIcons.Message02,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "开场白",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = if (currentGreeting.isNotBlank())
+                        currentGreeting.replace("\n", " ").take(80) +
+                            (if (currentGreeting.length > 80) "..." else "")
+                    else "未选择 · ${allGreetings.size}个可选",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                text = "切换",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+
+    if (showSheet) {
+        GreetingPickerSheet(
+            allGreetings = allGreetings,
+            currentGreeting = currentGreeting,
+            onSelect = { greeting ->
+                onSelectGreeting(greeting)
+                showSheet = false
+            },
+            onDismiss = { showSheet = false },
+        )
+    }
+}
+
+/**
+ * 开场白选择底部弹窗
+ */
+@Composable
+private fun GreetingPickerSheet(
+    allGreetings: List<String>,
+    currentGreeting: String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        dragHandle = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "选择开场白",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                IconButton(onClick = {
+                    scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+                }) {
+                    Icon(HugeIcons.Cancel01, contentDescription = null, modifier = Modifier.size(20.dp))
+                }
+            }
+        },
+    ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            itemsIndexed(allGreetings) { index, greeting ->
+                val isSelected = greeting == currentGreeting
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = !isSelected) { onSelect(greeting) },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isSelected)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceContainer,
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        // 编号标识
+                        Text(
+                            text = "G${index + 1}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected)
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .padding(top = 2.dp)
+                                .width(28.dp),
+                        )
+
+                        // 开场白内容
+                        Text(
+                            text = greeting,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isSelected)
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            else
+                                MaterialTheme.colorScheme.onSurface,
+                            lineHeight = 20.sp,
+                            maxLines = 5,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+
+                        // 选中状态
+                        if (isSelected) {
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "当前",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 使用提示
+            item {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "点击开场白即可使用，新建对话时将以此开场",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

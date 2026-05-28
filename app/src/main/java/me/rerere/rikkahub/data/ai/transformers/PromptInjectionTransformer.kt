@@ -19,8 +19,8 @@ import kotlin.random.Random
  */
 object PromptInjectionTransformer : InputMessageTransformer {
 
-    // 粘性追踪：assistantId → 当前激活的粘性注入ID集
-    private val stickyTracker = mutableMapOf<String, MutableSet<Uuid>>()
+    // 粘性追踪：assistantId → (injectionId → 剩余轮数)
+    private val stickyTracker = mutableMapOf<String, MutableMap<Uuid, Int>>()
     // 冷却追踪：assistantId → (injectionId → 剩余冷却轮数)
     private val cooldownTracker = mutableMapOf<String, MutableMap<Uuid, Int>>()
 
@@ -29,7 +29,7 @@ object PromptInjectionTransformer : InputMessageTransformer {
         messages: List<UIMessage>,
     ): List<UIMessage> {
         val key = ctx.assistant.id.toString()
-        val activeSticky = stickyTracker.getOrPut(key) { mutableSetOf() }
+        val activeSticky = stickyTracker.getOrPut(key) { mutableMapOf() }
         val cooldowns = cooldownTracker.getOrPut(key) { mutableMapOf() }
 
         val result = transformMessages(
@@ -57,7 +57,7 @@ internal fun transformMessages(
     lorebooks: List<Lorebook>,
     conversationModeInjectionIds: Set<Uuid> = emptySet(),
     conversationLorebookIds: Set<Uuid> = emptySet(),
-    activeStickyEntries: MutableSet<Uuid> = mutableSetOf(),
+    activeStickyEntries: MutableMap<Uuid, Int> = mutableMapOf(),
     cooldownEntries: MutableMap<Uuid, Int> = mutableMapOf(),
 ): List<UIMessage> {
     // 收集所有需要注入的内容
@@ -73,7 +73,8 @@ internal fun transformMessages(
     )
 
     if (injections.isEmpty()) {
-        // 无注入时仍要推进冷却状态
+        // 无注入时仍要推进粘性和冷却状态
+        tickSticky(activeStickyEntries)
         tickCooldowns(cooldownEntries)
         return messages
     }
@@ -86,7 +87,8 @@ internal fun transformMessages(
     // 应用注入
     val result = applyInjections(messages, byPosition)
 
-    // 推进冷却
+    // 推进粘性和冷却
+    tickSticky(activeStickyEntries)
     tickCooldowns(cooldownEntries)
 
     return result
@@ -102,7 +104,7 @@ internal fun collectInjections(
     lorebooks: List<Lorebook>,
     conversationModeInjectionIds: Set<Uuid> = emptySet(),
     conversationLorebookIds: Set<Uuid> = emptySet(),
-    activeStickyEntries: MutableSet<Uuid> = mutableSetOf(),
+    activeStickyEntries: MutableMap<Uuid, Int> = mutableMapOf(),
     cooldownEntries: MutableMap<Uuid, Int> = mutableMapOf(),
 ): List<PromptInjection> {
     val injections = mutableListOf<PromptInjection>()
@@ -139,7 +141,7 @@ internal fun collectInjections(
                 if (cooldownEntries.containsKey(entry.id)) continue
 
                 // 粘性条目：只要在 activeSticky 中就自动包含
-                val isStickyActive = activeStickyEntries.contains(entry.id)
+                val isStickyActive = activeStickyEntries.containsKey(entry.id)
 
                 if (isStickyActive) {
                     newlyTriggered.add(entry)
@@ -199,15 +201,28 @@ internal fun collectInjections(
 /** 处理粘性和冷却状态 */
 private fun handleStickyCooldown(
     entry: PromptInjection.RegexInjection,
-    activeStickyEntries: MutableSet<Uuid>,
+    activeStickyEntries: MutableMap<Uuid, Int>,
     cooldownEntries: MutableMap<Uuid, Int>,
 ) {
-    if (entry.sticky) {
-        activeStickyEntries.add(entry.id)
+    if (entry.sticky > 0) {
+        activeStickyEntries[entry.id] = entry.sticky
     }
     if (entry.cooldown > 0) {
         cooldownEntries[entry.id] = entry.cooldown
     }
+}
+
+/** 推进粘性计数器：每次调用减1，到0移除 */
+private fun tickSticky(activeStickyEntries: MutableMap<Uuid, Int>) {
+    val toRemove = mutableListOf<Uuid>()
+    for ((id, remaining) in activeStickyEntries) {
+        if (remaining <= 1) {
+            toRemove.add(id)
+        } else {
+            activeStickyEntries[id] = remaining - 1
+        }
+    }
+    toRemove.forEach { activeStickyEntries.remove(it) }
 }
 
 /** 推进冷却计数器：每次调用减1，到0移除 */
