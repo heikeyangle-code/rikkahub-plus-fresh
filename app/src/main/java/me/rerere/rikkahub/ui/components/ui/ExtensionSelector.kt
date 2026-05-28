@@ -174,24 +174,26 @@ fun ExtensionSelector(
 
                 2 -> {
                     if (settings.lorebooks.isNotEmpty()) {
-                        LorebooksContent(
-                            modifier = Modifier.weight(1f),
-                            lorebooks = settings.lorebooks,
-                            selectedIds = selectedLorebookIds,
-                            onToggle = { id, checked ->
-                                val newIds = if (checked) {
-                                    selectedLorebookIds + id
-                                } else {
-                                    selectedLorebookIds - id
-                                }
-                                if (useConversationInjections) {
-                                    onUpdateConversation(conversation.copy(lorebookIds = newIds))
-                                } else {
-                                    onUpdate(assistant.copy(lorebookIds = newIds))
-                                }
-                            },
-                            onManage = onNavigateToPrompts,
-                        )
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            LorebooksContent(
+                                modifier = Modifier.weight(1f),
+                                lorebooks = settings.lorebooks,
+                                selectedIds = selectedLorebookIds,
+                                onToggle = { id, checked ->
+                                    val newIds = if (checked) {
+                                        selectedLorebookIds + id
+                                    } else {
+                                        selectedLorebookIds - id
+                                    }
+                                    if (useConversationInjections) {
+                                        onUpdateConversation(conversation.copy(lorebookIds = newIds))
+                                    } else {
+                                        onUpdate(assistant.copy(lorebookIds = newIds))
+                                    }
+                                },
+                                onManage = onNavigateToPrompts,
+                            )
+                        }
                     } else {
                         ExtensionEmptyState(
                             message = stringResource(R.string.extension_selector_lorebooks_empty),
@@ -203,20 +205,22 @@ fun ExtensionSelector(
 
                 3 -> {
                     if (skills.isNotEmpty()) {
-                        SkillsContent(
-                            modifier = Modifier.weight(1f),
-                            skills = skills,
-                            enabledSkills = assistant.enabledSkills,
-                            onToggle = { name, checked ->
-                                val newSkills = if (checked) {
-                                    assistant.enabledSkills + name
-                                } else {
-                                    assistant.enabledSkills - name
-                                }
-                                onUpdate(assistant.copy(enabledSkills = newSkills))
-                            },
-                            onManage = onNavigateToSkills,
-                        )
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            SkillsContent(
+                                modifier = Modifier.weight(1f),
+                                skills = skills,
+                                enabledSkills = assistant.enabledSkills,
+                                onToggle = { name, checked ->
+                                    val newSkills = if (checked) {
+                                        assistant.enabledSkills + name
+                                    } else {
+                                        assistant.enabledSkills - name
+                                    }
+                                    onUpdate(assistant.copy(enabledSkills = newSkills))
+                                },
+                                onManage = onNavigateToSkills,
+                            )
+                        }
                     } else {
                         ExtensionEmptyState(
                             message = stringResource(R.string.extension_selector_skills_empty),

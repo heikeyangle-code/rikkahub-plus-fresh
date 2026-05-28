@@ -380,7 +380,7 @@ class SkillsVM(
         val match = regex.matchEntire(trimmed) ?: return null
         val owner = match.groupValues[1]
         val repo = match.groupValues[2]
-        val branch = match.groupValues[3].ifBlank { "HEAD" }
+        val branch = match.groupValues[3].ifBlank { "main" }
         val subPath = match.groupValues[4].trimStart('/')
         return GitHubRepoInfo(owner, repo, branch, subPath)
     }
