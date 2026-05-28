@@ -45,7 +45,7 @@ object CardExporter {
         val tav = assistant.tavernData
         return buildJsonObject {
             put("spec", "chara_card_v3")
-            put("spec_version", "2.0")
+            put("spec_version", tav?.specVersion?.ifEmpty { "2.0" } ?: "2.0")
             putJsonObject("data") {
                 put("name", tav?.name ?: assistant.name)
                 put("description", tav?.description ?: "")
@@ -86,6 +86,7 @@ object CardExporter {
                             tav.embeddedBook.entries.forEach { entry ->
                                 put(entry.id.toString(), buildJsonObject {
                                     putJsonArray("keys") { entry.keys.forEach { add(it) } }
+                                    putJsonArray("secondary_keys") { entry.secondaryKeys.forEach { add(it) } }
                                     put("content", entry.content)
                                     put("comment", entry.comment)
                                     put("constant", entry.constant)
@@ -94,6 +95,17 @@ object CardExporter {
                                     put("position", entry.position)
                                     put("order", entry.priority)
                                     put("disable", entry.disable)
+                                    put("caseSensitive", entry.caseSensitive)
+                                    put("useRegex", entry.useRegex)
+                                    put("probability", entry.probability)
+                                    put("sticky", entry.sticky)
+                                    put("cooldown", entry.cooldown)
+                                    put("scan_depth", entry.scanDepth)
+                                    put("role", entry.role)
+                                    put("group", entry.group)
+                                    put("group_weight", entry.groupWeight)
+                                    put("group_override", entry.groupOverride)
+                                    put("depth", entry.depth)
                                 })
                             }
                         }

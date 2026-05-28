@@ -176,7 +176,7 @@ fun TavernCharacterCard(
                                     .fillMaxWidth()
                                     .padding(horizontal = 14.dp, vertical = 3.dp),
                                 shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
                             ) {
                                 Text(
                                     text = "${i + 1}. ${greeting.take(120)}${if (greeting.length > 120) "…" else ""}",
@@ -204,7 +204,7 @@ fun TavernCharacterCard(
                                     .fillMaxWidth()
                                     .padding(horizontal = 14.dp, vertical = 3.dp),
                                 shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
                             ) {
                                 Text(
                                     text = "${i + 1}. ${greeting.take(120)}${if (greeting.length > 120) "…" else ""}",
@@ -612,9 +612,9 @@ private fun EntryEditor(
         if (showAdvanced) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    KeywordInput("优先级 (order)", priority, modifier = Modifier.weight(1f)) { priority = it }
-                    KeywordInput("深度 (depth)", depth, modifier = Modifier.weight(1f)) { depth = it }
-                    KeywordInput("冷却 (cooldown)", cooldown, modifier = Modifier.weight(1f)) { cooldown = it }
+                    KeywordInput("优先级 (order)", priority, onValueChange = { priority = it }, modifier = Modifier.weight(1f))
+                    KeywordInput("深度 (depth)", depth, onValueChange = { depth = it }, modifier = Modifier.weight(1f))
+                    KeywordInput("冷却 (cooldown)", cooldown, onValueChange = { cooldown = it }, modifier = Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected = sticky, onClick = { sticky = !sticky },
@@ -634,11 +634,11 @@ private fun EntryEditor(
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text("组权重", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        KeywordInput("", groupWeight, modifier = Modifier.weight(1f)) { groupWeight = it }
+                        KeywordInput("", groupWeight, onValueChange = { groupWeight = it }, modifier = Modifier.weight(1f))
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text("扫描深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        KeywordInput("", scanDepthStr, modifier = Modifier.weight(1f)) { scanDepthStr = it }
+                        KeywordInput("", scanDepthStr, onValueChange = { scanDepthStr = it }, modifier = Modifier.weight(1f))
                     }
                 }
                 Text("角色 (role)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

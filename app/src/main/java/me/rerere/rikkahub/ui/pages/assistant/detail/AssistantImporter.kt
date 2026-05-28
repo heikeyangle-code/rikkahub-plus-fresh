@@ -519,13 +519,7 @@ private fun buildEmbeddedLorebooks(tavData: TavernCharacterData): List<Lorebook>
  * phi/creator_notes 由独立的注入系统处理
  */
 private fun buildTavernSystemPrompt(d: TavernCharacterData): String {
-    return buildString {
-        appendLine("[Character: ${d.name}]")
-        appendLine()
-        if (d.systemPrompt.isNotBlank()) {
-            append(d.systemPrompt)
-        }
-    }.trim()
+    return d.systemPrompt.ifBlank { "" }
 }
 
 /**

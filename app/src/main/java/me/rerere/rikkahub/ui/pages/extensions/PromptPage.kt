@@ -42,6 +42,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.HorizontalFloatingToolbar
@@ -55,6 +56,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -89,6 +91,7 @@ import me.rerere.rikkahub.data.export.rememberImporter
 import me.rerere.rikkahub.data.model.InjectionPosition
 import me.rerere.rikkahub.data.model.Lorebook
 import me.rerere.rikkahub.data.model.PromptInjection
+import me.rerere.rikkahub.data.model.SelectiveLogic
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.ExportDialog
 import me.rerere.rikkahub.ui.components.ui.FormItem
@@ -1129,6 +1132,164 @@ private fun RegexInjectionEditDialog(
                         )
                     }
                 )
+
+                // 次级关键词
+                var newSecKey by remember { mutableStateOf("") }
+                Text(stringResource(R.string.prompt_page_secondary_keys_label), style = MaterialTheme.typography.titleSmall)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    entry.secondaryKeys.forEach { keyword ->
+                        InputChip(
+                            selected = false,
+                            onClick = {},
+                            label = { Text(keyword) },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = {
+                                        onEdit(entry.copy(secondaryKeys = entry.secondaryKeys - keyword))
+                                    },
+                                    modifier = Modifier.size(16.dp)
+                                ) {
+                                    Icon(HugeIcons.Cancel01, null, modifier = Modifier.size(12.dp))
+                                }
+                            }
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = newSecKey,
+                        onValueChange = { newSecKey = it },
+                        label = { Text(stringResource(R.string.prompt_page_new_keyword)) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    IconButton(
+                        onClick = {
+                            if (newSecKey.isNotBlank()) {
+                                onEdit(entry.copy(secondaryKeys = entry.secondaryKeys + newSecKey.trim()))
+                                newSecKey = ""
+                            }
+                        }
+                    ) {
+                        Icon(HugeIcons.Add01, stringResource(R.string.prompt_page_add))
+                    }
+                }
+
+                // Selective mode
+                FormItem(
+                    label = { Text(stringResource(R.string.prompt_page_selective)) },
+                    description = { Text(stringResource(R.string.prompt_page_selective_desc)) },
+                    tail = {
+                        Switch(
+                            checked = entry.selective,
+                            onCheckedChange = { onEdit(entry.copy(selective = it)) }
+                        )
+                    }
+                )
+
+                // 当 selective 启用时，显示 selectiveLogic
+                AnimatedVisibility(visible = entry.selective) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            stringResource(R.string.prompt_page_selective_logic),
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            SelectiveLogic.entries.forEach { logic ->
+                                FilterChip(
+                                    selected = entry.selectiveLogic == logic,
+                                    onClick = { onEdit(entry.copy(selectiveLogic = logic)) },
+                                    label = {
+                                        Text(
+                                            when (logic) {
+                                                SelectiveLogic.AND_ANY -> "AND_ANY"
+                                                SelectiveLogic.AND_ALL -> "AND_ALL"
+                                                SelectiveLogic.OR_ANY -> "OR_ANY"
+                                                SelectiveLogic.NOT_ANY -> "NOT_ANY"
+                                                SelectiveLogic.NOT_ALL -> "NOT_ALL"
+                                            },
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 分组设置
+                OutlinedTextField(
+                    value = entry.group,
+                    onValueChange = { onEdit(entry.copy(group = it)) },
+                    label = { Text(stringResource(R.string.prompt_page_group)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = entry.groupWeight.toString(),
+                        onValueChange = { it.toIntOrNull()?.let { w -> onEdit(entry.copy(groupWeight = w)) } },
+                        label = { Text(stringResource(R.string.prompt_page_group_weight)) },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
+                    )
+                    FormItem(
+                        modifier = Modifier.weight(1f),
+                        label = { Text(stringResource(R.string.prompt_page_group_override)) },
+                        tail = {
+                            Switch(
+                                checked = entry.groupOverride,
+                                onCheckedChange = { onEdit(entry.copy(groupOverride = it)) }
+                            )
+                        }
+                    )
+                }
+
+                // 触发概率
+                Text(
+                    stringResource(R.string.prompt_page_probability, entry.probability),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Slider(
+                    value = entry.probability.toFloat(),
+                    onValueChange = { onEdit(entry.copy(probability = it.toInt())) },
+                    valueRange = 0f..100f,
+                    steps = 99
+                )
+
+                // 粘性 + 冷却
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FormItem(
+                        modifier = Modifier.weight(1f),
+                        label = { Text(stringResource(R.string.prompt_page_sticky)) },
+                        tail = {
+                            Switch(
+                                checked = entry.sticky,
+                                onCheckedChange = { onEdit(entry.copy(sticky = it)) }
+                            )
+                        }
+                    )
+                    OutlinedTextField(
+                        value = entry.cooldown.toString(),
+                        onValueChange = { it.toIntOrNull()?.let { c -> onEdit(entry.copy(cooldown = c)) } },
+                        label = { Text(stringResource(R.string.prompt_page_cooldown)) },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
+                    )
+                }
 
                 FormItem(
                     label = { Text(stringResource(R.string.prompt_page_constant_active)) },
