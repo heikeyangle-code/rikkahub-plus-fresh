@@ -46,6 +46,18 @@ fun DynamicScheme.toColorScheme(): ColorScheme {
             surfaceContainerHighest = Color(s.surfaceContainerHighest),
             surfaceContainerLow = Color(s.surfaceContainerLow),
             surfaceContainerLowest = Color(s.surfaceContainerLowest),
+            primaryFixed = Color(s.primaryFixed),
+            primaryFixedDim = Color(s.primaryFixedDim),
+            onPrimaryFixed = Color(s.onPrimaryFixed),
+            onPrimaryFixedVariant = Color(s.onPrimaryFixedVariant),
+            secondaryFixed = Color(s.secondaryFixed),
+            secondaryFixedDim = Color(s.secondaryFixedDim),
+            onSecondaryFixed = Color(s.onSecondaryFixed),
+            onSecondaryFixedVariant = Color(s.onSecondaryFixedVariant),
+            tertiaryFixed = Color(s.tertiaryFixed),
+            tertiaryFixedDim = Color(s.tertiaryFixedDim),
+            onTertiaryFixed = Color(s.onTertiaryFixed),
+            onTertiaryFixedVariant = Color(s.onTertiaryFixedVariant),
         )
     } else {
         lightColorScheme(
@@ -85,6 +97,18 @@ fun DynamicScheme.toColorScheme(): ColorScheme {
             surfaceContainerHighest = Color(s.surfaceContainerHighest),
             surfaceContainerLow = Color(s.surfaceContainerLow),
             surfaceContainerLowest = Color(s.surfaceContainerLowest),
+            primaryFixed = Color(s.primaryFixed),
+            primaryFixedDim = Color(s.primaryFixedDim),
+            onPrimaryFixed = Color(s.onPrimaryFixed),
+            onPrimaryFixedVariant = Color(s.onPrimaryFixedVariant),
+            secondaryFixed = Color(s.secondaryFixed),
+            secondaryFixedDim = Color(s.secondaryFixedDim),
+            onSecondaryFixed = Color(s.onSecondaryFixed),
+            onSecondaryFixedVariant = Color(s.onSecondaryFixedVariant),
+            tertiaryFixed = Color(s.tertiaryFixed),
+            tertiaryFixedDim = Color(s.tertiaryFixedDim),
+            onTertiaryFixed = Color(s.onTertiaryFixed),
+            onTertiaryFixedVariant = Color(s.onTertiaryFixedVariant),
         )
     }
 }
