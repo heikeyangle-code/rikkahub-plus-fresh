@@ -8,27 +8,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        with:
+          submodules: true
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Gradle cache
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-
       - name: Write signing config
         run: |
           cat > local.properties << 'EOF'
@@ -37,22 +30,13 @@ jobs:
           keyAlias=androiddebugkey
           keyPassword=android
           EOF
-
-      - name: Gradle Build
+      - name: Build
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleRelease -x :web:buildWebUi
-
-      - name: Prepare APK files
-        run: |
-          mkdir -p apk-output
-          cp app/build/outputs/apk/**/*.apk apk-output/ 2>/dev/null || true
-          ls -la apk-output/
-
+          ./gradlew assembleRelease -x :web:buildWebUi
       - name: Upload APK
         uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: rikkahub-release
-          path: apk-output/*.apk
-          if-no-files-found: error
+          name: rikkahub-plus-fresh
+          path: app/build/outputs/apk/release/*.apk
