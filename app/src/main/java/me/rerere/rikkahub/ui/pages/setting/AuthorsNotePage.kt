@@ -9,9 +9,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.model.InjectionPosition
 import me.rerere.rikkahub.ui.components.nav.BackButton
@@ -24,6 +24,7 @@ fun AuthorsNotePage() {
     val settingsStore: SettingsStore = koinInject()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -67,7 +68,9 @@ fun AuthorsNotePage() {
                     OutlinedTextField(
                         value = settings.authorNote,
                         onValueChange = { newValue ->
-                            settingsStore.update(settings.copy(authorNote = newValue))
+                            scope.launch {
+                                settingsStore.update(settings.copy(authorNote = newValue))
+                            }
                         },
                         label = { Text("内容") },
                         minLines = 4,
@@ -99,7 +102,9 @@ fun AuthorsNotePage() {
                             RadioButton(
                                 selected = settings.authorNotePosition == pos,
                                 onClick = {
-                                    settingsStore.update(settings.copy(authorNotePosition = pos))
+                                    scope.launch {
+                                        settingsStore.update(settings.copy(authorNotePosition = pos))
+                                    }
                                 },
                             )
                             Text(label, style = MaterialTheme.typography.bodyMedium)
@@ -125,7 +130,9 @@ fun AuthorsNotePage() {
                         Slider(
                             value = settings.authorNoteDepth.toFloat(),
                             onValueChange = {
-                                settingsStore.update(settings.copy(authorNoteDepth = it.toInt()))
+                                scope.launch {
+                                    settingsStore.update(settings.copy(authorNoteDepth = it.toInt()))
+                                }
                             },
                             valueRange = 1f..20f,
                             steps = 18,
@@ -150,7 +157,9 @@ fun AuthorsNotePage() {
                     Slider(
                         value = settings.authorNoteFrequency,
                         onValueChange = {
-                            settingsStore.update(settings.copy(authorNoteFrequency = it))
+                            scope.launch {
+                                settingsStore.update(settings.copy(authorNoteFrequency = it))
+                            }
                         },
                         valueRange = 0f..1f,
                         steps = 9,

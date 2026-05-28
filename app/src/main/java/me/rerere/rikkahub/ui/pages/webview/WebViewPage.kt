@@ -158,7 +158,7 @@ fun WebViewPage(url: String, content: String) {
 
                 SelectionContainer {
                     LazyColumn {
-                        items(state.consoleMessages, key = { message.hashCode() }) { message ->
+                        items(state.consoleMessages, key = { it.hashCode() }) { message ->
                             Text(
                                 text = "${message.messageLevel().name}: ${message.message()}\n" +
                                     "Source: ${message.sourceId()}:${message.lineNumber()}",

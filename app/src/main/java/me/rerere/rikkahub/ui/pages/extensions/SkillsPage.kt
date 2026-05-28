@@ -381,14 +381,6 @@ fun SkillsPage() {
         }
     }
 
-            onConfirm = { url ->
-                vm.fetchRemoteMarketplace(url) { success, message ->
-                    toaster.show(if (success) message else "失败: $message")
-                }
-            },
-        )
-    }
-
     RikkaConfirmDialog(
         show = deleteTarget != null,
         title = stringResource(R.string.skills_page_delete_title),

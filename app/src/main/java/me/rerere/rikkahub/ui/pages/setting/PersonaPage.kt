@@ -25,12 +25,14 @@ import me.rerere.rikkahub.ui.theme.CustomColors
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import kotlin.uuid.Uuid
+import kotlinx.coroutines.launch
 
 @Composable
 fun PersonaPage() {
     val settingsStore: SettingsStore = koinInject()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -109,9 +111,9 @@ fun PersonaPage() {
                                 onClick = {
                                     val s = settings
                                     if (s.activePersonaId == persona.id) {
-                                        settingsStore.update(s.copy(activePersonaId = null))
+                                        scope.launch { settingsStore.update(s.copy(activePersonaId = null)) }
                                     } else {
-                                        settingsStore.update(s.copy(activePersonaId = persona.id))
+                                        scope.launch { settingsStore.update(s.copy(activePersonaId = persona.id)) }
                                     }
                                 }
                             ) {
@@ -182,14 +184,16 @@ fun PersonaPage() {
                                 onClick = {
                                     if (name.isNotBlank()) {
                                         val s = settings
-                                        settingsStore.update(
-                                            s.copy(personas = s.personas + Persona(
-                                                id = Uuid.random(),
-                                                name = name,
-                                                description = desc,
-                                                position = pos,
-                                            ))
-                                        )
+                                        scope.launch {
+                                            settingsStore.update(
+                                                s.copy(personas = s.personas + Persona(
+                                                    id = Uuid.random(),
+                                                    name = name,
+                                                    description = desc,
+                                                    position = pos,
+                                                ))
+                                            )
+                                        }
                                         showDialog = false
                                     }
                                 }
