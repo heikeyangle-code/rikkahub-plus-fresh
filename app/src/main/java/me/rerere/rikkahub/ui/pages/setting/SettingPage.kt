@@ -54,7 +54,7 @@ import me.rerere.hugeicons.stroke.InLove
 import me.rerere.hugeicons.stroke.LookTop
 import me.rerere.hugeicons.stroke.Edit01
 import me.rerere.hugeicons.stroke.Notebook
-import me.rerere.hugeicons.stroke.MessageMultiple
+import me.rerere.hugeicons.stroke.MessageMultiple01
 import me.rerere.hugeicons.stroke.McpServer
 import me.rerere.hugeicons.stroke.Megaphone01
 import me.rerere.hugeicons.stroke.Package
@@ -224,7 +224,7 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                     )
                     item(
                         onClick = { navController.navigate(Screen.GroupChatList) },
-                        leadingContent = { Icon(HugeIcons.MessageMultiple, null) },
+                        leadingContent = { Icon(HugeIcons.MessageMultiple01, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_group_chat_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_group_chat)) },
                     )

@@ -61,12 +61,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.rikkahub.R
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
+import me.rerere.hugeicons.stroke.ArrowRight01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Download01
 import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.hugeicons.stroke.Puzzle
-import me.rerere.hugeicons.stroke.ChevronRight
-import me.rerere.hugeicons.stroke.Book
+import me.rerere.hugeicons.stroke.Book01
 import me.rerere.rikkahub.data.files.SkillFrontmatterParser
 import me.rerere.rikkahub.data.files.SkillMetadata
 import me.rerere.rikkahub.data.files.SkillRegistry
@@ -175,7 +175,6 @@ fun SkillsPage() {
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                             fontWeight = FontWeight.Medium,
                         )
-                    }
                 }
             }
         },
@@ -328,7 +327,7 @@ fun SkillsPage() {
                             )
                         }
                         Icon(
-                            HugeIcons.ChevronRight,
+                            HugeIcons.ArrowRight01,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -354,7 +353,7 @@ fun SkillsPage() {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            HugeIcons.Book,
+                            HugeIcons.Book01,
                             contentDescription = null,
                             modifier = Modifier.size(28.dp),
                             tint = MaterialTheme.colorScheme.primary,
@@ -373,7 +372,7 @@ fun SkillsPage() {
                             )
                         }
                         Icon(
-                            HugeIcons.ChevronRight,
+                            HugeIcons.ArrowRight01,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

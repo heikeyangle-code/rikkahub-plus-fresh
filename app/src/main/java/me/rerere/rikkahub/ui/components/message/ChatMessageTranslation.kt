@@ -112,7 +112,7 @@ fun LanguageSelectionDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(languages, key = { language }) { language ->
+                items(languages, key = { it }) { language ->
                     Card(
                         onClick = {
                             onLanguageSelected(language)
