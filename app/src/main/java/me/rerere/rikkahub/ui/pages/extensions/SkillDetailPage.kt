@@ -444,7 +444,7 @@ private fun DirItem(
                         depth = depth + 1,
                         onEdit = onEdit,
                         onDelete = onDelete,
-                        onDeleteDir = onDeleteDir,
+                        onDeleteDir = { onDeleteDir() },
                     )
                 }
             }
