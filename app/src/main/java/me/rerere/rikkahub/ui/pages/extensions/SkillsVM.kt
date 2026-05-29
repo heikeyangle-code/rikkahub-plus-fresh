@@ -270,16 +270,21 @@ class SkillsVM(
                 }
                 readDir(uri, "")
 
-                val skillMdPath = files.keys.find { it == "SKILL.md" }
+                val skillMdPath = files.keys.find { it.endsWith("SKILL.md") }
                     ?: run { withContext(Dispatchers.Main) { onResult(false, "文件夹中未找到 SKILL.md") }; return@launch }
 
-                val frontmatter = SkillFrontmatterParser.parse(files[skillMdPath]!!)
+                // 以 SKILL.md 所在目录为根，调整所有文件路径
+                val skillDirPrefix = skillMdPath.removeSuffix("SKILL.md")
+                val adjustedFiles = files.mapKeys { (k, _) -> k.removePrefix(skillDirPrefix) }
+                    .filterKeys { it.isNotBlank() }
+
+                val frontmatter = SkillFrontmatterParser.parse(adjustedFiles[skillMdPath.removePrefix(skillDirPrefix)]!!)
                 val name = frontmatter["name"]?.takeIf { it.isNotBlank() }
                     ?: run { withContext(Dispatchers.Main) { onResult(false, "无效的Skill文件，缺少name或description字段") }; return@launch }
                 val desc = frontmatter["description"]?.takeIf { it.isNotBlank() }
                     ?: run { withContext(Dispatchers.Main) { onResult(false, "无效的Skill文件，缺少name或description字段") }; return@launch }
 
-                val saved = skillManager.saveSkillFilesAtomically(name, files)
+                val saved = skillManager.saveSkillFilesAtomically(name, adjustedFiles)
                 _skills.value = skillManager.listSkills()
                 withContext(Dispatchers.Main) {
                     onResult(saved, if (saved) name else "保存失败")
