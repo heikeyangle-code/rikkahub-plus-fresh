@@ -102,7 +102,7 @@ fun createFileTools(): List<Tool> {
                 if (!dir.exists()) error("Directory not found: $dirPath")
                 if (!dir.isDirectory) error("Not a directory: $dirPath")
 
-                val entries = dir.listFiles()?.sortedBy { it.name } ?: emptyArray()
+                val entries = dir.listFiles()?.sortedBy { it.name } ?: emptyList()
                 val listing = buildString {
                     appendLine("Contents of $dirPath (${entries.size} items):")
                     appendLine()
