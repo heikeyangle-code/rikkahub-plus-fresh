@@ -790,7 +790,15 @@ private fun TextInputRow(
                         filtered.take(5).forEach { cmd ->
                             Surface(
                                 onClick = {
-                                    val text = cmd.content.replace("\$ARGUMENTS", slashArgs)
+                                    val argsList = slashArgs.split(" ", limit = 10)
+                                    var text = cmd.content
+                                        .replace("\$ARGUMENTS", slashArgs)
+                                        .replace("\$ARGS", slashArgs)
+                                    // $ARGS.0, $ARGS.1 ... 按位置替换
+                                    for (i in 0..9) {
+                                        val value = argsList.getOrElse(i) { "" }
+                                        text = text.replace("\$ARGS.$i", value)
+                                    }
                                     state.setMessageText(text)
                                     showSlashPopup = false
                                 },

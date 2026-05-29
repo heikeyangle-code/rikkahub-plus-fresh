@@ -280,21 +280,25 @@ object SkillFrontmatterParser {
     }
 
     /**
-     * 解析 allowed-tools 字段，支持两种格式：
+     * 解析 allowed-tools 字段，支持三种格式：
      * - 逗号分隔: "Read, Bash, Grep"
      * - JSON 数组: "[Read, Bash, Grep]"
+     * - 带参数模式: "Bash(gh issue view:*)"
+     *   提取工具名，括号内的参数模式暂不处理（当前不限制工具权限）
      */
     fun parseAllowedTools(raw: String?): List<String>? {
         if (raw.isNullOrBlank()) return null
         val trimmed = raw.trim()
         return if (trimmed.startsWith("[")) {
-            // JSON 数组格式: 去掉首尾方括号，逗号分割
+            // JSON 数组格式
             trimmed.removeSurrounding("[", "]")
                 .split(",")
-                .map { it.trim().removeSurrounding("\"") }
+                .map { it.trim().removeSurrounding("\"").removeSurrounding("'") }
                 .filter { it.isNotBlank() }
         } else {
-            trimmed.split(",").map { it.trim() }.filter { it.isNotBlank() }
-        }
+            trimmed.split(",")
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+        }.map { it.split("(").first().trim() } // 去掉括号模式: "Bash(gh issue:*)"" → "Bash"
     }
 }
