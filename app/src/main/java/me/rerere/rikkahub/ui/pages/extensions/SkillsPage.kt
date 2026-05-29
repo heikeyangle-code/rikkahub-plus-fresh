@@ -98,7 +98,7 @@ fun SkillsPage() {
     var selectedSkillIndices by remember { mutableStateOf(setOf<Int>()) }
     var isDownloading by remember { mutableStateOf(false) }
     var scanRepoUrl by remember { mutableStateOf("") }
-    var downloadStatus by remember { mutableStateOf<String?>(null) }
+    val downloadStatus by vm.downloadStatus.collectAsStateWithLifecycle()
 
     // File picker launcher (.zip / .md)
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -461,10 +461,10 @@ fun SkillsPage() {
                                         // 只有一个 skill，直接下载
                                         showGitHubDialog = false
                                         isDownloading = true
-                                        downloadStatus = "正在下载: ${skills[0].name}"
+                                        vm.setDownloadStatus("正在下载: ${skills[0].name}")
                                         vm.downloadSkillFromGitHub(scanRepoUrl, skills[0]) { ok, name ->
                                             isDownloading = false
-                                            downloadStatus = null
+                                            vm.setDownloadStatus(null)
                                             if (ok) toaster.show(context.getString(R.string.skills_page_install_success, name))
                                             else toaster.show(name)
                                         }
@@ -596,14 +596,14 @@ fun SkillsPage() {
                             showSkillPicker = false
                             isDownloading = true
                             val toDownload = selectedSkillIndices.map { scannedSkills[it] }
-                            downloadStatus = "准备下载..."
+                            vm.setDownloadStatus("准备下载...")
                             downloadNext(0, toDownload, scanRepoUrl, vm,
                                 onProgress = { cur, total, name ->
-                                    downloadStatus = "正在下载 ($cur/$total): $name"
+                                    vm.setDownloadStatus("正在下载 ($cur/$total): $name")
                                 },
                                 onDone = { count, lastError ->
                                     isDownloading = false
-                                    downloadStatus = null
+                                    vm.setDownloadStatus(null)
                                     if (count > 0) {
                                         toaster.show("安装完成: $count 个")
                                     } else {

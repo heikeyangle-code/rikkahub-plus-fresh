@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -293,19 +294,29 @@ class RouteActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         onBack = { backStack.removeLastOrNull() },
                         transitionSpec = {
-                            if (backStack.size == 1) fadeIn() togetherWith fadeOut()
+                            if (targetState.key is Screen.Chat || initialState.key is Screen.Chat) {
+                                fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                            } else if (backStack.size == 1) fadeIn() togetherWith fadeOut()
                             else {
                                 slideInHorizontally { it } togetherWith
                                     slideOutHorizontally { -it / 2 } + scaleOut(targetScale = 0.7f) + fadeOut()
                             }
                         },
                         popTransitionSpec = {
-                            slideInHorizontally { -it / 2 } + scaleIn(initialScale = 0.7f) + fadeIn() togetherWith
-                                slideOutHorizontally { it }
+                            if (targetState.key is Screen.Chat || initialState.key is Screen.Chat) {
+                                fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                            } else {
+                                slideInHorizontally { -it / 2 } + scaleIn(initialScale = 0.7f) + fadeIn() togetherWith
+                                    slideOutHorizontally { it }
+                            }
                         },
                         predictivePopTransitionSpec = {
-                            slideInHorizontally { -it / 2 } + scaleIn(initialScale = 0.7f) + fadeIn() togetherWith
-                                slideOutHorizontally { it }
+                            if (targetState.key is Screen.Chat || initialState.key is Screen.Chat) {
+                                fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                            } else {
+                                slideInHorizontally { -it / 2 } + scaleIn(initialScale = 0.7f) + fadeIn() togetherWith
+                                    slideOutHorizontally { it }
+                            }
                         },
                         entryProvider = entryProvider {
                             entry<Screen.Chat>(

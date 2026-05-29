@@ -26,6 +26,12 @@ class SkillsVM(
 ) : ViewModel() {
     private val _skills = MutableStateFlow<List<SkillMetadata>>(emptyList())
     val skills = _skills.asStateFlow()
+    private val _downloadStatus = MutableStateFlow<String?>(null)
+    val downloadStatus = _downloadStatus.asStateFlow()
+
+    fun setDownloadStatus(status: String?) {
+        _downloadStatus.value = status
+    }
 
     init {
         loadSkills()
