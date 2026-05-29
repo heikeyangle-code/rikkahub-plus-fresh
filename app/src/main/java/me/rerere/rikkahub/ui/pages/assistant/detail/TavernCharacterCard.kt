@@ -616,6 +616,7 @@ private fun EmbeddedGroupSettingsDialog(
     var priority by remember { mutableStateOf(template.priority.toString()) }
     var sticky by remember { mutableStateOf(template.sticky.toString()) }
     var cooldown by remember { mutableStateOf(template.cooldown.toString()) }
+    var delay by remember { mutableStateOf(template.delay.toString()) }
     var depth by remember { mutableStateOf(template.depth.toString()) }
     var scanDepth by remember { mutableStateOf(template.scanDepth.toString()) }
     var groupWeight by remember { mutableStateOf(template.groupWeight.toString()) }

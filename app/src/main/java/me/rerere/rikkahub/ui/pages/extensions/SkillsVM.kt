@@ -3,6 +3,9 @@ package me.rerere.rikkahub.ui.pages.extensions
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -304,7 +307,7 @@ class SkillsVM(
                     return@launch
                 }
 
-                val tree = JSONArray(org.json.JSONObject(treeJson).getString("tree"))
+                val tree = org.json.JSONObject(treeJson).getJSONArray("tree")
                 val truncated = org.json.JSONObject(treeJson).optBoolean("truncated", false)
 
                 if (truncated) {
@@ -334,17 +337,21 @@ class SkillsVM(
                     return@launch
                 }
 
-                // 读取每个 SKILL.md 的 frontmatter 获取 name
-                val skills = mutableListOf<GitHubSkillInfo>()
-                for (mdPath in filteredPaths) {
-                    val dirPath = mdPath.removeSuffix("SKILL.md").trimEnd('/')
-                    val dlUrl = "https://raw.githubusercontent.com/${info.owner}/${info.repo}/$branch/$mdPath"
-                    val content = downloadText(dlUrl) ?: continue
-                    val fm = SkillFrontmatterParser.parse(content)
-                    val name = fm["name"] ?: dirPath.split("/").last().ifBlank { "unknown" }
-                    val desc = fm["description"] ?: ""
-                    skills.add(GitHubSkillInfo(name, desc, dirPath, mdPath))
+                // 并发下载每个 SKILL.md 获取 name/description
+                val results = coroutineScope {
+                    filteredPaths.map { mdPath ->
+                        async(Dispatchers.IO) {
+                            val dirPath = mdPath.removeSuffix("SKILL.md").trimEnd('/')
+                            val dlUrl = "https://raw.githubusercontent.com/${info.owner}/${info.repo}/$branch/$mdPath"
+                            val content = downloadText(dlUrl) ?: return@async null
+                            val fm = SkillFrontmatterParser.parse(content)
+                            val name = fm["name"] ?: dirPath.split("/").last().ifBlank { "unknown" }
+                            val desc = fm["description"] ?: ""
+                            GitHubSkillInfo(name, desc, dirPath, mdPath)
+                        }
+                    }.awaitAll()
                 }
+                val skills = results.filterNotNull()
 
                 withContext(Dispatchers.Main) {
                     onResult(true, skills, "${info.owner}/${info.repo}")
@@ -390,8 +397,14 @@ class SkillsVM(
                 }
 
                 val fileContents = LinkedHashMap<String, String>()
-                for ((relativePath, downloadUrl) in files) {
-                    val content = downloadText(downloadUrl)
+                val results = coroutineScope {
+                    files.map { (path, url) ->
+                        async(Dispatchers.IO) {
+                            path to downloadText(url)
+                        }
+                    }.awaitAll()
+                }
+                for ((relativePath, content) in results) {
                     if (content == null) {
                         withContext(Dispatchers.Main) { onResult(false, "下载文件失败：$relativePath") }
                         return@launch
@@ -452,8 +465,14 @@ class SkillsVM(
                 }
 
                 val fileContents = LinkedHashMap<String, String>()
-                for ((relativePath, downloadUrl) in files) {
-                    val content = downloadText(downloadUrl)
+                val results = coroutineScope {
+                    files.map { (path, url) ->
+                        async(Dispatchers.IO) {
+                            path to downloadText(url)
+                        }
+                    }.awaitAll()
+                }
+                for ((relativePath, content) in results) {
                     if (content == null) {
                         withContext(Dispatchers.Main) { onResult(false, "下载文件失败：$relativePath") }
                         return@launch

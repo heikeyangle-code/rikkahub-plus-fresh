@@ -98,6 +98,7 @@ fun SkillsPage() {
     var selectedSkillIndices by remember { mutableStateOf(setOf<Int>()) }
     var isDownloading by remember { mutableStateOf(false) }
     var scanRepoUrl by remember { mutableStateOf("") }
+    var downloadStatus by remember { mutableStateOf<String?>(null) }
 
     // File picker launcher (.zip / .md)
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -219,6 +220,33 @@ fun SkillsPage() {
                         "已安装",
                         style = MaterialTheme.typography.titleSmall,
                     )
+                }
+            }
+
+            // 下载进度提示
+            if (downloadStatus != null) {
+                item(key = "_download_progress") {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+                        ),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                downloadStatus!!,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -433,8 +461,10 @@ fun SkillsPage() {
                                         // 只有一个 skill，直接下载
                                         showGitHubDialog = false
                                         isDownloading = true
+                                        downloadStatus = "正在下载: ${skills[0].name}"
                                         vm.downloadSkillFromGitHub(scanRepoUrl, skills[0]) { ok, name ->
                                             isDownloading = false
+                                            downloadStatus = null
                                             if (ok) toaster.show(context.getString(R.string.skills_page_install_success, name))
                                             else toaster.show(name)
                                         }
@@ -566,14 +596,21 @@ fun SkillsPage() {
                             showSkillPicker = false
                             isDownloading = true
                             val toDownload = selectedSkillIndices.map { scannedSkills[it] }
-                            downloadNext(0, toDownload, scanRepoUrl, vm) { count, lastError ->
-                                isDownloading = false
-                                if (count > 0) {
-                                    toaster.show("安装完成: $count 个")
-                                } else {
-                                    toaster.show(lastError ?: "安装失败")
+                            downloadStatus = "准备下载..."
+                            downloadNext(0, toDownload, scanRepoUrl, vm,
+                                onProgress = { cur, total, name ->
+                                    downloadStatus = "正在下载 ($cur/$total): $name"
+                                },
+                                onDone = { count, lastError ->
+                                    isDownloading = false
+                                    downloadStatus = null
+                                    if (count > 0) {
+                                        toaster.show("安装完成: $count 个")
+                                    } else {
+                                        toaster.show(lastError ?: "安装失败")
+                                    }
                                 }
-                            }
+                            )
                         }
                     },
                     enabled = selectedSkillIndices.isNotEmpty() && !isDownloading,
@@ -610,18 +647,20 @@ private fun downloadNext(
     skills: List<SkillsVM.GitHubSkillInfo>,
     repoUrl: String,
     vm: SkillsVM,
+    onProgress: (current: Int, total: Int, name: String) -> Unit,
     onDone: (Int, String?) -> Unit,
 ) {
     if (index >= skills.size) {
         onDone(index, null)
         return
     }
+    onProgress(index + 1, skills.size, skills[index].name)
     vm.downloadSkillFromGitHub(repoUrl, skills[index]) { ok, msg ->
         val count = if (ok) (index + 1) else index
         if (!ok) {
             onDone(count, msg)
         } else {
-            downloadNext(index + 1, skills, repoUrl, vm, onDone)
+            downloadNext(index + 1, skills, repoUrl, vm, onProgress, onDone)
         }
     }
 }
