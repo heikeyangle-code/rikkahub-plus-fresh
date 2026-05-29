@@ -16,14 +16,18 @@ import me.rerere.rikkahub.data.files.SkillFrontmatterParser
 import me.rerere.rikkahub.data.files.SkillManager
 import me.rerere.rikkahub.data.files.SkillMetadata
 import me.rerere.rikkahub.data.files.SkillRegistry
+import me.rerere.rikkahub.data.datastore.SettingsStore
 import java.util.LinkedHashMap
 import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 class SkillsVM(
     private val skillManager: SkillManager,
-) : ViewModel() {
+) : ViewModel(), KoinComponent {
+    private val settingsStore: SettingsStore by inject()
     private val _skills = MutableStateFlow<List<SkillMetadata>>(emptyList())
     val skills = _skills.asStateFlow()
     private val _downloadStatus = MutableStateFlow<String?>(null)
@@ -443,6 +447,19 @@ class SkillsVM(
                 }
 
                 _skills.value = skillManager.listSkills()
+                // 自动启用到当前助手
+                val currentSettings = settingsStore.settingsFlow.value
+                if (currentSettings.init) { /* dummy, 跳过 */ }
+                else {
+                    val updated = currentSettings.copy(
+                        assistants = currentSettings.assistants.map { a ->
+                            if (a.id == currentSettings.assistantId)
+                                a.copy(enabledSkills = a.enabledSkills + skill.name)
+                            else a
+                        }
+                    )
+                    settingsStore.update(updated)
+                }
                 withContext(Dispatchers.Main) { onResult(true, skill.name) }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { onResult(false, e.message ?: "下载失败") }
@@ -512,6 +529,18 @@ class SkillsVM(
                 }
 
                 _skills.value = skillManager.listSkills()
+                // 自动启用到当前助手
+                val currentSettings = settingsStore.settingsFlow.value
+                if (!currentSettings.init) {
+                    val updated = currentSettings.copy(
+                        assistants = currentSettings.assistants.map { a ->
+                            if (a.id == currentSettings.assistantId)
+                                a.copy(enabledSkills = a.enabledSkills + name)
+                            else a
+                        }
+                    )
+                    settingsStore.update(updated)
+                }
                 withContext(Dispatchers.Main) { onResult(true, name) }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { onResult(false, e.message ?: "未知错误") }
