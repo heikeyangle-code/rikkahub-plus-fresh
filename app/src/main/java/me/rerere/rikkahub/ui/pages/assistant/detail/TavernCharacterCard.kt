@@ -17,6 +17,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
@@ -34,6 +35,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
@@ -44,6 +47,7 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.ArrowRight01
 import me.rerere.hugeicons.stroke.Book01
 import me.rerere.hugeicons.stroke.Folder01
+import me.rerere.hugeicons.stroke.Tools
 import me.rerere.rikkahub.ui.theme.CustomColors
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -437,6 +441,9 @@ private fun EmbeddedBookSummary(
         targetValue = if (showEntries) 90f else 0f,
         animationSpec = tween(200),
     )
+    // 组设置状态
+    var groupSettingsTarget by remember { mutableStateOf<Pair<String, List<TavernBookEntry>>?>(null) }
+
     Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
         Row(
             modifier = Modifier
@@ -499,7 +506,7 @@ private fun EmbeddedBookSummary(
                     )
                     Surface(
                         onClick = { groupExpanded = !groupExpanded },
-                        color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
                         shape = RoundedCornerShape(6.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -520,6 +527,15 @@ private fun EmbeddedBookSummary(
                             Text("${groupEntries.size}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            // 组设置齿轮
+                            IconButton(
+                                onClick = { groupSettingsTarget = Pair(groupName, groupEntries) },
+                                modifier = Modifier.size(24.dp),
+                            ) {
+                                Icon(HugeIcons.Tools, "组设置",
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                     AnimatedVisibility(visible = groupExpanded) {
@@ -546,6 +562,192 @@ private fun EmbeddedBookSummary(
             }
         }
     }
+
+    // 组设置弹窗
+    groupSettingsTarget?.let { (groupName, entries) ->
+        EmbeddedGroupSettingsDialog(
+            groupName = groupName,
+            entries = entries,
+            onDismiss = { groupSettingsTarget = null },
+            onConfirm = { newName, template ->
+                entries.forEach { entry ->
+                    onEntryUpdate(entry.copy(
+                        group = newName,
+                        disable = template.disable,
+                        probability = template.probability,
+                        position = template.position,
+                        priority = template.priority,
+                        role = template.role,
+                        constant = template.constant,
+                        selective = template.selective,
+                        selectiveLogic = template.selectiveLogic,
+                        sticky = template.sticky,
+                        cooldown = template.cooldown,
+                        depth = template.depth,
+                        scanDepth = template.scanDepth,
+                        caseSensitive = template.caseSensitive,
+                        useRegex = template.useRegex,
+                        groupWeight = template.groupWeight,
+                        groupOverride = template.groupOverride,
+                    ))
+                }
+                groupSettingsTarget = null
+            },
+        )
+    }
+}
+
+/**
+ * 内嵌世界书组设置弹窗 — 批量修改组内所有条目的共有属性
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EmbeddedGroupSettingsDialog(
+    groupName: String,
+    entries: List<TavernBookEntry>,
+    onDismiss: () -> Unit,
+    onConfirm: (String, TavernBookEntry) -> Unit,
+) {
+    val template = remember(entries) { entries.firstOrNull() ?: return }
+    var editGroupName by remember { mutableStateOf(groupName) }
+    var enabled by remember { mutableStateOf(!template.disable) }
+    var probability by remember { mutableStateOf(template.probability.toFloat()) }
+    var position by remember { mutableStateOf(template.position) }
+    var priority by remember { mutableStateOf(template.priority.toString()) }
+    var sticky by remember { mutableStateOf(template.sticky.toString()) }
+    var cooldown by remember { mutableStateOf(template.cooldown.toString()) }
+    var depth by remember { mutableStateOf(template.depth.toString()) }
+    var scanDepth by remember { mutableStateOf(template.scanDepth.toString()) }
+    var groupWeight by remember { mutableStateOf(template.groupWeight.toString()) }
+    var groupOverride by remember { mutableStateOf(template.groupOverride) }
+    var constant by remember { mutableStateOf(template.constant) }
+    var selective by remember { mutableStateOf(template.selective) }
+    var selectiveLogic by remember { mutableStateOf(template.selectiveLogic) }
+    var caseSensitive by remember { mutableStateOf(template.caseSensitive) }
+    var useRegex by remember { mutableStateOf(template.useRegex) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("组设置: $groupName") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                // 组名称
+                OutlinedTextField(
+                    value = editGroupName, onValueChange = { editGroupName = it },
+                    label = { Text("分组名称") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                )
+
+                // 状态切换
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(selected = enabled, onClick = { enabled = !enabled },
+                        label = { Text(if (enabled) "启用" else "禁用", style = MaterialTheme.typography.labelSmall) })
+                    FilterChip(selected = constant, onClick = { constant = !constant },
+                        label = { Text(if (constant) "常驻" else "非常驻", style = MaterialTheme.typography.labelSmall) })
+                    FilterChip(selected = selective, onClick = { selective = !selective },
+                        label = { Text(if (selective) "关键词" else "向量", style = MaterialTheme.typography.labelSmall) })
+                }
+
+                // 概率
+                Text("触发概率: ${probability.toInt()}%", style = MaterialTheme.typography.labelMedium)
+                Slider(value = probability, onValueChange = { probability = it }, valueRange = 0f..100f, steps = 99)
+
+                // 插入位置
+                Text("插入位置", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf("角色前", "角色后", "用户前", "用户后", "@D深度").forEachIndexed { i, label ->
+                        FilterChip(selected = position == i, onClick = { position = i },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) })
+                    }
+                }
+
+                // 数值字段
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("优先级", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedTextField(value = priority, onValueChange = { priority = it },
+                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedTextField(value = depth, onValueChange = { depth = it },
+                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("冷却(轮)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedTextField(value = cooldown, onValueChange = { cooldown = it },
+                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("粘性(轮)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedTextField(value = sticky, onValueChange = { sticky = it },
+                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("扫描深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedTextField(value = scanDepth, onValueChange = { scanDepth = it },
+                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("组权重", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedTextField(value = groupWeight, onValueChange = { groupWeight = it },
+                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                    }
+                }
+
+                // 开关行
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(selected = caseSensitive, onClick = { caseSensitive = !caseSensitive },
+                        label = { Text("大小写", style = MaterialTheme.typography.labelSmall) })
+                    FilterChip(selected = useRegex, onClick = { useRegex = !useRegex },
+                        label = { Text("正则", style = MaterialTheme.typography.labelSmall) })
+                    FilterChip(selected = groupOverride, onClick = { groupOverride = !groupOverride },
+                        label = { Text("覆盖同组", style = MaterialTheme.typography.labelSmall) })
+                }
+
+                // 选择性逻辑
+                Text("次要关键词逻辑", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf("AND(全匹配)", "OR(任一)", "NOT_ANY(无)", "NOT_ALL(非全)").forEachIndexed { i, label ->
+                        FilterChip(selected = selectiveLogic == i, onClick = { selectiveLogic = i },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) })
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onConfirm(editGroupName, template.copy(
+                    disable = !enabled,
+                    probability = probability.toInt(),
+                    position = position,
+                    priority = priority.toIntOrNull() ?: 100,
+                    sticky = sticky.toIntOrNull() ?: 0,
+                    cooldown = cooldown.toIntOrNull() ?: 0,
+                    depth = depth.toIntOrNull() ?: 4,
+                    scanDepth = scanDepth.toIntOrNull() ?: 1000,
+                    groupWeight = groupWeight.toIntOrNull() ?: 100,
+                    groupOverride = groupOverride,
+                    constant = constant,
+                    selective = selective,
+                    selectiveLogic = selectiveLogic,
+                    caseSensitive = caseSensitive,
+                    useRegex = useRegex,
+                ))
+            }) {
+                Text("应用到 ${entries.size} 条")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+    )
 }
 
 /**
@@ -559,72 +761,103 @@ private fun CollapsibleEntryCard(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Card(
+    ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { expanded = !expanded },
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = CustomColors.listItemColors.containerColor
         ),
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            // ======== 收起预览 ========
-            if (!expanded) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        if (entry.keys.isNotEmpty()) {
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                            ) {
-                                entry.keys.take(4).forEach { key ->
-                                    SuggestionChip(
-                                        onClick = {},
-                                        label = { Text(key, style = MaterialTheme.typography.labelSmall) },
-                                        shape = RoundedCornerShape(4.dp),
-                                    )
+        Row(modifier = Modifier.fillMaxWidth()) {
+            // 左侧彩色装饰线
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(10.dp)
+            ) {
+                // ======== 收起预览 ========
+                if (!expanded) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            if (entry.keys.isNotEmpty()) {
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    entry.keys.take(4).forEach { key ->
+                                        SuggestionChip(
+                                            onClick = {},
+                                            label = { Text(key, style = MaterialTheme.typography.labelSmall) },
+                                            shape = RoundedCornerShape(4.dp),
+                                        )
+                                    }
+                                    if (entry.keys.size > 4) {
+                                        Text(
+                                            text = "+${entry.keys.size - 4}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(start = 2.dp, top = 2.dp),
+                                        )
+                                    }
                                 }
-                                if (entry.keys.size > 4) {
+                            }
+                            // 状态信息行
+                            Spacer(Modifier.height(4.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    "P${entry.probability}%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                Text(
+                                    if (entry.constant) "常驻" else "触发",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                )
+                                if (entry.group.isNotBlank()) {
                                     Text(
-                                        text = "+${entry.keys.size - 4}",
+                                        entry.group,
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(start = 2.dp, top = 4.dp),
+                                        color = MaterialTheme.colorScheme.tertiary,
                                     )
                                 }
                             }
+                            // 内容预览
+                            if (entry.content.isNotBlank()) {
+                                Text(
+                                    text = entry.content.replace("\n", " ").take(60)
+                                        .let { if (it.length < entry.content.length) "$it…" else it },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 2.dp),
+                                )
+                            }
                         }
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "P${entry.probability}% · ${if (entry.constant) "常驻" else "触发"} · ${if (!entry.disable) "启用" else "禁用"}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        Icon(
+                            HugeIcons.ArrowRight01, contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        if (entry.content.isNotBlank()) {
-                            Text(
-                                text = entry.content.replace("\n", " ").take(50)
-                                    .let { if (it.length < entry.content.length) "$it…" else it },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
                     }
-                    Spacer(Modifier.width(4.dp))
-                    Icon(
-                        HugeIcons.ArrowRight01, contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
-            }
 
-            // ======== 展开编辑 ========
-            if (expanded) {
-                EntryEditor(entry = entry, onUpdate = onUpdate, onCollapse = { expanded = false })
+                // ======== 展开编辑 ========
+                if (expanded) {
+                    EntryEditor(entry = entry, onUpdate = onUpdate, onCollapse = { expanded = false })
+                }
             }
         }
     }

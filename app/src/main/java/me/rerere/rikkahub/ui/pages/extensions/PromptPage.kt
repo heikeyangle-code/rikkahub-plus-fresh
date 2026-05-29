@@ -1174,6 +1174,38 @@ private fun RegexInjectionEntryCard(
                 )
             }
 
+            // 状态信息行: 概率 + 分组 + 权重
+            Row(
+                modifier = Modifier.padding(top = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "P${entry.probability}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                if (entry.group.isNotBlank()) {
+                    Text(
+                        entry.group,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                    Text(
+                        "权重:${entry.groupWeight}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    )
+                }
+                if (entry.constantActive) {
+                    Text(
+                        "常驻",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    )
+                }
+            }
+
             // 注入内容预览（可展开编辑）
             var contentExpanded by remember { mutableStateOf(false) }
             var editContent by remember(entry.content) { mutableStateOf(entry.content) }
