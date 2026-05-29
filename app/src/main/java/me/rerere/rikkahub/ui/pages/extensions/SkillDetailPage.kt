@@ -300,7 +300,6 @@ if (skill.mcpServers.isNotEmpty()) {
         Text(stringResource(R.string.skill_detail_page_delete_confirm, deleteDirTarget?.relativePath ?: ""))
     }
 }
-}
 
 @Composable
 private fun FileTree(
@@ -431,7 +430,7 @@ private fun DirItem(
                 )
                 IconButton(onClick = onDeleteDir, modifier = Modifier.size(36.dp)) {
                     Icon(
-                        imageVector = Lucide.FolderX,
+                        imageVector = Lucide.Trash2,
                         contentDescription = stringResource(R.string.delete),
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.error,
