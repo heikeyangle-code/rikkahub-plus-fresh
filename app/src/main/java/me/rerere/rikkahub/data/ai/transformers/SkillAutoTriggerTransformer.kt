@@ -8,8 +8,9 @@ import org.koin.core.component.inject
 
 /**
  * Skill 自动触发转换器 — Claude Code 风格
- * 扫描对话上下文中的触发关键词，匹配到的 skill 自动注入 SKILL.md body。
- * 无需 LLM 手动调用 use_skill tool。
+ * 两条路径：
+ * 1. 有关键词的：扫描对话匹配，命中后直接注入 SKILL.md body
+ * 2. 无关键词的：注入 skill 列表描述到系统提示，LLM 自选 + use_skill 调用
  */
 object SkillAutoTriggerTransformer : InputMessageTransformer, KoinComponent {
 
@@ -30,10 +31,10 @@ object SkillAutoTriggerTransformer : InputMessageTransformer, KoinComponent {
         val context = messages.joinToString("\n") { it.toText() }
 
         // 分类 skill
-        val autoTriggered = mutableListOf<SkillMetadata>()
         val beforeSystem = mutableListOf<SkillMetadata>()
         val afterSystem = mutableListOf<SkillMetadata>()
         val inChat = mutableListOf<SkillMetadata>()
+        val selfSelectSkills = mutableListOf<SkillMetadata>()
 
         for (skill in enabledSkills) {
             // 有触发词的：检测是否匹配
@@ -45,13 +46,27 @@ object SkillAutoTriggerTransformer : InputMessageTransformer, KoinComponent {
                     when (skill.injectPosition) {
                         "before_system" -> beforeSystem.add(skill)
                         "in_chat" -> inChat.add(skill)
-                        else -> afterSystem.add(skill)  // 默认 after_system
+                        else -> afterSystem.add(skill)
                     }
                 }
+            } else {
+                // 无触发词的：LLM 自选模式
+                selfSelectSkills.add(skill)
             }
         }
 
-        if (autoTriggered.isEmpty() && beforeSystem.isEmpty() && afterSystem.isEmpty() && inChat.isEmpty()) {
+        // LLM 自选：注入可用 skill 列表到系统提示
+        val selfSelectText = if (selfSelectSkills.isNotEmpty()) {
+            buildString {
+                appendLine("[Available Skills]")
+                appendLine("You can use the use_skill tool to activate any of these skills when relevant:")
+                selfSelectSkills.forEach { skill ->
+                    appendLine("- ${skill.name}: ${skill.description}")
+                }
+            }
+        } else ""
+
+        if (beforeSystem.isEmpty() && afterSystem.isEmpty() && inChat.isEmpty() && selfSelectText.isEmpty()) {
             return messages
         }
 
@@ -64,9 +79,15 @@ object SkillAutoTriggerTransformer : InputMessageTransformer, KoinComponent {
             result.add(UIMessage.system("[Skill: ${skill.name}]\n$body"))
         }
 
-        // Original messages (system prompt first, then rest)
+        // System prompt（注入自选列表）
         if (messages.isNotEmpty()) {
-            result.add(messages.first())  // system prompt
+            val sysMsg = messages.first()
+            if (selfSelectText.isNotEmpty()) {
+                val original = sysMsg.toText()
+                result.add(UIMessage.system("$original\n\n$selfSelectText"))
+            } else {
+                result.add(sysMsg)
+            }
         }
 
         // After system
@@ -80,7 +101,7 @@ object SkillAutoTriggerTransformer : InputMessageTransformer, KoinComponent {
             result.addAll(messages.drop(1))
         }
 
-        // In-chat skills (inserted near the end, before last user message)
+        // In-chat skills
         if (inChat.isNotEmpty()) {
             val insertIdx = (result.size - 1).coerceAtLeast(0)
             inChat.forEach { skill ->
