@@ -275,7 +275,96 @@ class SkillsVM(
         }
     }
 
-    fun importSkillFromGitHub(repoUrl: String, onResult: (Boolean, String) -> Unit) {
+    /**
+     * 第一步: 扫描仓库中所有可用的 skill (Git Trees API, 1-2次请求)
+     */
+    fun scanSkillsFromGitHub(
+        repoUrl: String,
+        onResult: (Boolean, List<GitHubSkillInfo>, String) -> Unit,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val info = parseGitHubUrl(repoUrl) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, emptyList(), "无效的 GitHub 仓库链接") }
+                    return@launch
+                }
+
+                // 解析默认分支
+                val branch = resolveBranch(info.owner, info.repo, info.branch)
+                    ?: run {
+                        withContext(Dispatchers.Main) { onResult(false, emptyList(), "无法获取仓库默认分支") }
+                        return@launch
+                    }
+
+                // Git Trees API - 一次请求拿全部文件列表
+                val treeJson = downloadText(
+                    "https://api.github.com/repos/${info.owner}/${info.repo}/git/trees/$branch?recursive=1"
+                ) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, emptyList(), "读取仓库目录失败") }
+                    return@launch
+                }
+
+                val tree = JSONArray(org.json.JSONObject(treeJson).getString("tree"))
+                val truncated = org.json.JSONObject(treeJson).optBoolean("truncated", false)
+
+                if (truncated) {
+                    withContext(Dispatchers.Main) { onResult(false, emptyList(), "仓库文件过多，暂不支持大仓库扫描") }
+                    return@launch
+                }
+
+                // 找出所有 SKILL.md 的路径
+                val skillMdPaths = mutableListOf<String>()
+                for (i in 0 until tree.length()) {
+                    val item = tree.getJSONObject(i)
+                    val path = item.optString("path", "")
+                    if (path.endsWith("SKILL.md") || path.endsWith("/SKILL.md")) {
+                        skillMdPaths.add(path)
+                    }
+                }
+
+                // 过滤: 如果 URL 指定了子路径，只保留该路径下的
+                val filteredPaths = if (info.path.isBlank()) {
+                    skillMdPaths
+                } else {
+                    skillMdPaths.filter { it.startsWith("${info.path}/") }
+                }
+
+                if (filteredPaths.isEmpty()) {
+                    withContext(Dispatchers.Main) { onResult(false, emptyList(), "未找到 SKILL.md") }
+                    return@launch
+                }
+
+                // 读取每个 SKILL.md 的 frontmatter 获取 name
+                val skills = mutableListOf<GitHubSkillInfo>()
+                for (mdPath in filteredPaths) {
+                    val dirPath = mdPath.removeSuffix("SKILL.md").trimEnd('/')
+                    val dlUrl = "https://raw.githubusercontent.com/${info.owner}/${info.repo}/$branch/$mdPath"
+                    val content = downloadText(dlUrl) ?: continue
+                    val fm = SkillFrontmatterParser.parse(content)
+                    val name = fm["name"] ?: dirPath.split("/").last().ifBlank { "unknown" }
+                    val desc = fm["description"] ?: ""
+                    skills.add(GitHubSkillInfo(name, desc, dirPath, mdPath))
+                }
+
+                withContext(Dispatchers.Main) {
+                    onResult(true, skills, "${info.owner}/${info.repo}")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onResult(false, emptyList(), e.message ?: "扫描失败")
+                }
+            }
+        }
+    }
+
+    /**
+     * 第二步: 下载指定 skill 目录的全部文件
+     */
+    fun downloadSkillFromGitHub(
+        repoUrl: String,
+        skill: GitHubSkillInfo,
+        onResult: (Boolean, String) -> Unit,
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val info = parseGitHubUrl(repoUrl) ?: run {
@@ -283,9 +372,63 @@ class SkillsVM(
                     return@launch
                 }
 
-                // Collect all files recursively via GitHub Contents API
-                val files = mutableListOf<Pair<String, String>>() // relativePath -> downloadUrl
-                val listed = listFilesRecursively(info.owner, info.repo, info.branch, info.path, info.path, files)
+                val branch = resolveBranch(info.owner, info.repo, info.branch)
+                    ?: run {
+                        withContext(Dispatchers.Main) { onResult(false, "无法获取仓库默认分支") }
+                        return@launch
+                    }
+
+                // 递归列出 skill 目录下的所有文件
+                val files = mutableListOf<Pair<String, String>>()
+                val listed = listFilesRecursively(
+                    info.owner, info.repo, branch,
+                    skill.dirPath.ifBlank { "" }, skill.dirPath, files
+                )
+                if (!listed) {
+                    withContext(Dispatchers.Main) { onResult(false, "读取 GitHub 目录失败") }
+                    return@launch
+                }
+
+                val fileContents = LinkedHashMap<String, String>()
+                for ((relativePath, downloadUrl) in files) {
+                    val content = downloadText(downloadUrl)
+                    if (content == null) {
+                        withContext(Dispatchers.Main) { onResult(false, "下载文件失败：$relativePath") }
+                        return@launch
+                    }
+                    fileContents[relativePath] = content
+                }
+
+                val saved = skillManager.saveSkillFilesAtomically(skill.name, fileContents)
+                if (!saved) {
+                    withContext(Dispatchers.Main) { onResult(false, "保存失败") }
+                    return@launch
+                }
+
+                _skills.value = skillManager.listSkills()
+                withContext(Dispatchers.Main) { onResult(true, skill.name) }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onResult(false, e.message ?: "下载失败") }
+            }
+        }
+    }
+
+    /** 兼容旧接口: 粘贴的链接正好指向一个 skill 目录时直接下载 */
+    fun importSkillFromGitHub(repoUrl: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val info = parseGitHubUrl(repoUrl) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, "无效的 GitHub 仓库链接") }
+                    return@launch
+                }
+                val branch = resolveBranch(info.owner, info.repo, info.branch)
+                    ?: run {
+                        withContext(Dispatchers.Main) { onResult(false, "无法获取仓库默认分支") }
+                        return@launch
+                    }
+
+                val files = mutableListOf<Pair<String, String>>()
+                val listed = listFilesRecursively(info.owner, info.repo, branch, info.path, info.path, files)
                 if (!listed) {
                     withContext(Dispatchers.Main) { onResult(false, "读取 GitHub 目录失败") }
                     return@launch
@@ -332,15 +475,52 @@ class SkillsVM(
         }
     }
 
+    private data class GitHubRepoInfo(
+        val owner: String,
+        val repo: String,
+        val branch: String?,  // null = 用户没指定，让 API 自行判断默认分支
+        val path: String,
+    )
+
+    data class GitHubSkillInfo(
+        val name: String,
+        val description: String,
+        val dirPath: String,  // 目录路径，如 "plugins/skill-creator/skills/skill-creator"
+        val mdPath: String,   // SKILL.md 完整路径
+    )
+
+    private fun parseGitHubUrl(url: String): GitHubRepoInfo? {
+        val trimmed = url.trim().trimEnd('/')
+        // https://github.com/owner/repo
+        // https://github.com/owner/repo/tree/branch
+        // https://github.com/owner/repo/tree/branch/sub/path
+        val regex = Regex("""https://github\.com/([^/]+)/([^/]+)(?:/tree/([^/]+)(/.*)?)?""")
+        val match = regex.matchEntire(trimmed) ?: return null
+        val owner = match.groupValues[1]
+        val repo = match.groupValues[2]
+        val branch = match.groupValues[3].takeIf { it.isNotBlank() }  // null = 用 API 默认分支
+        val subPath = match.groupValues[4].trimStart('/')
+        return GitHubRepoInfo(owner, repo, branch, subPath)
+    }
+
+    /** 解析分支: 用户指定了就用，没指定调 API 查默认分支 */
+    private fun resolveBranch(owner: String, repo: String, userBranch: String?): String? {
+        if (userBranch != null) return userBranch
+        val repoJson = downloadText("https://api.github.com/repos/$owner/$repo") ?: return null
+        return org.json.JSONObject(repoJson).optString("default_branch", null)
+    }
+
     private fun listFilesRecursively(
         owner: String,
         repo: String,
-        branch: String,
+        branch: String?,
         dirPath: String,
         basePath: String,
         result: MutableList<Pair<String, String>>,
     ): Boolean {
-        val apiUrl = "https://api.github.com/repos/$owner/$repo/contents/$dirPath?ref=$branch"
+        val refParam = if (branch != null) "?ref=$branch" else ""
+        val apiPath = dirPath.ifBlank { "" }
+        val apiUrl = "https://api.github.com/repos/$owner/$repo/contents/$apiPath$refParam"
         val json = downloadText(apiUrl) ?: return false
         val array = JSONArray(json)
         for (i in 0 until array.length()) {
@@ -362,27 +542,6 @@ class SkillsVM(
             }
         }
         return true
-    }
-
-    private data class GitHubRepoInfo(
-        val owner: String,
-        val repo: String,
-        val branch: String,
-        val path: String,
-    )
-
-    private fun parseGitHubUrl(url: String): GitHubRepoInfo? {
-        val trimmed = url.trim().trimEnd('/')
-        // https://github.com/owner/repo
-        // https://github.com/owner/repo/tree/branch
-        // https://github.com/owner/repo/tree/branch/sub/path
-        val regex = Regex("""https://github\.com/([^/]+)/([^/]+)(?:/tree/([^/]+)(/.*)?)?""")
-        val match = regex.matchEntire(trimmed) ?: return null
-        val owner = match.groupValues[1]
-        val repo = match.groupValues[2]
-        val branch = match.groupValues[3].ifBlank { "main" }
-        val subPath = match.groupValues[4].trimStart('/')
-        return GitHubRepoInfo(owner, repo, branch, subPath)
     }
 
     private fun downloadText(url: String): String? {

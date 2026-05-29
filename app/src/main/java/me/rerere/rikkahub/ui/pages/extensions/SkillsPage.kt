@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -89,6 +90,14 @@ fun SkillsPage() {
     var showImportSheet by rememberSaveable { mutableStateOf(false) }
     var showGitHubDialog by rememberSaveable { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<SkillMetadata?>(null) }
+
+    // GitHub 扫描状态
+    var isScanning by remember { mutableStateOf(false) }
+    var scannedSkills by remember { mutableStateOf<List<SkillsVM.GitHubSkillInfo>>(emptyList()) }
+    var showSkillPicker by remember { mutableStateOf(false) }
+    var selectedSkillIndices by remember { mutableStateOf(setOf<Int>()) }
+    var isDownloading by remember { mutableStateOf(false) }
+    var scanRepoUrl by remember { mutableStateOf("") }
 
     // File picker launcher (.zip / .md)
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -399,27 +408,181 @@ fun SkillsPage() {
                         placeholder = { Text("https://github.com/owner/repo") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        enabled = !isScanning,
                     )
+                    if (isScanning) {
+                        Spacer(Modifier.height(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Text("正在扫描仓库...", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         if (repoUrl.isNotBlank()) {
-                            showGitHubDialog = false
-                            vm.importSkillFromGitHub(repoUrl.trim()) { success, msg ->
-                                if (success) toaster.show(context.getString(R.string.skills_page_install_success, msg))
-                                else toaster.show(msg)
+                            isScanning = true
+                            scanRepoUrl = repoUrl.trim()
+                            vm.scanSkillsFromGitHub(scanRepoUrl) { success, skills, msg ->
+                                isScanning = false
+                                if (success) {
+                                    if (skills.size == 1) {
+                                        // 只有一个 skill，直接下载
+                                        showGitHubDialog = false
+                                        isDownloading = true
+                                        vm.downloadSkillFromGitHub(scanRepoUrl, skills[0]) { ok, name ->
+                                            isDownloading = false
+                                            if (ok) toaster.show(context.getString(R.string.skills_page_install_success, name))
+                                            else toaster.show(name)
+                                        }
+                                    } else {
+                                        // 多个 skill，弹出选择
+                                        showGitHubDialog = false
+                                        scannedSkills = skills
+                                        selectedSkillIndices = skills.indices.toSet()
+                                        showSkillPicker = true
+                                    }
+                                } else {
+                                    toaster.show(msg)
+                                }
                             }
                         }
                     },
-                    enabled = repoUrl.isNotBlank(),
+                    enabled = repoUrl.isNotBlank() && !isScanning,
                 ) {
-                    Text("安装")
+                    Text(if (isScanning) "扫描中..." else "搜索")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showGitHubDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
+    // 多 skill 选择弹窗
+    if (showSkillPicker && scannedSkills.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { showSkillPicker = false },
+            title = {
+                Text(
+                    "发现 ${scannedSkills.size} 个 Skill",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        scanRepoUrl,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    // 全选/取消
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        TextButton(onClick = {
+                            selectedSkillIndices = if (selectedSkillIndices.size == scannedSkills.size) emptySet()
+                            else scannedSkills.indices.toSet()
+                        }) {
+                            Text(
+                                if (selectedSkillIndices.size == scannedSkills.size) "取消全选" else "全选",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        Text(
+                            "已选 ${selectedSkillIndices.size}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    HorizontalDivider()
+
+                    // 列表
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
+                    ) {
+                        items(scannedSkills.size) { idx ->
+                            val skill = scannedSkills[idx]
+                            val selected = idx in selectedSkillIndices
+                            Surface(
+                                onClick = {
+                                    selectedSkillIndices = if (selected)
+                                        selectedSkillIndices - idx
+                                    else
+                                        selectedSkillIndices + idx
+                                },
+                                color = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                        else MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = if (selected) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.surfaceVariant,
+                                        modifier = Modifier.size(18.dp),
+                                    ) {
+                                        if (selected) {
+                                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                                Text("✓", style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                                                    color = MaterialTheme.colorScheme.onPrimary)
+                                            }
+                                        }
+                                    }
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(skill.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                        if (skill.description.isNotBlank()) {
+                                            Text(skill.description, style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                        }
+                                        Text(skill.mdPath, style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                            maxLines = 1, fontFamily = FontFamily.Monospace)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (selectedSkillIndices.isNotEmpty() && !isDownloading) {
+                            showSkillPicker = false
+                            isDownloading = true
+                            val toDownload = selectedSkillIndices.map { scannedSkills[it] }
+                            downloadNext(0, toDownload, scanRepoUrl, vm) { count, lastError ->
+                                isDownloading = false
+                                if (count > 0) {
+                                    toaster.show("安装完成: $count 个")
+                                } else {
+                                    toaster.show(lastError ?: "安装失败")
+                                }
+                            }
+                        }
+                    },
+                    enabled = selectedSkillIndices.isNotEmpty() && !isDownloading,
+                ) {
+                    Text(if (isDownloading) "安装中..." else "安装选中 (${selectedSkillIndices.size})")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSkillPicker = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -438,6 +601,28 @@ fun SkillsPage() {
         onDismiss = { deleteTarget = null },
     ) {
         Text(stringResource(R.string.skills_page_delete_message, deleteTarget?.name ?: ""))
+    }
+}
+
+/** 逐个下载 skill */
+private fun downloadNext(
+    index: Int,
+    skills: List<SkillsVM.GitHubSkillInfo>,
+    repoUrl: String,
+    vm: SkillsVM,
+    onDone: (Int, String?) -> Unit,
+) {
+    if (index >= skills.size) {
+        onDone(index, null)
+        return
+    }
+    vm.downloadSkillFromGitHub(repoUrl, skills[index]) { ok, msg ->
+        val count = if (ok) (index + 1) else index
+        if (!ok) {
+            onDone(count, msg)
+        } else {
+            downloadNext(index + 1, skills, repoUrl, vm, onDone)
+        }
     }
 }
 
