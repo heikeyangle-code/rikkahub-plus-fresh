@@ -9,6 +9,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import me.rerere.rikkahub.data.files.SkillFrontmatterParser
 import me.rerere.rikkahub.data.files.SkillManager
@@ -397,10 +399,11 @@ class SkillsVM(
                 }
 
                 val fileContents = LinkedHashMap<String, String>()
+                val sem = Semaphore(5)
                 val results = coroutineScope {
                     files.map { (path, url) ->
                         async(Dispatchers.IO) {
-                            path to downloadText(url)
+                            sem.withPermit { path to downloadText(url) }
                         }
                     }.awaitAll()
                 }
@@ -465,10 +468,11 @@ class SkillsVM(
                 }
 
                 val fileContents = LinkedHashMap<String, String>()
+                val sem = Semaphore(5)
                 val results = coroutineScope {
                     files.map { (path, url) ->
                         async(Dispatchers.IO) {
-                            path to downloadText(url)
+                            sem.withPermit { path to downloadText(url) }
                         }
                     }.awaitAll()
                 }
