@@ -667,17 +667,17 @@ private fun EmbeddedGroupSettingsDialog(
                 // 数值字段
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("优先级(Priority)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("优先级", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = priority, onValueChange = { priority = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("深度(Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = depth, onValueChange = { depth = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("冷却(Cooldown)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("冷却(轮)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = cooldown, onValueChange = { cooldown = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
@@ -691,7 +691,7 @@ private fun EmbeddedGroupSettingsDialog(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("扫描深度(Scan Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("扫描深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = scanDepth, onValueChange = { scanDepth = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
@@ -705,7 +705,7 @@ private fun EmbeddedGroupSettingsDialog(
                 }
 
                 // 开关行
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FilterChip(selected = caseSensitive, onClick = { caseSensitive = !caseSensitive },
                         label = { Text("大小写(Case)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = useRegex, onClick = { useRegex = !useRegex },
@@ -1027,17 +1027,17 @@ private fun EntryEditor(
                     modifier = Modifier.padding(top = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("优先级(Priority)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("优先级", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = priority, onValueChange = { priority = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("深度(Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = depth, onValueChange = { depth = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("冷却(Cooldown)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("冷却(轮)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = cooldown, onValueChange = { cooldown = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
@@ -1056,6 +1056,8 @@ private fun EntryEditor(
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
+                }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     FilterChip(selected = caseSensitive, onClick = { caseSensitive = !caseSensitive },
                         label = { Text("大小写(Case)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = useRegex, onClick = { useRegex = !useRegex },
@@ -1081,7 +1083,7 @@ private fun EntryEditor(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("扫描深度(Scan Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("扫描深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = scanDepthStr, onValueChange = { scanDepthStr = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
