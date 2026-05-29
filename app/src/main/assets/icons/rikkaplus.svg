@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="256" height="256"
+    fill="none" stroke="currentColor" stroke-width="16" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 圆脸 -->
+    <ellipse cx="256" cy="290" rx="170" ry="150"/>
+    <!-- 耳朵 - 钝角可爱 -->
+    <path d="M120 200 L100 70 L200 170"/>
+    <path d="M392 200 L412 70 L312 170"/>
+    <!-- 眼睛 - 大圆 -->
+    <circle cx="195" cy="280" r="28" fill="currentColor" stroke="none"/>
+    <circle cx="317" cy="280" r="28" fill="currentColor" stroke="none"/>
+    <!-- 小鼻头 -->
+    <path d="M248 320 L256 328 L264 320 Z" fill="currentColor" stroke="none"/>
+    <!-- 嘴 -->
+    <path d="M256 328 Q240 350 220 340 M256 328 Q272 350 292 340" stroke-width="12"/>
+    <!-- 六花瓣 - Rikka 标志 -->
+    <path d="M256 430 L256 455 M240 442 L272 442" stroke-width="10"/>
+    <!-- +号 -->
+    <path d="M456 40 L456 80 M436 60 L476 60" stroke-width="20" stroke-linecap="square"/>
+</svg>
