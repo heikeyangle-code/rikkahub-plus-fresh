@@ -647,6 +647,7 @@ private fun TextInputRow(
     }
     var showSlashPopup by remember { mutableStateOf(false) }
     var slashFilter by remember { mutableStateOf("") }
+    var slashArgs by remember { mutableStateOf("") }
 
     // 监听文本变化，检测斜杠命令
     val currentText = state.textContent.text
@@ -654,6 +655,7 @@ private fun TextInputRow(
         if (currentText.startsWith("/") && currentText.length <= 30) {
             val parts = currentText.split(" ", limit = 2)
             val cmdName = parts[0].removePrefix("/").lowercase()
+            slashArgs = parts.getOrElse(1) { "" }
             if (slashCommands.any { it.name.lowercase().startsWith(cmdName) }) {
                 slashFilter = cmdName
                 showSlashPopup = true
@@ -788,7 +790,8 @@ private fun TextInputRow(
                         filtered.take(5).forEach { cmd ->
                             Surface(
                                 onClick = {
-                                    state.setMessageText(cmd.content)
+                                    val text = cmd.content.replace("\$ARGUMENTS", slashArgs)
+                                    state.setMessageText(text)
                                     showSlashPopup = false
                                 },
                                 color = Color.Transparent,
