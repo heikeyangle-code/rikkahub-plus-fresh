@@ -467,7 +467,7 @@ private fun EmbeddedBookSummary(
                 tint = MaterialTheme.colorScheme.primary,
             )
             Spacer(Modifier.width(6.dp))
-            Text("内嵌世界书", style = MaterialTheme.typography.labelMedium)
+            Text("内嵌世界书(Embedded Lorebook)", style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.width(6.dp))
             Surface(
                 shape = RoundedCornerShape(4.dp),
@@ -552,7 +552,7 @@ private fun EmbeddedBookSummary(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                             modifier = Modifier.padding(vertical = 4.dp))
                     }
-                    Text("未分组", style = MaterialTheme.typography.labelSmall,
+                    Text("未分组(Ungrouped)", style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 2.dp))
                     ungrouped.forEach { entry ->
@@ -646,19 +646,19 @@ private fun EmbeddedGroupSettingsDialog(
                     FilterChip(selected = enabled, onClick = { enabled = !enabled },
                         label = { Text(if (enabled) "启用(On)" else "禁用(Off)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = constant, onClick = { constant = !constant },
-                        label = { Text(if (constant) "常驻(Const)" else "非常驻(Normal)", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text(if (constant) "常驻(Constant)" else "非常驻(Normal)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = selective, onClick = { selective = !selective },
                         label = { Text(if (selective) "关键词(Keyword)" else "向量(Vector)", style = MaterialTheme.typography.labelSmall) })
                 }
 
                 // 概率
-                Text("触发概率(Prob): ${probability.toInt()}%", style = MaterialTheme.typography.labelMedium)
+                Text("触发概率(Probability): ${probability.toInt()}%", style = MaterialTheme.typography.labelMedium)
                 Slider(value = probability, onValueChange = { probability = it }, valueRange = 0f..100f, steps = 99)
 
                 // 插入位置
                 Text("插入位置(Position)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("角色前(Before Char)", "角色后(After Char)", "用户前(Before User)", "用户后(After User)", "@D深度(Depth)").forEachIndexed { i, label ->
+                    listOf("角色前(Before Char)", "角色后(After Char)", "用户前(Before User)", "用户后(After User)", "@D深度(At Depth)").forEachIndexed { i, label ->
                         FilterChip(selected = position == i, onClick = { position = i },
                             label = { Text(label, style = MaterialTheme.typography.labelSmall) })
                     }
@@ -667,12 +667,12 @@ private fun EmbeddedGroupSettingsDialog(
                 // 数值字段
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("优先级", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("优先级(Priority)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = priority, onValueChange = { priority = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("深度(Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = depth, onValueChange = { depth = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
@@ -691,13 +691,13 @@ private fun EmbeddedGroupSettingsDialog(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("扫描深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("扫描深度(Scan Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = scanDepth, onValueChange = { scanDepth = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("组权重", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("组权重(Group Weight)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = groupWeight, onValueChange = { groupWeight = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
@@ -707,15 +707,15 @@ private fun EmbeddedGroupSettingsDialog(
                 // 开关行
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FilterChip(selected = caseSensitive, onClick = { caseSensitive = !caseSensitive },
-                        label = { Text("大小写(Case)", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text("大小写(Case Sensitive)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = useRegex, onClick = { useRegex = !useRegex },
-                        label = { Text("正则(Regex)", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text("正则(Use Regex)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = groupOverride, onClick = { groupOverride = !groupOverride },
-                        label = { Text("覆盖同组(Override)", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text("覆盖同组(Group Override)", style = MaterialTheme.typography.labelSmall) })
                 }
 
                 // 选择性逻辑
-                Text("次要关键词逻辑(Secondary)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text("次要关键词逻辑(Selective Logic)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf("AND(全匹配)", "OR(任一)", "NOT_ANY(无)", "NOT_ALL(非全)").forEachIndexed { i, label ->
                         FilterChip(selected = selectiveLogic == i, onClick = { selectiveLogic = i },
@@ -748,7 +748,7 @@ private fun EmbeddedGroupSettingsDialog(
                 Text("应用到(Apply to) ${entries.size} 条(entries)")
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消(Cancel)") } },
     )
 }
 
@@ -823,7 +823,7 @@ private fun CollapsibleEntryCard(
                                     color = MaterialTheme.colorScheme.primary,
                                 )
                                 Text(
-                                    if (entry.constant) "常驻(Const)" else "触发(Trig)",
+                                    if (entry.constant) "常驻(Constant)" else "触发(Trig)",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                 )
@@ -923,7 +923,7 @@ private fun EntryEditor(
             FilterChip(
                 selected = constant,
                 onClick = { constant = !constant },
-                label = { Text(if (constant) "常驻(Const)" else "非常驻(Normal)", style = MaterialTheme.typography.labelSmall) },
+                label = { Text(if (constant) "常驻(Constant)" else "非常驻(Normal)", style = MaterialTheme.typography.labelSmall) },
             )
             FilterChip(
                 selected = selective,
@@ -939,7 +939,7 @@ private fun EntryEditor(
             modifier = Modifier.fillMaxWidth(),
             textStyle = MaterialTheme.typography.bodySmall,
             singleLine = true,
-            label = { Text("名称") },
+            label = { Text("名称(Name)") },
         )
 
         // 触发词
@@ -960,14 +960,14 @@ private fun EntryEditor(
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = MaterialTheme.typography.bodySmall,
                 singleLine = true,
-                label = { Text("次级触发词") },
+                label = { Text("次级触发词(Secondary Keywords)") },
             )
         }
 
         // 概率 + 位置
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("触发概率", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("触发概率(Probability)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Slider(
                     value = probability,
                     onValueChange = { probability = it },
@@ -983,7 +983,7 @@ private fun EntryEditor(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    val posOptions = listOf("角色前(Before Char)", "角色后(After Char)", "用户前(Before User)", "用户后(After User)", "@D深度(Depth)")
+                    val posOptions = listOf("角色前(Before Char)", "角色后(After Char)", "用户前(Before User)", "用户后(After User)", "@D深度(At Depth)")
                     posOptions.forEachIndexed { i, label ->
                         FilterChip(
                             selected = position == i,
@@ -1001,7 +1001,7 @@ private fun EntryEditor(
             onValueChange = { content = it },
             modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp, max = 200.dp),
             textStyle = MaterialTheme.typography.bodySmall,
-            label = { Text("内容") },
+            label = { Text("内容(Content)") },
         )
 
         // 高级设置
@@ -1027,12 +1027,12 @@ private fun EntryEditor(
                     modifier = Modifier.padding(top = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("优先级", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("优先级(Priority)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = priority, onValueChange = { priority = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("深度(Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = depth, onValueChange = { depth = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
@@ -1059,11 +1059,11 @@ private fun EntryEditor(
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     FilterChip(selected = caseSensitive, onClick = { caseSensitive = !caseSensitive },
-                        label = { Text("大小写(Case)", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text("大小写(Case Sensitive)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = useRegex, onClick = { useRegex = !useRegex },
-                        label = { Text("正则(Regex)", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text("正则(Use Regex)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = groupOverride, onClick = { groupOverride = !groupOverride },
-                        label = { Text("覆盖同组(Override)", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text("覆盖同组(Group Override)", style = MaterialTheme.typography.labelSmall) })
                 }
 
                 // 插入控制
@@ -1077,13 +1077,13 @@ private fun EntryEditor(
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("组权重", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("组权重(Group Weight)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = groupWeight, onValueChange = { groupWeight = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("扫描深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("扫描深度(Scan Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = scanDepthStr, onValueChange = { scanDepthStr = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
@@ -1100,7 +1100,7 @@ private fun EntryEditor(
                         )
                     }
                 }
-                Text("次要关键词逻辑(Secondary)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("次要关键词逻辑(Selective Logic)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     val logicLabels = listOf("AND(全匹配)", "OR(任一)", "NOT_ANY(无)", "NOT_ALL(非全)")
                     logicLabels.forEachIndexed { i, label ->
