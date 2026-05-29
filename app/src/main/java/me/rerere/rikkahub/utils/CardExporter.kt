@@ -122,6 +122,7 @@ object CardExporter {
                                     put("probability", entry.probability)
                                     put("sticky", entry.sticky)
                                     put("cooldown", entry.cooldown)
+                                    put("delay", entry.delay)
                                     put("scan_depth", entry.scanDepth)
                                     put("role", entry.role)
                                     put("group", entry.group)
