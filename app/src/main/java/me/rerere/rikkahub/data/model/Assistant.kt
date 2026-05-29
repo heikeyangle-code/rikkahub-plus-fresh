@@ -190,7 +190,6 @@ sealed class PromptInjection {
         val probability: Int = 100,                     // 触发概率 0-100
         val sticky: Int = 0,                         // 激活后持续保留N轮（0=不粘）
         val cooldown: Int = 0,                          // 冷却轮数（0=无冷却）
-        val delay: Int = 0,                             // 延迟激活轮数（0=立即，对齐酒馆）
     ) : PromptInjection()
 }
 
