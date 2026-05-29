@@ -35,8 +35,11 @@ fun collectSlashCommands(
             )
         }
     }
-    // 同时收集 user-invocable 的 skill 本身作为斜杠命令
-    val invocableSkills = enabledSkills.filter { it.userInvocable }.map { skill ->
+    // 同时收集 user-invocable 的 skill（排除已有同名 command 的，避免重复）
+    val commandNames = commands.map { it.name }.toSet()
+    val invocableSkills = enabledSkills
+        .filter { it.userInvocable && it.name !in commandNames }
+        .map { skill ->
         SlashCommand(
             name = skill.name,
             description = skill.description,
