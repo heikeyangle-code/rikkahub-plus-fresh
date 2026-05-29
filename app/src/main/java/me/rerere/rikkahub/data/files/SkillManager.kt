@@ -182,7 +182,7 @@ class SkillManager(
                 name = name,
                 description = description,
                 compatibility = frontmatter["compatibility"],
-                allowedTools = frontmatter["allowed-tools"]?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }?.toList()
+                allowedTools = parseAllowedTools(frontmatter["allowed-tools"])
                     ?: plugin?.allowedTools ?: emptyList(),
                 userInvocable = frontmatter["user-invocable"]?.toBooleanStrictOrNull() ?: false,
                 disableModelInvocation = frontmatter["disable-model-invocation"]?.toBooleanStrictOrNull() ?: false,
@@ -277,5 +277,24 @@ object SkillFrontmatterParser {
     private fun findFrontmatterEndRange(content: String): IntRange? {
         if (!content.startsWith("---")) return null
         return frontmatterEndRegex.find(content, startIndex = 3)?.range
+    }
+
+    /**
+     * 解析 allowed-tools 字段，支持两种格式：
+     * - 逗号分隔: "Read, Bash, Grep"
+     * - JSON 数组: "[Read, Bash, Grep]"
+     */
+    fun parseAllowedTools(raw: String?): List<String>? {
+        if (raw.isNullOrBlank()) return null
+        val trimmed = raw.trim()
+        return if (trimmed.startsWith("[")) {
+            // JSON 数组格式: 去掉首尾方括号，逗号分割
+            trimmed.removeSurrounding("[", "]")
+                .split(",")
+                .map { it.trim().removeSurrounding("\"") }
+                .filter { it.isNotBlank() }
+        } else {
+            trimmed.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        }
     }
 }

@@ -42,7 +42,9 @@ data class PluginMcpServer(
  * 解析 plugin.json（如果存在）
  */
 fun parsePluginManifest(skillDir: File): PluginManifest? {
-    val file = skillDir.resolve("plugin.json")
+    // Claude Code 格式: .claude-plugin/plugin.json
+    val ccPath = skillDir.resolve(".claude-plugin/plugin.json")
+    val file = if (ccPath.exists()) ccPath else skillDir.resolve("plugin.json")
     if (!file.exists()) return null
     return try {
         Json { ignoreUnknownKeys = true }.decodeFromString(
