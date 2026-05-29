@@ -393,14 +393,29 @@ class SkillsVM(
                         return@launch
                     }
 
-                // 递归列出 skill 目录下的所有文件
+                // Git Trees API - 一次拿全部文件路径
+                val treeJson = downloadText(
+                    "https://api.github.com/repos/${info.owner}/${info.repo}/git/trees/$branch?recursive=1"
+                ) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, "读取仓库目录失败") }
+                    return@launch
+                }
+                val tree = org.json.JSONObject(treeJson).getJSONArray("tree")
+                val dirPath = skill.dirPath.trimEnd('/')
+                val prefix = if (dirPath.isBlank()) "" else "$dirPath/"
+
                 val files = mutableListOf<Pair<String, String>>()
-                val listed = listFilesRecursively(
-                    info.owner, info.repo, branch,
-                    skill.dirPath.ifBlank { "" }, skill.dirPath, files
-                )
-                if (!listed) {
-                    withContext(Dispatchers.Main) { onResult(false, "读取 GitHub 目录失败") }
+                for (i in 0 until tree.length()) {
+                    val item = tree.getJSONObject(i)
+                    val path = item.optString("path", "")
+                    if (item.optString("type") == "blob" && path.startsWith(prefix)) {
+                        val relativePath = path.removePrefix(prefix)
+                        val downloadUrl = "https://raw.githubusercontent.com/${info.owner}/${info.repo}/$branch/$path"
+                        files.add(relativePath to downloadUrl)
+                    }
+                }
+                if (files.isEmpty()) {
+                    withContext(Dispatchers.Main) { onResult(false, "目录中未找到文件") }
                     return@launch
                 }
 
