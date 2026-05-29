@@ -223,7 +223,7 @@ class SkillManager(
             if (!dir.isDirectory) continue
             val files = dir.walkTopDown()
                 .filter { it.isFile }
-                .map { it.relativeTo(skillDir).path }
+                .map { it.relativeTo(dir).path }  // 相对于子目录，用于 use_skill 拼接
                 .toList()
             if (files.isNotEmpty()) {
                 result[sub] = files
