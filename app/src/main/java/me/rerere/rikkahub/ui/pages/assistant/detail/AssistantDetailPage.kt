@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -385,7 +386,7 @@ private fun GreetingPickerSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "选择开场白",
+                    text = "选择开场白(Select Greeting)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -426,6 +427,19 @@ private fun GreetingPickerSheet(
                             .padding(14.dp),
                         verticalAlignment = Alignment.Top,
                     ) {
+                        // 选中态左侧色条
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .width(4.dp)
+                                    .height(32.dp)
+                                    .offset(x = (-6).dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.primary,
+                                        RoundedCornerShape(2.dp)
+                                    )
+                            )
+                        }
                         // 编号标识
                         Text(
                             text = "G${index + 1}",
@@ -458,7 +472,7 @@ private fun GreetingPickerSheet(
                         if (isSelected) {
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "当前",
+                                text = "当前(Active)",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary,
@@ -472,7 +486,7 @@ private fun GreetingPickerSheet(
             item {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "点击开场白即可使用，新建对话时将以此开场",
+                    text = "点击即可使用，新建对话将以此开场 (Tap to select greeting for new conversations)",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

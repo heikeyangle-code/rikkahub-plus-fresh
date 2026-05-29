@@ -50,7 +50,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
@@ -990,7 +989,7 @@ private fun LorebookEditSheet(
                 if (ungroupedEntries.isNotEmpty()) {
                     HorizontalDivider(
                         thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.outlineVariant,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
                     Text(
@@ -1096,7 +1095,7 @@ private fun RegexInjectionEntryCard(
     var editNameValue by remember { mutableStateOf(entry.name) }
     var newKeyword by remember { mutableStateOf("") }
 
-    ElevatedCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.elevatedCardColors(
@@ -1109,7 +1108,7 @@ private fun RegexInjectionEntryCard(
                 modifier = Modifier
                     .width(4.dp)
                     .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             )
             Column(
                 modifier = Modifier
@@ -1192,14 +1191,14 @@ private fun RegexInjectionEntryCard(
                         color = MaterialTheme.colorScheme.tertiary,
                     )
                     Text(
-                        "权重:${entry.groupWeight}",
+                        "权重(Weight):${entry.groupWeight}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
                 }
                 if (entry.constantActive) {
                     Text(
-                        "常驻",
+                        "常驻(Const)",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
@@ -1219,8 +1218,8 @@ private fun RegexInjectionEntryCard(
                             .heightIn(min = 80.dp, max = 200.dp),
                         textStyle = MaterialTheme.typography.bodySmall,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            focusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                         ),
                     )
                     Row(
@@ -1275,7 +1274,7 @@ private fun RegexInjectionEntryCard(
                         Text(
                             text = stringResource(R.string.prompt_page_add_content),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(10.dp),
                         )
                     }
