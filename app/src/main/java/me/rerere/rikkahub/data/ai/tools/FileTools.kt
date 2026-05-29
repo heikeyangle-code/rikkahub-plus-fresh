@@ -36,6 +36,7 @@ fun createFileTools(): List<Tool> {
                 if (!file.exists()) error("File not found: $path")
                 if (!file.canRead()) error("Cannot read file: $path")
                 if (file.isDirectory) error("Path is a directory, not a file: $path")
+                if (file.length() > 5 * 1024 * 1024) error("文件超过 5MB，为防止内存溢出无法读取: $path")
                 val content = file.readText()
                 listOf(UIMessagePart.Text(content))
             },

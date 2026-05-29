@@ -64,6 +64,9 @@ object DocumentAsPromptTransformer : InputMessageTransformer {
         if (!file.exists() || !file.isFile) {
             return "[ERROR, file not found: ${document.fileName}]"
         }
+        if (file.length() > 5 * 1024 * 1024) {
+            return "[ERROR, 文件超过 5MB 无法读取: ${document.fileName}]"
+        }
         return runCatching {
             when (document.mime) {
                 "application/pdf" -> parsePdfAsText(file)

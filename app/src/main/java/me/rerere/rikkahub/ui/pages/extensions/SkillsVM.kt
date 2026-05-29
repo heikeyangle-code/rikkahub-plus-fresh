@@ -235,43 +235,94 @@ class SkillsVM(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val files = mutableMapOf<String, String>()
+                var docContractFailed = false
 
-                fun readDir(dirUri: android.net.Uri, prefix: String) {
-                    val childrenUri = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(
-                        dirUri,
-                        android.provider.DocumentsContract.getTreeDocumentId(dirUri)
-                    )
-                    val cursor = context.contentResolver.query(
-                        childrenUri,
-                        arrayOf(
-                            android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                            android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE,
-                            android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME
-                        ),
-                        null, null, null
-                    )
-                    cursor?.use { c ->
-                        while (c.moveToNext()) {
-                            val docId = c.getString(0)
-                            val mime = c.getString(1)
-                            val name = c.getString(2) ?: continue
-                            val docUri = android.provider.DocumentsContract.buildDocumentUriUsingTree(dirUri, docId)
+                // 方式1: DocumentsContract API（标准 Android）
+                try {
+                    fun readDir(dirUri: android.net.Uri, prefix: String) {
+                        val treeDocId = android.provider.DocumentsContract.getTreeDocumentId(dirUri)
+                        val childrenUri = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(dirUri, treeDocId)
+                        val cursor = context.contentResolver.query(
+                            childrenUri,
+                            arrayOf(
+                                android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                                android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE,
+                                android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME
+                            ),
+                            null, null, null
+                        )
+                        cursor?.use { c ->
+                            while (c.moveToNext()) {
+                                val docId = c.getString(0) ?: continue
+                                val mime = c.getString(1)
+                                val name = c.getString(2) ?: continue
+                                val docUri = android.provider.DocumentsContract.buildDocumentUriUsingTree(dirUri, docId)
 
-                            if (android.provider.DocumentsContract.Document.MIME_TYPE_DIR == mime) {
-                                readDir(docUri, "$prefix$name/")
-                            } else {
-                                val content = context.contentResolver.openInputStream(docUri)?.bufferedReader()?.readText()
-                                if (content != null) {
-                                    files["$prefix$name"] = content
+                                if (android.provider.DocumentsContract.Document.MIME_TYPE_DIR == mime) {
+                                    readDir(docUri, "$prefix$name/")
+                                } else {
+                                    val content = context.contentResolver.openInputStream(docUri)?.bufferedReader()?.readText()
+                                    if (content != null) {
+                                        files["$prefix$name"] = content
+                                    }
                                 }
                             }
                         }
                     }
+                    readDir(uri, "")
+                } catch (e: Exception) {
+                    android.util.Log.e("SkillsVM", "DocumentsContract 扫描失败: ${e.message}", e)
+                    docContractFailed = true
                 }
-                readDir(uri, "")
+
+                // 方式2: MIUI fallback — 从 URI 解析真实文件路径
+                if (files.isEmpty()) {
+                    val realDir = try {
+                        val docId = android.provider.DocumentsContract.getTreeDocumentId(uri)
+                        parsePathFromDocumentId(docId)
+                    } catch (_: Exception) {
+                        // 最后尝试从 URI path 直接提取
+                        uri.path?.let { p ->
+                            val idx = p.indexOf("/document/")
+                            if (idx >= 0) {
+                                val raw = p.substring(idx + 10)
+                                parsePathFromDocumentId(raw)
+                            } else null
+                        }
+                    }
+
+                    if (realDir != null && realDir.isDirectory) {
+                        android.util.Log.d("SkillsVM", "MIUI fallback: 扫描目录 $realDir")
+                        realDir.walkTopDown().forEach { file ->
+                            if (file.isFile) {
+                                val relPath = file.relativeTo(realDir).path
+                                try {
+                                    files[relPath] = file.readText()
+                                } catch (e: Exception) {
+                                    android.util.Log.w("SkillsVM", "跳过文件 $relPath: ${e.message}")
+                                }
+                            }
+                        }
+                    } else if (!docContractFailed) {
+                        android.util.Log.w("SkillsVM", "MIUI fallback: 无法获取目录路径, URI=$uri")
+                    }
+                }
+
+                if (files.isEmpty()) {
+                    val detail = if (docContractFailed) "文件管理器不支持标准协议（如 MIUI），且无法解析目录路径"
+                    else "未读取到任何文件"
+                    android.util.Log.e("SkillsVM", "importFromFolder: $detail, URI=$uri")
+                    withContext(Dispatchers.Main) { onResult(false, detail) }
+                    return@launch
+                }
 
                 val skillMdPath = files.keys.find { it.endsWith("SKILL.md") }
-                    ?: run { withContext(Dispatchers.Main) { onResult(false, "文件夹中未找到 SKILL.md") }; return@launch }
+                    ?: run {
+                        val filesList = files.keys.take(10).joinToString()
+                        android.util.Log.e("SkillsVM", "importFromFolder: 未找到 SKILL.md, 文件列表: $filesList")
+                        withContext(Dispatchers.Main) { onResult(false, "文件夹中未找到 SKILL.md（已扫描到 ${files.size} 个文件）") }
+                        return@launch
+                    }
 
                 // 以 SKILL.md 所在目录为根，调整所有文件路径
                 val skillDirPrefix = skillMdPath.removeSuffix("SKILL.md")
@@ -290,9 +341,29 @@ class SkillsVM(
                     onResult(saved, if (saved) name else "保存失败")
                 }
             } catch (e: Exception) {
+                android.util.Log.e("SkillsVM", "importFromFolder 异常: ${e.message}", e)
                 withContext(Dispatchers.Main) { onResult(false, e.message ?: "导入失败") }
             }
         }
+    }
+
+    /** 从 DocumentsContract document ID 解析为真实 File */
+    private fun parsePathFromDocumentId(docId: String): java.io.File? {
+        // docId 格式: "primary:Download/myskill" 或 "home:Documents/myskill"
+        val parts = docId.split(":", limit = 2)
+        if (parts.size != 2) return null
+        val storage = when (parts[0]) {
+            "primary" -> android.os.Environment.getExternalStorageDirectory()
+            "home" -> android.os.Environment.getExternalStorageDirectory()
+            else -> {
+                // 尝试 SD 卡等
+                java.io.File("/storage/${parts[0]}")
+                    .takeIf { it.exists() }
+                    ?: return null
+            }
+        }
+        val decodedPath = parts[1].replace("%2F", "/").replace("%3A", ":")
+        return java.io.File(storage, decodedPath)
     }
 
     /**
