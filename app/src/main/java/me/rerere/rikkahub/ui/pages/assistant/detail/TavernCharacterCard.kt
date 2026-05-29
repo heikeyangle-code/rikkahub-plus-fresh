@@ -608,7 +608,7 @@ private fun EmbeddedGroupSettingsDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, TavernBookEntry) -> Unit,
 ) {
-    val template = remember(entries) { entries.firstOrNull() ?: return }
+    val template = remember(entries) { entries.first() }
     var editGroupName by remember { mutableStateOf(groupName) }
     var enabled by remember { mutableStateOf(!template.disable) }
     var probability by remember { mutableStateOf(template.probability.toFloat()) }
