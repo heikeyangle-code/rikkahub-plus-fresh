@@ -128,10 +128,16 @@ class ChatVM(
     fun updateSettings(newSettings: Settings) {
         viewModelScope.launch {
             val oldSettings = settings.value
-            // 检查用户头像是否有变化，如果有则删除旧头像
             checkUserAvatarDelete(oldSettings, newSettings)
             settingsStore.update(newSettings)
         }
+    }
+
+    /** 同步更新设置并等待完成 — 供切换助手等场景使用 */
+    suspend fun updateSettingsAndWait(newSettings: Settings) {
+        val oldSettings = settings.value
+        checkUserAvatarDelete(oldSettings, newSettings)
+        settingsStore.update(newSettings)
     }
 
     // 检查用户头像删除

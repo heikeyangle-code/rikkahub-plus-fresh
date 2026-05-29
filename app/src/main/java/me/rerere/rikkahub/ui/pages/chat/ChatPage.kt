@@ -323,6 +323,7 @@ private fun ChatPageContent(
     ) {
         AssistantBackground(setting = setting, modifier = Modifier.hazeSource(hazeState))
         Scaffold(
+            containerColor = Color.Transparent,
             topBar = {
                 TopBar(
                     settings = setting,
