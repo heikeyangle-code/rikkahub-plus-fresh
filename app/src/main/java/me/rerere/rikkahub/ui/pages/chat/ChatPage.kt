@@ -2,6 +2,7 @@ package me.rerere.rikkahub.ui.pages.chat
 
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -550,7 +551,7 @@ private fun GreetingPickerDialog(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "选择开场白(Select Greeting)",
+                    text = "选择开场白",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -624,7 +625,7 @@ private fun GreetingPickerDialog(
                             if (isSelected) {
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = "当前(Active)",
+                                    text = "当前",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.primary,
@@ -637,7 +638,7 @@ private fun GreetingPickerDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("关闭(Close)")
+                Text("关闭")
             }
         },
     )

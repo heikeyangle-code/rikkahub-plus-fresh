@@ -388,7 +388,7 @@ private fun GreetingPickerSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "选择开场白(Select Greeting)",
+                    text = "选择开场白",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -474,7 +474,7 @@ private fun GreetingPickerSheet(
                         if (isSelected) {
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "当前(Active)",
+                                text = "当前",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary,
@@ -488,7 +488,7 @@ private fun GreetingPickerSheet(
             item {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "点击即可使用，新建对话将以此开场 (Tap to select greeting for new conversations)",
+                    text = "点击开场白即可使用，新建对话时将以此开场",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
