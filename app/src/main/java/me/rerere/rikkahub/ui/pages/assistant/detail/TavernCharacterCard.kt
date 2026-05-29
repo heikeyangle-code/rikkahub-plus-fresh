@@ -732,6 +732,7 @@ private fun EmbeddedGroupSettingsDialog(
                     priority = priority.toIntOrNull() ?: 100,
                     sticky = sticky.toIntOrNull() ?: 0,
                     cooldown = cooldown.toIntOrNull() ?: 0,
+                    delay = delay.toIntOrNull() ?: 0,
                     depth = depth.toIntOrNull() ?: 4,
                     scanDepth = scanDepth.toIntOrNull() ?: 1000,
                     groupWeight = groupWeight.toIntOrNull() ?: 100,
@@ -882,6 +883,7 @@ private fun EntryEditor(
     var selectiveLogic by remember(entry) { mutableStateOf(entry.selectiveLogic) }
     var sticky by remember(entry) { mutableStateOf(entry.sticky.toString()) }
     var cooldown by remember(entry) { mutableStateOf(entry.cooldown.toString()) }
+    var delay by remember(entry) { mutableStateOf(entry.delay.toString()) }
     var depth by remember(entry) { mutableStateOf(entry.depth.toString()) }
     var caseSensitive by remember(entry) { mutableStateOf(entry.caseSensitive) }
     var useRegex by remember(entry) { mutableStateOf(entry.useRegex) }
@@ -1042,8 +1044,14 @@ private fun EntryEditor(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("粘性(轮)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("粘性(sticky)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = sticky, onValueChange = { sticky = it },
+                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("延迟(delay)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedTextField(value = delay, onValueChange = { delay = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
@@ -1118,6 +1126,7 @@ private fun EntryEditor(
                     selectiveLogic = selectiveLogic,
                     sticky = sticky.toIntOrNull() ?: 0,
                     cooldown = cooldown.toIntOrNull() ?: 0,
+                    delay = delay.toIntOrNull() ?: 0,
                     depth = depth.toIntOrNull() ?: 4,
                     scanDepth = scanDepthStr.toIntOrNull() ?: 1000,
                     caseSensitive = caseSensitive,

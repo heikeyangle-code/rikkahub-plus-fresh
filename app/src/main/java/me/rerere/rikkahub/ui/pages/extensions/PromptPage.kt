@@ -1464,15 +1464,14 @@ private fun GroupSettingsDialog(
                     onSelect = { edited = edited.copy(position = it) }
                 )
 
-                AnimatedVisibility(visible = edited.position == InjectionPosition.AT_DEPTH) {
-                    OutlinedTextField(
-                        value = edited.injectDepth.toString(),
-                        onValueChange = { it.toIntOrNull()?.let { d -> edited = edited.copy(injectDepth = d) } },
-                        label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    )
-                }
+                // 深度 (depth) — 始终显示
+                OutlinedTextField(
+                    value = edited.injectDepth.toString(),
+                    onValueChange = { it.toIntOrNull()?.let { d -> edited = edited.copy(injectDepth = d) } },
+                    label = { Text("深度 (depth)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
 
                 // 概率
                 Text(
@@ -1652,17 +1651,16 @@ private fun RegexInjectionEditDialog(
                     onSelect = { onEdit(entry.copy(position = it)) }
                 )
 
-                AnimatedVisibility(visible = entry.position == InjectionPosition.AT_DEPTH) {
-                    OutlinedTextField(
-                        value = entry.injectDepth.toString(),
-                        onValueChange = {
-                            it.toIntOrNull()?.let { d -> onEdit(entry.copy(injectDepth = d)) }
-                        },
-                        label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                }
+                // 深度 (depth) — 始终显示
+                OutlinedTextField(
+                    value = entry.injectDepth.toString(),
+                    onValueChange = {
+                        it.toIntOrNull()?.let { d -> onEdit(entry.copy(injectDepth = d)) }
+                    },
+                    label = { Text("深度 (depth)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
 
                 // 关键词
                 Text(stringResource(R.string.prompt_page_keywords_label), style = MaterialTheme.typography.titleSmall)
