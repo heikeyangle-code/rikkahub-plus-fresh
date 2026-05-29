@@ -654,7 +654,7 @@ private fun TextInputRow(
         if (currentText.startsWith("/") && currentText.length <= 30) {
             val parts = currentText.split(" ", limit = 2)
             val cmdName = parts[0].removePrefix("/").lowercase()
-            if (cmdName.isNotBlank() && slashCommands.any { it.name.lowercase().startsWith(cmdName) }) {
+            if (slashCommands.any { it.name.lowercase().startsWith(cmdName) }) {
                 slashFilter = cmdName
                 showSlashPopup = true
             } else {

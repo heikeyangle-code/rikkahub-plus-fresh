@@ -17,12 +17,12 @@ data class SlashCommand(
 )
 
 /**
- * 从已启用的 skills 中收集所有 commands 作为斜杠命令
+ * 从已启用的 skills 中收集所有 commands 和 user-invocable skills 作为斜杠命令
  */
 fun collectSlashCommands(
     enabledSkills: List<me.rerere.rikkahub.data.files.SkillMetadata>,
 ): List<SlashCommand> {
-    return enabledSkills.flatMap { skill ->
+    val commands = enabledSkills.flatMap { skill ->
         skill.commands.map { cmd ->
             SlashCommand(
                 name = cmd.name,
@@ -35,6 +35,19 @@ fun collectSlashCommands(
             )
         }
     }
+    // 同时收集 user-invocable 的 skill 本身作为斜杠命令
+    val invocableSkills = enabledSkills.filter { it.userInvocable }.map { skill ->
+        SlashCommand(
+            name = skill.name,
+            description = skill.description,
+            allowedTools = skill.allowedTools,
+            argumentHint = "",
+            disableModelInvocation = false,
+            content = skill.name, // 触发时用 skill name 匹配 auto-trigger
+            filePath = "SKILL.md (${skill.name})",
+        )
+    }
+    return commands + invocableSkills
 }
 
 /**
