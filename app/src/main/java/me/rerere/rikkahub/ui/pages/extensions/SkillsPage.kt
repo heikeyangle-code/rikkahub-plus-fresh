@@ -547,7 +547,7 @@ fun SkillsPage() {
                                         Text(skill.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                                         if (skill.description.isNotBlank()) {
                                             Text(skill.description, style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3)
                                         }
                                         Text(skill.mdPath, style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
