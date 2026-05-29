@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyListState
@@ -548,7 +549,7 @@ private fun GreetingPickerDialog(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "选择开场白",
+                    text = "选择开场白(Select Greeting)",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -584,6 +585,19 @@ private fun GreetingPickerDialog(
                                 .padding(14.dp),
                             verticalAlignment = Alignment.Top,
                         ) {
+                            // 选中态左侧色条
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(4.dp)
+                                        .height(32.dp)
+                                        .offset(x = (-6).dp)
+                                        .background(
+                                            MaterialTheme.colorScheme.primary,
+                                            RoundedCornerShape(2.dp)
+                                        )
+                                )
+                            }
                             Text(
                                 text = "${index + 1}",
                                 style = MaterialTheme.typography.labelSmall,
@@ -609,7 +623,7 @@ private fun GreetingPickerDialog(
                             if (isSelected) {
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = "当前",
+                                    text = "当前(Active)",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.primary,
@@ -622,7 +636,7 @@ private fun GreetingPickerDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("关闭")
+                Text("关闭(Close)")
             }
         },
     )
