@@ -76,6 +76,7 @@ fun SkillDetailPage(skillName: String) {
     var editingFile by remember { mutableStateOf<SkillFile?>(null) }
     var showAddDialog by rememberSaveable { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<SkillFile?>(null) }
+    var deleteDirTarget by remember { mutableStateOf<SkillFileNode.DirNode?>(null) }
     val deleteFailedMsg = stringResource(R.string.skill_detail_page_delete_failed)
 
     Scaffold(
@@ -232,6 +233,7 @@ if (skill.mcpServers.isNotEmpty()) {
                 depth = 0,
                 onEdit = { editingFile = it },
                 onDelete = { deleteTarget = it },
+                onDeleteDir = { deleteDirTarget = it },
             )
         }
     }
@@ -279,6 +281,25 @@ if (skill.mcpServers.isNotEmpty()) {
     ) {
         Text(stringResource(R.string.skill_detail_page_delete_confirm, deleteTarget?.relativePath ?: ""))
     }
+
+    RikkaConfirmDialog(
+        show = deleteDirTarget != null,
+        title = stringResource(R.string.skill_detail_page_delete_file),
+        confirmText = stringResource(R.string.delete),
+        dismissText = stringResource(R.string.cancel),
+        onConfirm = {
+            deleteDirTarget?.let { node ->
+                vm.deleteDir(node) { success ->
+                    if (!success) toaster.show(deleteFailedMsg)
+                }
+            }
+            deleteDirTarget = null
+        },
+        onDismiss = { deleteDirTarget = null },
+    ) {
+        Text(stringResource(R.string.skill_detail_page_delete_confirm, deleteDirTarget?.relativePath ?: ""))
+    }
+}
 }
 
 @Composable
@@ -287,6 +308,7 @@ private fun FileTree(
     depth: Int,
     onEdit: (SkillFile) -> Unit,
     onDelete: (SkillFile) -> Unit,
+    onDeleteDir: (SkillFileNode.DirNode) -> Unit,
 ) {
     nodes.fastForEach { node ->
         when (node) {
@@ -302,6 +324,7 @@ private fun FileTree(
                 depth = depth,
                 onEdit = onEdit,
                 onDelete = onDelete,
+                onDeleteDir = { onDeleteDir(node) },
             )
         }
     }
@@ -370,6 +393,7 @@ private fun DirItem(
     depth: Int,
     onEdit: (SkillFile) -> Unit,
     onDelete: (SkillFile) -> Unit,
+    onDeleteDir: () -> Unit,
 ) {
     var expanded by rememberSaveable(node.relativePath) { mutableStateOf(false) }
 
@@ -382,7 +406,7 @@ private fun DirItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { expanded = !expanded }
-                    .padding(start = (16 + depth * 20).dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
+                    .padding(start = (16 + depth * 20).dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -405,6 +429,14 @@ private fun DirItem(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
+                IconButton(onClick = onDeleteDir, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        imageVector = Lucide.FolderX,
+                        contentDescription = stringResource(R.string.delete),
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
             AnimatedVisibility(visible = expanded) {
                 Column {
@@ -413,6 +445,7 @@ private fun DirItem(
                         depth = depth + 1,
                         onEdit = onEdit,
                         onDelete = onDelete,
+                        onDeleteDir = onDeleteDir,
                     )
                 }
             }

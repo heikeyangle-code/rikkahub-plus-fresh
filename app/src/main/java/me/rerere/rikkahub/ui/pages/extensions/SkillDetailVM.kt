@@ -92,4 +92,12 @@ class SkillDetailVM(
             withContext(Dispatchers.Main) { onResult(success) }
         }
     }
+
+    fun deleteDir(node: SkillFileNode.DirNode, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val success = skillManager.deleteSkillDir(skillName, node.relativePath)
+            if (success) loadFiles()
+            withContext(Dispatchers.Main) { onResult(success) }
+        }
+    }
 }

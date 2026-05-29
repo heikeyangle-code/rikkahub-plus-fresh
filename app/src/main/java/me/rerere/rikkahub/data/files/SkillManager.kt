@@ -144,6 +144,14 @@ class SkillManager(
         return target.delete()
     }
 
+    /** 删除 skill 内的目录（递归删除） */
+    fun deleteSkillDir(skillName: String, relativePath: String): Boolean {
+        val skillDir = resolveSkillDir(skillName) ?: return false
+        val target = SkillPaths.resolveSkillFile(skillDir, relativePath) ?: return false
+        if (!target.isDirectory) return false
+        return target.deleteRecursively()
+    }
+
     fun resolveSkillFile(skillName: String, relativePath: String): File? {
         val skillDir = resolveSkillDir(skillName) ?: return null
         return SkillPaths.resolveSkillFile(skillDir, relativePath)
