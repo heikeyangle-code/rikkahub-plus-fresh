@@ -106,7 +106,7 @@ fun TavernCharacterCard(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "角色卡",
+                            text = "角色卡(Character Card)",
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Surface(
@@ -127,15 +127,15 @@ fun TavernCharacterCard(
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                         modifier = Modifier.padding(top = 4.dp),
                     ) {
-                        StatBadge("描述", tav.description.isNotBlank())
-                        StatBadge("性格", tav.personality.isNotBlank())
-                        StatBadge("场景", tav.scenario.isNotBlank())
-                        StatBadge("示例", tav.mesExample.isNotBlank())
+                        StatBadge("描述(Desc)", tav.description.isNotBlank())
+                        StatBadge("性格(Pers)", tav.personality.isNotBlank())
+                        StatBadge("场景(Scen)", tav.scenario.isNotBlank())
+                        StatBadge("示例(Eg)", tav.mesExample.isNotBlank())
                         if (tav.embeddedBook != null) {
-                            StatBadge("世界书·${tav.embeddedBook!!.entries.size}", true)
+                            StatBadge("世界书·(Book)${tav.embeddedBook!!.entries.size}", true)
                         }
                         if (tav.alternateGreetings.isNotEmpty()) {
-                            StatBadge("开场·${1 + tav.alternateGreetings.size}", true)
+                            StatBadge("开场·(Greet)${1 + tav.alternateGreetings.size}", true)
                         }
                     }
                 }
@@ -175,24 +175,24 @@ fun TavernCharacterCard(
 
                     // 可编辑字段
                     if (tav.systemPrompt.isNotBlank()) {
-                        EditableField("系统提示词", tav.systemPrompt) { v ->
+                        EditableField("系统提示词(System Prompt)", tav.systemPrompt) { v ->
                             val newTav = tav.copy(systemPrompt = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
                     }
-                    EditableField("描述", tav.description) { v ->
+                    EditableField("描述(Description)", tav.description) { v ->
                         val newTav = tav.copy(description = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
-                    EditableField("性格", tav.personality) { v ->
+                    EditableField("性格(Personality)", tav.personality) { v ->
                         val newTav = tav.copy(personality = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
-                    EditableField("场景", tav.scenario) { v ->
+                    EditableField("场景(Scenario)", tav.scenario) { v ->
                         val newTav = tav.copy(scenario = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
-                    EditableField("示例消息", tav.mesExample) { v ->
+                    EditableField("示例消息(Examples)", tav.mesExample) { v ->
                         val newTav = tav.copy(mesExample = v)
                         onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                     }
@@ -201,7 +201,7 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             modifier = Modifier.padding(horizontal = 14.dp),
                         )
-                        EditableField("历史后续指令", tav.postHistoryInstructions) { v ->
+                        EditableField("历史后续指令(Post-Hist)", tav.postHistoryInstructions) { v ->
                             val newTav = tav.copy(postHistoryInstructions = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
@@ -211,7 +211,7 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             modifier = Modifier.padding(horizontal = 14.dp),
                         )
-                        EditableField("开场白", tav.firstMessage, previewLines = 1) { v ->
+                        EditableField("开场白(First Message)", tav.firstMessage, previewLines = 1) { v ->
                             val newTav = tav.copy(firstMessage = v)
                             onAssistantUpdate?.invoke(assistant.copy(tavernData = newTav))
                         }
@@ -223,7 +223,7 @@ fun TavernCharacterCard(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         )
                         Text(
-                            text = "备选开场白 (${tav.alternateGreetings.size})",
+                            text = "备选开场白(Alt Greetings) (${tav.alternateGreetings.size})",
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary,
@@ -629,7 +629,7 @@ private fun EmbeddedGroupSettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("组设置: $groupName") },
+        title = { Text("组设置(Group): $groupName") },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -638,27 +638,27 @@ private fun EmbeddedGroupSettingsDialog(
                 // 组名称
                 OutlinedTextField(
                     value = editGroupName, onValueChange = { editGroupName = it },
-                    label = { Text("分组名称") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("分组名称(Group Name)") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                 )
 
                 // 状态切换
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FilterChip(selected = enabled, onClick = { enabled = !enabled },
-                        label = { Text(if (enabled) "启用" else "禁用", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text(if (enabled) "启用(On)" else "禁用(Off)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = constant, onClick = { constant = !constant },
-                        label = { Text(if (constant) "常驻" else "非常驻", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text(if (constant) "常驻(Const)" else "非常驻(Normal)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = selective, onClick = { selective = !selective },
-                        label = { Text(if (selective) "关键词" else "向量", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text(if (selective) "关键词(Keyword)" else "向量(Vector)", style = MaterialTheme.typography.labelSmall) })
                 }
 
                 // 概率
-                Text("触发概率: ${probability.toInt()}%", style = MaterialTheme.typography.labelMedium)
+                Text("触发概率(Prob): ${probability.toInt()}%", style = MaterialTheme.typography.labelMedium)
                 Slider(value = probability, onValueChange = { probability = it }, valueRange = 0f..100f, steps = 99)
 
                 // 插入位置
-                Text("插入位置", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text("插入位置(Position)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("角色前", "角色后", "用户前", "用户后", "@D深度").forEachIndexed { i, label ->
+                    listOf("角色前(Before Char)", "角色后(After Char)", "用户前(Before User)", "用户后(After User)", "@D深度(Depth)").forEachIndexed { i, label ->
                         FilterChip(selected = position == i, onClick = { position = i },
                             label = { Text(label, style = MaterialTheme.typography.labelSmall) })
                     }
@@ -667,17 +667,17 @@ private fun EmbeddedGroupSettingsDialog(
                 // 数值字段
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("优先级", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("优先级(Priority)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = priority, onValueChange = { priority = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("深度(Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = depth, onValueChange = { depth = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("冷却(轮)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("冷却(Cooldown)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = cooldown, onValueChange = { cooldown = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
@@ -685,13 +685,13 @@ private fun EmbeddedGroupSettingsDialog(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("粘性(轮)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("粘性(Sticky)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = sticky, onValueChange = { sticky = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("扫描深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("扫描深度(Scan Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = scanDepth, onValueChange = { scanDepth = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
@@ -707,15 +707,15 @@ private fun EmbeddedGroupSettingsDialog(
                 // 开关行
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FilterChip(selected = caseSensitive, onClick = { caseSensitive = !caseSensitive },
-                        label = { Text("大小写", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text("大小写(Case)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = useRegex, onClick = { useRegex = !useRegex },
-                        label = { Text("正则", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text("正则(Regex)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = groupOverride, onClick = { groupOverride = !groupOverride },
-                        label = { Text("覆盖同组", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text("覆盖同组(Override)", style = MaterialTheme.typography.labelSmall) })
                 }
 
                 // 选择性逻辑
-                Text("次要关键词逻辑", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text("次要关键词逻辑(Secondary)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf("AND(全匹配)", "OR(任一)", "NOT_ANY(无)", "NOT_ALL(非全)").forEachIndexed { i, label ->
                         FilterChip(selected = selectiveLogic == i, onClick = { selectiveLogic = i },
@@ -745,7 +745,7 @@ private fun EmbeddedGroupSettingsDialog(
                     useRegex = useRegex,
                 ))
             }) {
-                Text("应用到 ${entries.size} 条")
+                Text("应用到(Apply to) ${entries.size} 条(entries)")
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
@@ -778,7 +778,7 @@ private fun CollapsibleEntryCard(
                 modifier = Modifier
                     .width(4.dp)
                     .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             )
             Column(
                 modifier = Modifier
@@ -823,7 +823,7 @@ private fun CollapsibleEntryCard(
                                     color = MaterialTheme.colorScheme.primary,
                                 )
                                 Text(
-                                    if (entry.constant) "常驻" else "触发",
+                                    if (entry.constant) "常驻(Const)" else "触发(Trig)",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                 )
@@ -918,17 +918,17 @@ private fun EntryEditor(
             FilterChip(
                 selected = enabled,
                 onClick = { enabled = !enabled },
-                label = { Text(if (enabled) "启用" else "禁用", style = MaterialTheme.typography.labelSmall) },
+                label = { Text(if (enabled) "启用(On)" else "禁用(Off)", style = MaterialTheme.typography.labelSmall) },
             )
             FilterChip(
                 selected = constant,
                 onClick = { constant = !constant },
-                label = { Text(if (constant) "常驻" else "非常驻", style = MaterialTheme.typography.labelSmall) },
+                label = { Text(if (constant) "常驻(Const)" else "非常驻(Normal)", style = MaterialTheme.typography.labelSmall) },
             )
             FilterChip(
                 selected = selective,
                 onClick = { selective = !selective },
-                label = { Text(if (selective) "关键词" else "向量", style = MaterialTheme.typography.labelSmall) },
+                label = { Text(if (selective) "关键词(Keyword)" else "向量(Vector)", style = MaterialTheme.typography.labelSmall) },
             )
         }
 
@@ -949,7 +949,7 @@ private fun EntryEditor(
             modifier = Modifier.fillMaxWidth(),
             textStyle = MaterialTheme.typography.bodySmall,
             singleLine = true,
-            label = { Text("触发词") },
+            label = { Text("触发词(Keywords)") },
         )
 
         // 次级触发词
@@ -978,12 +978,12 @@ private fun EntryEditor(
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("插入位置", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("插入位置(Position)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    val posOptions = listOf("角色前", "角色后", "用户前", "用户后", "@D深度")
+                    val posOptions = listOf("角色前(Before Char)", "角色后(After Char)", "用户前(Before User)", "用户后(After User)", "@D深度(Depth)")
                     posOptions.forEachIndexed { i, label ->
                         FilterChip(
                             selected = position == i,
@@ -1022,22 +1022,22 @@ private fun EntryEditor(
         if (showAdvanced) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // 触发控制
-                Text("触发控制", style = MaterialTheme.typography.labelMedium,
+                Text("触发控制(Trigger)", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(top = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("优先级", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("优先级(Priority)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = priority, onValueChange = { priority = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("深度(Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = depth, onValueChange = { depth = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("冷却(轮)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("冷却(Cooldown)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = cooldown, onValueChange = { cooldown = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
@@ -1045,27 +1045,27 @@ private fun EntryEditor(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("粘性(sticky)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("粘性(Sticky)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = sticky, onValueChange = { sticky = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("延迟(delay)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("延迟(Delay)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = delay, onValueChange = { delay = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
                     FilterChip(selected = caseSensitive, onClick = { caseSensitive = !caseSensitive },
-                        label = { Text("大小写", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text("大小写(Case)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = useRegex, onClick = { useRegex = !useRegex },
-                        label = { Text("正则", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text("正则(Regex)", style = MaterialTheme.typography.labelSmall) })
                     FilterChip(selected = groupOverride, onClick = { groupOverride = !groupOverride },
-                        label = { Text("覆盖同组", style = MaterialTheme.typography.labelSmall) })
+                        label = { Text("覆盖同组(Override)", style = MaterialTheme.typography.labelSmall) })
                 }
 
                 // 插入控制
-                Text("插入控制", style = MaterialTheme.typography.labelMedium,
+                Text("插入控制(Insert)", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(top = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1081,13 +1081,13 @@ private fun EntryEditor(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("扫描深度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("扫描深度(Scan Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = scanDepthStr, onValueChange = { scanDepthStr = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
                 }
-                Text("角色", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("角色(Role)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     val roleLabels = listOf("system", "user", "assistant")
                     roleLabels.forEach { label ->
@@ -1098,7 +1098,7 @@ private fun EntryEditor(
                         )
                     }
                 }
-                Text("次要关键词逻辑", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("次要关键词逻辑(Secondary)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     val logicLabels = listOf("AND(全匹配)", "OR(任一)", "NOT_ANY(无)", "NOT_ALL(非全)")
                     logicLabels.forEachIndexed { i, label ->
@@ -1143,7 +1143,7 @@ private fun EntryEditor(
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("保存修改")
+Text("保存修改(Save)")
         }
     }
 }
