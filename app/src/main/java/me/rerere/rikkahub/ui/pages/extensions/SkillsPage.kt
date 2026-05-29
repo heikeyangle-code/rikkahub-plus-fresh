@@ -120,9 +120,12 @@ fun SkillsPage() {
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
         uri?.let {
-            // Take persistable permission
-            val takeFlags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-            context.contentResolver.takePersistableUriPermission(it, takeFlags)
+            try {
+                val takeFlags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                context.contentResolver.takePersistableUriPermission(it, takeFlags)
+            } catch (_: Exception) {
+                // 某些文件系统不支持持久化权限（如 MIUI），忽略
+            }
             vm.importFromFolder(it, context) { success, msg ->
                 if (success) {
                     toaster.show(context.getString(R.string.skills_page_install_success, msg))
