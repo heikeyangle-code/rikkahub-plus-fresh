@@ -940,8 +940,8 @@ private fun LorebookEditSheet(
                     }
                 )
 
-                // 条目列表（按分组）
-                val groupedEntries = book.entries.groupBy { it.group }
+                // 条目列表（按分组）—— remember 缓存避免 200+ 条目重复计算
+                val groupedEntries = remember(book.entries) { book.entries.groupBy { it.group } }
                 val namedGroups = groupedEntries.filterKeys { it.isNotBlank() }
                 val ungroupedEntries = groupedEntries[""] ?: emptyList()
 
@@ -1868,7 +1868,7 @@ private fun RegexInjectionEditDialog(
                     steps = 99
                 )
 
-                // 粘性 + 冷却
+                // 粘性 + 冷却 + 延迟
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FormItem(
                         modifier = Modifier.weight(1f),
@@ -1894,6 +1894,14 @@ private fun RegexInjectionEditDialog(
                         value = entry.cooldown.toString(),
                         onValueChange = { it.toIntOrNull()?.let { c -> onEdit(entry.copy(cooldown = c)) } },
                         label = { Text(stringResource(R.string.prompt_page_cooldown)) },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = entry.delay.toString(),
+                        onValueChange = { it.toIntOrNull()?.let { d -> onEdit(entry.copy(delay = d)) } },
+                        label = { Text("延迟 (delay)") },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true

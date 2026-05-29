@@ -342,6 +342,7 @@ private fun parseEntriesArray(arr: kotlinx.serialization.json.JsonArray): List<T
                 probability = e["probability"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 100,
                 sticky = parseStickyInt(e["sticky"]),
                 cooldown = e["cooldown"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
+                delay = e["delay"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
                 depth = e["depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 4,
                 scanDepth = e["scan_depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 1000,
                 role = parseRoleString(e["role"]),
@@ -375,6 +376,7 @@ private fun parseEntriesMap(obj: JsonObject): List<TavernBookEntry> {
                 probability = e["probability"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 100,
                 sticky = parseStickyInt(e["sticky"]),
                 cooldown = e["cooldown"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
+                delay = e["delay"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
                 depth = e["depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 4,
                 scanDepth = e["scan_depth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 1000,
                 role = parseRoleString(e["role"]),
@@ -445,16 +447,17 @@ private fun tavernEntryToInjection(entry: TavernBookEntry): PromptInjection.Rege
         probability = entry.probability,
         sticky = entry.sticky,
         cooldown = entry.cooldown,
+        delay = entry.delay,
         groupWeight = entry.groupWeight,
         groupOverride = entry.groupOverride,
     )
 }
 
 private fun mapTavernPosition(pos: Int): InjectionPosition = when (pos) {
-    0 -> InjectionPosition.BEFORE_SYSTEM_PROMPT
-    1 -> InjectionPosition.AFTER_SYSTEM_PROMPT
-    2 -> InjectionPosition.AUTHOR_NOTE        // 跟随用户 AN 位置设置
-    3 -> InjectionPosition.AT_DEPTH           // @D 深度
+    0 -> InjectionPosition.BEFORE_SYSTEM_PROMPT   // before_char
+    1 -> InjectionPosition.AFTER_SYSTEM_PROMPT    // after_char
+    2 -> InjectionPosition.BOTTOM_OF_CHAT         // before_user — 用户消息之前
+    3 -> InjectionPosition.AT_DEPTH               // @D 深度
     4 -> InjectionPosition.AT_DEPTH
     else -> InjectionPosition.AFTER_SYSTEM_PROMPT
 }
@@ -501,6 +504,7 @@ private fun injectionToTavernEntry(
         probability = injection.probability,
         sticky = injection.sticky,
         cooldown = injection.cooldown,
+        delay = injection.delay,
         depth = injection.injectDepth,
         scanDepth = injection.scanDepth,
         role = when (injection.role) {
@@ -517,10 +521,10 @@ private fun injectionToTavernEntry(
 private fun mapInjectionToPosition(pos: InjectionPosition): Int = when (pos) {
     InjectionPosition.BEFORE_SYSTEM_PROMPT -> 0
     InjectionPosition.AFTER_SYSTEM_PROMPT -> 1
-    InjectionPosition.TOP_OF_CHAT -> 2
-    InjectionPosition.BOTTOM_OF_CHAT -> 3
-    InjectionPosition.AT_DEPTH -> 4
-    InjectionPosition.AUTHOR_NOTE -> 2
+    InjectionPosition.BOTTOM_OF_CHAT -> 2      // before_user
+    InjectionPosition.AT_DEPTH -> 3
+    InjectionPosition.TOP_OF_CHAT -> 4         // 导出到扩展位置
+    InjectionPosition.AUTHOR_NOTE -> 2         // AN 回写到 before_user
 }
 
 /**
