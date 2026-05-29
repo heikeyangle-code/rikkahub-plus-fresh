@@ -182,7 +182,7 @@ class SkillManager(
                 name = name,
                 description = description,
                 compatibility = frontmatter["compatibility"],
-                allowedTools = parseAllowedTools(frontmatter["allowed-tools"])
+                allowedTools = SkillFrontmatterParser.parseAllowedTools(frontmatter["allowed-tools"])
                     ?: plugin?.allowedTools ?: emptyList(),
                 userInvocable = frontmatter["user-invocable"]?.toBooleanStrictOrNull() ?: false,
                 disableModelInvocation = frontmatter["disable-model-invocation"]?.toBooleanStrictOrNull() ?: false,

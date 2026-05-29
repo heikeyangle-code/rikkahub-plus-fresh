@@ -99,7 +99,7 @@ fun listCommands(skillDir: File): List<CommandFile> {
             CommandFile(
                 name = file.nameWithoutExtension,
                 description = frontmatter["description"] ?: file.nameWithoutExtension,
-                allowedTools = frontmatter["allowed-tools"]?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList(),
+                allowedTools = SkillFrontmatterParser.parseAllowedTools(frontmatter["allowed-tools"]) ?: emptyList(),
                 argumentHint = frontmatter["argument-hint"] ?: "",
                 disableModelInvocation = frontmatter["disable-model-invocation"]?.toBooleanStrictOrNull() ?: false,
                 content = SkillFrontmatterParser.extractBody(content),

@@ -8,9 +8,8 @@ import org.koin.core.component.inject
 
 /**
  * Skill 自动触发转换器 — Claude Code 风格
- * 两条路径：
- * 1. 有关键词的：扫描对话匹配，命中后直接注入 SKILL.md body
- * 2. 无关键词的：注入 skill 列表描述到系统提示，LLM 自选 + use_skill 调用
+ * 有关键词的：扫描对话匹配，命中后直接注入 SKILL.md body
+ * 无关键词的：由 use_skill 工具处理（工具 systemPrompt 列出全部 skill）
  */
 object SkillAutoTriggerTransformer : InputMessageTransformer, KoinComponent {
 
@@ -34,7 +33,6 @@ object SkillAutoTriggerTransformer : InputMessageTransformer, KoinComponent {
         val beforeSystem = mutableListOf<SkillMetadata>()
         val afterSystem = mutableListOf<SkillMetadata>()
         val inChat = mutableListOf<SkillMetadata>()
-        val selfSelectSkills = mutableListOf<SkillMetadata>()
 
         for (skill in enabledSkills) {
             // 有触发词的：检测是否匹配
@@ -49,24 +47,11 @@ object SkillAutoTriggerTransformer : InputMessageTransformer, KoinComponent {
                         else -> afterSystem.add(skill)
                     }
                 }
-            } else {
-                // 无触发词的：LLM 自选模式
-                selfSelectSkills.add(skill)
             }
+            // 无触发词的：由 use_skill 工具处理，不在此注入
         }
 
-        // LLM 自选：注入可用 skill 列表到系统提示
-        val selfSelectText = if (selfSelectSkills.isNotEmpty()) {
-            buildString {
-                appendLine("[Available Skills]")
-                appendLine("You can use the use_skill tool to activate any of these skills when relevant:")
-                selfSelectSkills.forEach { skill ->
-                    appendLine("- ${skill.name}: ${skill.description}")
-                }
-            }
-        } else ""
-
-        if (beforeSystem.isEmpty() && afterSystem.isEmpty() && inChat.isEmpty() && selfSelectText.isEmpty()) {
+        if (beforeSystem.isEmpty() && afterSystem.isEmpty() && inChat.isEmpty()) {
             return messages
         }
 
@@ -79,15 +64,9 @@ object SkillAutoTriggerTransformer : InputMessageTransformer, KoinComponent {
             result.add(UIMessage.system("[Skill: ${skill.name}]\n$body"))
         }
 
-        // System prompt（注入自选列表）
+        // System prompt
         if (messages.isNotEmpty()) {
-            val sysMsg = messages.first()
-            if (selfSelectText.isNotEmpty()) {
-                val original = sysMsg.toText()
-                result.add(UIMessage.system("$original\n\n$selfSelectText"))
-            } else {
-                result.add(sysMsg)
-            }
+            result.add(messages.first())
         }
 
         // After system
