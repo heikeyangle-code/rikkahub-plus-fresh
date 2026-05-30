@@ -230,140 +230,73 @@ class SkillsVM(
 
     /**
      * 从文件夹导入 (OpenDocumentTree)
+     * 解析真实路径 → 只读 SKILL.md 取名字 → copyRecursively 全量复制
      */
     fun importFromFolder(uri: android.net.Uri, context: android.content.Context, onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val files = mutableMapOf<String, String>()
-                var docContractFailed = false
+                // 解析真实目录路径
+                var realDir: java.io.File? = null
 
-                // 方式1: DocumentsContract API（标准 Android）
-                try {
-                    fun readDir(dirUri: android.net.Uri, prefix: String) {
-                        val treeDocId = android.provider.DocumentsContract.getTreeDocumentId(dirUri)
-                        val childrenUri = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(dirUri, treeDocId)
-                        val cursor = context.contentResolver.query(
-                            childrenUri,
-                            arrayOf(
-                                android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                                android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE,
-                                android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME
-                            ),
-                            null, null, null
-                        )
-                        cursor?.use { c ->
-                            while (c.moveToNext()) {
-                                val docId = c.getString(0) ?: continue
-                                val mime = c.getString(1)
-                                val name = c.getString(2) ?: continue
-                                val docUri = android.provider.DocumentsContract.buildDocumentUriUsingTree(dirUri, docId)
+                // 尝试1: TreeDocumentId
+                runCatching {
+                    val docId = android.provider.DocumentsContract.getTreeDocumentId(uri)
+                    android.util.Log.d("SkillsVM", "TreeDocumentId: $docId")
+                    parsePathFromDocumentId(docId)
+                }.onSuccess { realDir = it }
 
-                                if (android.provider.DocumentsContract.Document.MIME_TYPE_DIR == mime) {
-                                    readDir(docUri, "$prefix$name/")
-                                } else {
-                                    val content = context.contentResolver.openInputStream(docUri)?.bufferedReader()?.readText()
-                                    if (content != null) {
-                                        files["$prefix$name"] = content
-                                    }
-                                }
-                            }
+                // 尝试2: URI path
+                if (realDir == null) {
+                    uri.path?.let { p ->
+                        val parts = p.split("/")
+                        val docIdx = parts.indexOfLast { it == "document" }
+                        if (docIdx >= 0 && docIdx + 1 < parts.size) {
+                            realDir = parsePathFromDocumentId(parts[docIdx + 1])
                         }
                     }
-                    readDir(uri, "")
-                } catch (e: Exception) {
-                    android.util.Log.e("SkillsVM", "DocumentsContract 扫描失败: ${e.message}", e)
-                    docContractFailed = true
                 }
 
-                // 方式2: MIUI fallback — 从 URI 解析真实文件路径
-                if (files.isEmpty()) {
-                    android.util.Log.d("SkillsVM", "DocumentsContract 返回空，尝试 fallback, URI=$uri")
-                    var realDir: java.io.File? = null
-
-                    // 尝试1: 从 TreeDocumentId 解析
+                // 尝试3: getDocumentId
+                if (realDir == null) {
                     runCatching {
-                        val docId = android.provider.DocumentsContract.getTreeDocumentId(uri)
-                        android.util.Log.d("SkillsVM", "TreeDocumentId: $docId")
+                        val docId = android.provider.DocumentsContract.getDocumentId(uri)
                         parsePathFromDocumentId(docId)
                     }.onSuccess { realDir = it }
-                     .onFailure { android.util.Log.w("SkillsVM", "getTreeDocumentId 失败: ${it.message}") }
-
-                    // 尝试2: 从 URI path 中提取 document ID
-                    if (realDir == null) {
-                        uri.path?.let { p ->
-                            android.util.Log.d("SkillsVM", "URI path: $p")
-                            // 匹配 /tree/xxx/document/yyy 格式
-                            val parts = p.split("/")
-                            val docIdx = parts.indexOfLast { it == "document" }
-                            if (docIdx >= 0 && docIdx + 1 < parts.size) {
-                                realDir = parsePathFromDocumentId(parts[docIdx + 1])
-                            }
-                        }
-                    }
-
-                    // 尝试3: 用 DocumentsContract.getDocumentId
-                    if (realDir == null) {
-                        runCatching {
-                            val docId = android.provider.DocumentsContract.getDocumentId(uri)
-                            android.util.Log.d("SkillsVM", "DocumentId: $docId")
-                            parsePathFromDocumentId(docId)
-                        }.onSuccess { realDir = it }
-                    }
-
-                    if (realDir != null && realDir.isDirectory) {
-                        android.util.Log.d("SkillsVM", "Fallback: 扫描目录 $realDir")
-                        realDir!!.walkTopDown().forEach { file ->
-                            if (file.isFile) {
-                                val relPath = file.relativeTo(realDir!!).path
-                                if (file.length() > 20 * 1024 * 1024) {
-                                    android.util.Log.w("SkillsVM", "跳过超大文件 $relPath (${file.length()} bytes)")
-                                    return@forEach
-                                }
-                                try {
-                                    files[relPath] = file.readText()
-                                } catch (e: Exception) {
-                                    android.util.Log.w("SkillsVM", "跳过文件 $relPath: ${e.message}")
-                                }
-                            }
-                        }
-                        android.util.Log.d("SkillsVM", "Fallback: 扫描完成，共 ${files.size} 个文件")
-                    } else {
-                        android.util.Log.e("SkillsVM", "Fallback: 无法获取目录路径, URI=$uri, realDir=$realDir")
-                    }
                 }
 
-                if (files.isEmpty()) {
-                    val detail = if (docContractFailed) "文件管理器不支持标准协议（如 MIUI），且无法解析目录路径"
-                    else "未读取到任何文件"
-                    android.util.Log.e("SkillsVM", "importFromFolder: $detail, URI=$uri")
-                    withContext(Dispatchers.Main) { onResult(false, detail) }
+                if (realDir == null || !realDir.isDirectory) {
+                    android.util.Log.e("SkillsVM", "无法解析目录路径, URI=$uri")
+                    withContext(Dispatchers.Main) { onResult(false, "无法读取文件夹，请确认已授权访问权限") }
                     return@launch
                 }
 
-                val skillMdPath = files.keys.find { it.endsWith("SKILL.md") }
+                // 找到 SKILL.md（可能在子目录中），只读它来拿 skill 名字
+                val skillMd = realDir.walkTopDown().firstOrNull { it.name == "SKILL.md" }
                     ?: run {
-                        val filesList = files.keys.take(10).joinToString()
-                        android.util.Log.e("SkillsVM", "importFromFolder: 未找到 SKILL.md, 文件列表: $filesList")
-                        withContext(Dispatchers.Main) { onResult(false, "文件夹中未找到 SKILL.md（已扫描到 ${files.size} 个文件）") }
+                        withContext(Dispatchers.Main) { onResult(false, "文件夹中未找到 SKILL.md") }
                         return@launch
                     }
 
-                // 以 SKILL.md 所在目录为根，调整所有文件路径
-                val skillDirPrefix = skillMdPath.removeSuffix("SKILL.md")
-                val adjustedFiles = files.mapKeys { (k, _) -> k.removePrefix(skillDirPrefix) }
-                    .filterKeys { it.isNotBlank() }
-
-                val frontmatter = SkillFrontmatterParser.parse(adjustedFiles[skillMdPath.removePrefix(skillDirPrefix)]!!)
+                val frontmatter = SkillFrontmatterParser.parse(skillMd.readText())
                 val name = frontmatter["name"]?.takeIf { it.isNotBlank() }
-                    ?: run { withContext(Dispatchers.Main) { onResult(false, "无效的Skill文件，缺少name或description字段") }; return@launch }
-                val desc = frontmatter["description"]?.takeIf { it.isNotBlank() }
-                    ?: run { withContext(Dispatchers.Main) { onResult(false, "无效的Skill文件，缺少name或description字段") }; return@launch }
+                    ?: run {
+                        withContext(Dispatchers.Main) { onResult(false, "SKILL.md 缺少 name 字段") }
+                        return@launch
+                    }
 
-                val saved = skillManager.saveSkillFilesAtomically(name, adjustedFiles)
+                // SKILL.md 所在的目录就是 skill 根目录
+                val sourceDir = skillMd.parentFile!!
+
+                // 复制到 skills 目录
+                val skillsDir = skillManager.getSkillsDir()
+                val targetDir = skillsDir.resolve(name)
+                if (targetDir.exists()) targetDir.deleteRecursively()
+
+                sourceDir.copyRecursively(targetDir, overwrite = true)
+                android.util.Log.d("SkillsVM", "复制完成: $sourceDir → $targetDir")
+
                 _skills.value = skillManager.listSkills()
-                withContext(Dispatchers.Main) {
-                    onResult(saved, if (saved) name else "保存失败")
-                }
+                withContext(Dispatchers.Main) { onResult(true, name) }
             } catch (e: Exception) {
                 android.util.Log.e("SkillsVM", "importFromFolder 异常: ${e.message}", e)
                 withContext(Dispatchers.Main) { onResult(false, e.message ?: "导入失败") }
