@@ -24,6 +24,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -339,14 +340,12 @@ internal fun AssistantBasicContent(
                     )
                 }
             ) {
+                var localCtxSize by remember { mutableFloatStateOf(assistant.contextMessageSize.toFloat()) }
                 Slider(
-                    value = assistant.contextMessageSize.toFloat(),
-                    onValueChange = {
-                        onUpdate(
-                            assistant.copy(
-                                contextMessageSize = it.roundToInt()
-                            )
-                        )
+                    value = localCtxSize,
+                    onValueChange = { localCtxSize = it },
+                    onValueChangeFinished = {
+                        onUpdate(assistant.copy(contextMessageSize = localCtxSize.roundToInt()))
                     },
                     valueRange = 0f..512f,
                     steps = 0,
@@ -465,12 +464,14 @@ internal fun AssistantBasicContent(
                         Text(stringResource(R.string.assistant_page_background_opacity_desc))
                     }
                 ) {
+                    var localOpacity by remember { mutableFloatStateOf(backgroundOpacity) }
                     Slider(
-                        value = backgroundOpacity,
-                        onValueChange = {
+                        value = localOpacity,
+                        onValueChange = { localOpacity = it },
+                        onValueChangeFinished = {
                             onUpdate(
                                 assistant.copy(
-                                    backgroundOpacity = it.toFixed(2).toFloatOrNull()?.coerceIn(0f, 1f) ?: 1.0f
+                                    backgroundOpacity = localOpacity.toFixed(2).toFloatOrNull()?.coerceIn(0f, 1f) ?: 1.0f
                                 )
                             )
                         },

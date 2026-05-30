@@ -79,6 +79,7 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -1875,9 +1876,11 @@ private fun RegexInjectionEditDialog(
                             stringResource(R.string.prompt_page_probability, entry.probability),
                             style = MaterialTheme.typography.titleSmall
                         )
+                        var localProb by remember { mutableFloatStateOf(entry.probability.toFloat()) }
                         Slider(
-                            value = entry.probability.toFloat(),
-                            onValueChange = { onEdit(entry.copy(probability = it.toInt())) },
+                            value = localProb,
+                            onValueChange = { localProb = it },
+                            onValueChangeFinished = { onEdit(entry.copy(probability = localProb.toInt())) },
                             valueRange = 0f..100f,
                             steps = 99
                         )

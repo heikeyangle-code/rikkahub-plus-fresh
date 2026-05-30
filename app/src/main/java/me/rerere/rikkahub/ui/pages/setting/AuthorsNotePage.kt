@@ -127,11 +127,13 @@ fun AuthorsNotePage() {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(Modifier.height(8.dp))
+                        var localDepth by remember { mutableFloatStateOf(settings.authorNoteDepth.toFloat()) }
                         Slider(
-                            value = settings.authorNoteDepth.toFloat(),
-                            onValueChange = {
+                            value = localDepth,
+                            onValueChange = { localDepth = it },
+                            onValueChangeFinished = {
                                 scope.launch {
-                                    settingsStore.update(settings.copy(authorNoteDepth = it.toInt()))
+                                    settingsStore.update(settings.copy(authorNoteDepth = localDepth.toInt()))
                                 }
                             },
                             valueRange = 1f..20f,
@@ -154,11 +156,13 @@ fun AuthorsNotePage() {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(8.dp))
+                    var localFreq by remember { mutableFloatStateOf(settings.authorNoteFrequency) }
                     Slider(
-                        value = settings.authorNoteFrequency,
-                        onValueChange = {
+                        value = localFreq,
+                        onValueChange = { localFreq = it },
+                        onValueChangeFinished = {
                             scope.launch {
-                                settingsStore.update(settings.copy(authorNoteFrequency = it))
+                                settingsStore.update(settings.copy(authorNoteFrequency = localFreq))
                             }
                         },
                         valueRange = 0f..1f,

@@ -36,6 +36,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -334,11 +335,11 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
+                                    var localFontSize by remember { mutableFloatStateOf(displaySetting.fontSizeRatio) }
                                     Slider(
-                                        value = displaySetting.fontSizeRatio,
-                                        onValueChange = {
-                                            updateDisplaySetting(displaySetting.copy(fontSizeRatio = it))
-                                        },
+                                        value = localFontSize,
+                                        onValueChange = { localFontSize = it },
+                                        onValueChangeFinished = { updateDisplaySetting(displaySetting.copy(fontSizeRatio = localFontSize)) },
                                         valueRange = 0.5f..2f,
                                         steps = 11,
                                         modifier = Modifier.weight(1f)

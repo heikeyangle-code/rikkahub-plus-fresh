@@ -16,6 +16,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -205,11 +206,11 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
+                                    var localThreshold by remember { mutableFloatStateOf(displaySetting.pasteLongTextThreshold.toFloat()) }
                                     Slider(
-                                        value = displaySetting.pasteLongTextThreshold.toFloat(),
-                                        onValueChange = {
-                                            updateDisplaySetting(displaySetting.copy(pasteLongTextThreshold = it.toInt()))
-                                        },
+                                        value = localThreshold,
+                                        onValueChange = { localThreshold = it },
+                                        onValueChangeFinished = { updateDisplaySetting(displaySetting.copy(pasteLongTextThreshold = localThreshold.toInt())) },
                                         valueRange = 100f..10000f,
                                         modifier = Modifier.weight(1f)
                                     )
@@ -239,11 +240,11 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
+                                    var localRatio by remember { mutableFloatStateOf(displaySetting.volumeKeyScrollRatio) }
                                     Slider(
-                                        value = displaySetting.volumeKeyScrollRatio,
-                                        onValueChange = {
-                                            updateDisplaySetting(displaySetting.copy(volumeKeyScrollRatio = it))
-                                        },
+                                        value = localRatio,
+                                        onValueChange = { localRatio = it },
+                                        onValueChangeFinished = { updateDisplaySetting(displaySetting.copy(volumeKeyScrollRatio = localRatio)) },
                                         valueRange = 0.25f..1.0f,
                                         steps = 2,
                                         modifier = Modifier.weight(1f)
