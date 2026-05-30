@@ -1086,12 +1086,15 @@ private fun EntryEditor(
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("扫描深度(Scan Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = scanDepthStr, onValueChange = { scanDepthStr = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
+                    Spacer(Modifier.weight(1f))
                 }
                 Text("角色(Role)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1105,7 +1108,7 @@ private fun EntryEditor(
                     }
                 }
                 Text("次要关键词逻辑(Selective Logic)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     val logicLabels = listOf("AND(全匹配)", "OR(任一)", "NOT_ANY(无)", "NOT_ALL(非全)")
                     logicLabels.forEachIndexed { i, label ->
                         FilterChip(
