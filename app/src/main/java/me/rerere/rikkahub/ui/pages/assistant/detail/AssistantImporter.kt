@@ -519,9 +519,9 @@ private fun injectionToTavernEntry(
         },
         groupWeight = injection.groupWeight,
         groupOverride = injection.groupOverride,
-        delay = injection.delay,
         useProbability = injection.useProbability,
     )
+}
 
 /** 反向映射 InjectionPosition → 酒馆 position 数字 */
 private fun mapInjectionToPosition(pos: InjectionPosition): Int = when (pos) {
