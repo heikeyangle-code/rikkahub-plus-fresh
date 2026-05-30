@@ -431,17 +431,17 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
     }
 }
 
-// Quote color presets (name, hex, label string resource)
+// Quote color presets (hex, labelResId)
 private val QUOTE_COLOR_PRESETS = listOf(
-    "" to "setting_display_page_quote_color_theme_follow",        // theme-follow
-    "#E18A24" to "setting_display_page_quote_color_tavern_orange",
-    "#D4945C" to "setting_display_page_quote_color_warm_gold",
-    "#E8736A" to "setting_display_page_quote_color_rose",
-    "#FF7043" to "setting_display_page_quote_color_coral",
-    "#B39DDB" to "setting_display_page_quote_color_lavender",
-    "#7EAFC4" to "setting_display_page_quote_color_sky_blue",
-    "#81C784" to "setting_display_page_quote_color_mint",
-    "__custom__" to "setting_display_page_quote_color_custom",    // custom marker
+    "" to R.string.setting_display_page_quote_color_theme_follow,
+    "#E18A24" to R.string.setting_display_page_quote_color_tavern_orange,
+    "#D4945C" to R.string.setting_display_page_quote_color_warm_gold,
+    "#E8736A" to R.string.setting_display_page_quote_color_rose,
+    "#FF7043" to R.string.setting_display_page_quote_color_coral,
+    "#B39DDB" to R.string.setting_display_page_quote_color_lavender,
+    "#7EAFC4" to R.string.setting_display_page_quote_color_sky_blue,
+    "#81C784" to R.string.setting_display_page_quote_color_mint,
+    "__custom__" to R.string.setting_display_page_quote_color_custom,
 )
 
 @Composable
@@ -461,7 +461,7 @@ private fun QuoteColorPicker(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            QUOTE_COLOR_PRESETS.forEach { (hex, labelRes) ->
+            QUOTE_COLOR_PRESETS.forEach { (hex, labelResId) ->
                 val isSelected = hex == selectedKey
                 val displayColor = when {
                     hex.isEmpty() -> if (LocalDarkMode.current) parseHexColor("#E18A24")!! else parseHexColor("#C7731E")!!
@@ -498,7 +498,7 @@ private fun QuoteColorPicker(
                                 .background(displayColor)
                         )
                         Text(
-                            text = stringResource(labelRes),
+                            text = stringResource(labelResId),
                             style = MaterialTheme.typography.labelMedium,
                         )
                     }
