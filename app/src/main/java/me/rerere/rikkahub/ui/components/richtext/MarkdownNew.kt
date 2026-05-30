@@ -88,7 +88,11 @@ import org.jsoup.nodes.TextNode
 
 private val INLINE_LATEX_REGEX = Regex("\\\\\\((.+?)\\\\\\)")
 private val BLOCK_LATEX_REGEX = Regex("\\\\\\[(.+?)\\\\\\]", RegexOption.DOT_MATCHES_ALL)
-private val CODE_BLOCK_REGEX = Regex("```[\\s\\S]*?```|`[^`\n]*`", RegexOption.DOT_MATCHES_ALL)
+private val CODE_BLOCK_REGEX = Regex("```[\\s\\S]*?```|`[^`\\n]*`", RegexOption.DOT_MATCHES_ALL)
+
+private val QUOTE_REGEX = Regex(
+    "\"(.+?)\"|\\u201C(.+?)\\u201D|\\u00AB(.+?)\\u00BB|\\u300C(.+?)\\u300D|\\u300E(.+?)\\u300F|\\uFF02(.+?)\\uFF02"
+)
 
 private fun preProcess(content: String): String {
     val codeBlocks = mutableListOf<IntRange>()
@@ -127,13 +131,23 @@ fun MarkdownNew(
     style: TextStyle = LocalTextStyle.current,
     onClickCitation: (String) -> Unit = {},
 ) {
+    val settings = LocalSettings.current.displaySetting
+    val darkMode = LocalDarkMode.current
+    val quoteColor = if (settings.enableQuoteColor) {
+        settings.quoteColor.ifBlank { if (darkMode) "#E18A24" else "#C7731E" }
+    } else null
+
+    val coloredContent = if (quoteColor != null) {
+        QUOTE_REGEX.replace(content) { "<span style=\"color:$quoteColor\">${it.value}</span>" }
+    } else content
+
     var html by remember {
         mutableStateOf(
-            value = generateMarkdownHtml(content),
+            value = generateMarkdownHtml(coloredContent),
         )
     }
 
-    val updatedContent by rememberUpdatedState(content)
+    val updatedContent by rememberUpdatedState(coloredContent)
     LaunchedEffect(Unit) {
         snapshotFlow { updatedContent }
             .distinctUntilChanged()
