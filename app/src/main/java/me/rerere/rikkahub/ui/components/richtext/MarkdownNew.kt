@@ -131,23 +131,13 @@ fun MarkdownNew(
     style: TextStyle = LocalTextStyle.current,
     onClickCitation: (String) -> Unit = {},
 ) {
-    val settings = LocalSettings.current.displaySetting
-    val darkMode = LocalDarkMode.current
-    val quoteColor = if (settings.enableQuoteColor) {
-        settings.quoteColor.ifBlank { if (darkMode) "#E18A24" else "#C7731E" }
-    } else null
-
-    val coloredContent = if (quoteColor != null) {
-        QUOTE_REGEX.replace(content) { "<span style=\"color:$quoteColor\">${it.value}</span>" }
-    } else content
-
     var html by remember {
         mutableStateOf(
-            value = generateMarkdownHtml(coloredContent),
+            value = generateMarkdownHtml(content),
         )
     }
 
-    val updatedContent by rememberUpdatedState(coloredContent)
+    val updatedContent by rememberUpdatedState(content)
     LaunchedEffect(Unit) {
         snapshotFlow { updatedContent }
             .distinctUntilChanged()

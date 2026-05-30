@@ -216,7 +216,11 @@ fun MarkdownBlock(
     } else null
 
     val coloredContent = if (quoteColor != null) {
-        QUOTE_REGEX.replace(content) { "<span style=\"color:$quoteColor\">${it.value}</span>" }
+        val codeBlocks = CODE_BLOCK_REGEX.findAll(content).map { it.range }.toList()
+        QUOTE_REGEX.replace(content) { match ->
+            if (codeBlocks.any { match.range.first in it }) match.value
+            else "<span style=\"color:$quoteColor\">${match.value}</span>"
+        }
     } else content
 
     var (data, setData) = remember { mutableStateOf(parseMarkdown(coloredContent)) }
