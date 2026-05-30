@@ -283,6 +283,11 @@ class SkillsVM(
                         withContext(Dispatchers.Main) { onResult(false, "SKILL.md 缺少 name 字段") }
                         return@launch
                     }
+                val desc = frontmatter["description"]?.takeIf { it.isNotBlank() }
+                    ?: run {
+                        withContext(Dispatchers.Main) { onResult(false, "SKILL.md 缺少 description 字段") }
+                        return@launch
+                    }
 
                 // SKILL.md 所在的目录就是 skill 根目录
                 val sourceDir = skillMd.parentFile!!
