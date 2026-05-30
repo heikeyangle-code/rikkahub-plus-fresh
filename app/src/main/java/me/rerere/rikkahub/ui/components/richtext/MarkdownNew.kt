@@ -90,7 +90,7 @@ private val INLINE_LATEX_REGEX = Regex("\\\\\\((.+?)\\\\\\)")
 private val BLOCK_LATEX_REGEX = Regex("\\\\\\[(.+?)\\\\\\]", RegexOption.DOT_MATCHES_ALL)
 private val CODE_BLOCK_REGEX = Regex("```[\\s\\S]*?```|`[^`\\n]*`", RegexOption.DOT_MATCHES_ALL)
 
-private val QUOTE_REGEX = Regex(
+internal val QUOTE_REGEX = Regex(
     "\"(.+?)\"|\\u201C(.+?)\\u201D|\\u00AB(.+?)\\u00BB|\\u300C(.+?)\\u300D|\\u300E(.+?)\\u300F|\\uFF02(.+?)\\uFF02"
 )
 
