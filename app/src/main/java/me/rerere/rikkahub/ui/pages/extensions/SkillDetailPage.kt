@@ -537,7 +537,7 @@ private fun updateNext(
     skills: List<SkillsVM.GitHubSkillInfo>,
     skillsVM: SkillsVM,
     detailVM: SkillDetailVM,
-    toaster: me.rerere.rikkahub.ui.context.RikkaToaster,
+    toaster: com.dokar.sonner.ToasterState,
 ) {
     if (index >= skills.size) {
         detailVM.setUpdating(false)

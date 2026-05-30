@@ -617,9 +617,9 @@ class SkillsVM(
                     withContext(Dispatchers.Main) { onResult(false, "无法读取仓库文件列表") }; return@launch
                 }
                 
-                // 对比每个已安装 skill 的 blob sha
+                // 对比每个已安装 skill 的目录哈希
                 var hasUpdate = false
-                for ((name, oldSha) in source.skillShas) {
+                for ((name, oldDirHash) in source.skillShas) {
                     // 找该 skill 在树中的 SKILL.md
                     for (i in 0 until tree.length()) {
                         val item = tree.getJSONObject(i)
@@ -628,11 +628,14 @@ class SkillsVM(
                             val dlUrl = "https://raw.githubusercontent.com/${info.owner}/${info.repo}/$branch/$path"
                             val content = downloadText(dlUrl) ?: continue
                             val fm = SkillFrontmatterParser.parse(content)
-                            if (fm["name"] == name && oldSha != item.optString("sha")) {
-                                hasUpdate = true
+                            if (fm["name"] == name) {
+                                val dirPath = path.removeSuffix("SKILL.md").trimEnd('/')
+                                val newDirHash = computeDirHash(tree, dirPath)
+                                if (oldDirHash != newDirHash) {
+                                    hasUpdate = true
+                                }
                                 break
                             }
-                            if (fm["name"] == name) break
                         }
                     }
                     if (hasUpdate) break
