@@ -1486,23 +1486,16 @@ private fun GroupSettingsDialog(
 
                 // 粘性 + 冷却
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FormItem(
-                        modifier = Modifier.weight(1f),
+                    OutlinedTextField(
+                        value = edited.sticky.toString(),
+                        onValueChange = { it.toIntOrNull()?.let { s -> edited = edited.copy(sticky = s) } },
                         label = { Text(stringResource(R.string.prompt_page_sticky)) },
-                        description = { Text(stringResource(R.string.prompt_page_sticky_desc)) },
-                        tail = {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
-                                    value = edited.sticky.toString(),
-                                    onValueChange = { it.toIntOrNull()?.let { s -> edited = edited.copy(sticky = s) } },
-                                    modifier = Modifier.width(72.dp),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine = true,
-                                    textStyle = MaterialTheme.typography.bodySmall,
-                                )
-                                Text("轮", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
+                        supportingText = { Text(stringResource(R.string.prompt_page_sticky_desc)) },
+                        suffix = { Text("轮", style = MaterialTheme.typography.bodySmall) },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodySmall,
                     )
                     OutlinedTextField(
                         value = edited.cooldown.toString(),

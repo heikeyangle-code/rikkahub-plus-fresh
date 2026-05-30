@@ -664,21 +664,17 @@ private fun EmbeddedGroupSettingsDialog(
                     }
                 }
 
-                // 数值字段
+                // 数值字段 — 分两行，每行两列
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("优先级(Priority)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = priority, onValueChange = { priority = it },
-                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
+                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text("深度(Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = depth, onValueChange = { depth = it },
-                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("冷却(轮)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        OutlinedTextField(value = cooldown, onValueChange = { cooldown = it },
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
@@ -690,6 +686,14 @@ private fun EmbeddedGroupSettingsDialog(
                             textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                     }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("冷却(轮)(Cooldown)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedTextField(value = cooldown, onValueChange = { cooldown = it },
+                            textStyle = MaterialTheme.typography.bodySmall, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("扫描深度(Scan Depth)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(value = scanDepth, onValueChange = { scanDepth = it },
@@ -716,7 +720,7 @@ private fun EmbeddedGroupSettingsDialog(
 
                 // 选择性逻辑
                 Text("次要关键词逻辑(Selective Logic)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf("AND(全匹配)", "OR(任一)", "NOT_ANY(无)", "NOT_ALL(非全)").forEachIndexed { i, label ->
                         FilterChip(selected = selectiveLogic == i, onClick = { selectiveLogic = i },
                             label = { Text(label, style = MaterialTheme.typography.labelSmall) })
