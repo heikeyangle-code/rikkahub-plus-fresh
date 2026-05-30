@@ -277,25 +277,44 @@ class SkillsVM(
 
                 // 方式2: MIUI fallback — 从 URI 解析真实文件路径
                 if (files.isEmpty()) {
-                    val realDir = try {
+                    android.util.Log.d("SkillsVM", "DocumentsContract 返回空，尝试 fallback, URI=$uri")
+                    var realDir: java.io.File? = null
+
+                    // 尝试1: 从 TreeDocumentId 解析
+                    runCatching {
                         val docId = android.provider.DocumentsContract.getTreeDocumentId(uri)
+                        android.util.Log.d("SkillsVM", "TreeDocumentId: $docId")
                         parsePathFromDocumentId(docId)
-                    } catch (_: Exception) {
-                        // 最后尝试从 URI path 直接提取
+                    }.onSuccess { realDir = it }
+                     .onFailure { android.util.Log.w("SkillsVM", "getTreeDocumentId 失败: ${it.message}") }
+
+                    // 尝试2: 从 URI path 中提取 document ID
+                    if (realDir == null) {
                         uri.path?.let { p ->
-                            val idx = p.indexOf("/document/")
-                            if (idx >= 0) {
-                                val raw = p.substring(idx + 10)
-                                parsePathFromDocumentId(raw)
-                            } else null
+                            android.util.Log.d("SkillsVM", "URI path: $p")
+                            // 匹配 /tree/xxx/document/yyy 格式
+                            val parts = p.split("/")
+                            val docIdx = parts.indexOfLast { it == "document" }
+                            if (docIdx >= 0 && docIdx + 1 < parts.size) {
+                                realDir = parsePathFromDocumentId(parts[docIdx + 1])
+                            }
                         }
                     }
 
+                    // 尝试3: 用 DocumentsContract.getDocumentId
+                    if (realDir == null) {
+                        runCatching {
+                            val docId = android.provider.DocumentsContract.getDocumentId(uri)
+                            android.util.Log.d("SkillsVM", "DocumentId: $docId")
+                            parsePathFromDocumentId(docId)
+                        }.onSuccess { realDir = it }
+                    }
+
                     if (realDir != null && realDir.isDirectory) {
-                        android.util.Log.d("SkillsVM", "MIUI fallback: 扫描目录 $realDir")
-                        realDir.walkTopDown().forEach { file ->
+                        android.util.Log.d("SkillsVM", "Fallback: 扫描目录 $realDir")
+                        realDir!!.walkTopDown().forEach { file ->
                             if (file.isFile) {
-                                val relPath = file.relativeTo(realDir).path
+                                val relPath = file.relativeTo(realDir!!).path
                                 try {
                                     files[relPath] = file.readText()
                                 } catch (e: Exception) {
@@ -303,8 +322,9 @@ class SkillsVM(
                                 }
                             }
                         }
-                    } else if (!docContractFailed) {
-                        android.util.Log.w("SkillsVM", "MIUI fallback: 无法获取目录路径, URI=$uri")
+                        android.util.Log.d("SkillsVM", "Fallback: 扫描完成，共 ${files.size} 个文件")
+                    } else {
+                        android.util.Log.e("SkillsVM", "Fallback: 无法获取目录路径, URI=$uri, realDir=$realDir")
                     }
                 }
 
