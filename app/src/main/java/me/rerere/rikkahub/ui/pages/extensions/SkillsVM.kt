@@ -177,7 +177,15 @@ class SkillsVM(
         val name: String = "",
         val source: String? = null,
         val description: String = "",
-        val category: String? = null,
+        val skills: List<String> = emptyList(),
+    )
+
+    /** 解析 marketplace.json 的插件信息，返回展开后的 skill 列表 */
+    data class MarketplaceSkill(
+        val name: String,       // 技能目录名
+        val fullPath: String,   // 仓库内完整路径，如 "skills/xlsx"
+        val pluginName: String,  // 所属插件名
+        val description: String, // 插件描述
     )
 
     /**
@@ -501,14 +509,11 @@ class SkillsVM(
                     settingsStore.update(updated)
                 }
                 // 保存安装源信息（目录哈希），方便后续检查更新
-                val tree1 = fetchRepoTree(info.owner, info.repo, branch)
-                if (tree1 != null) {
-                    saveSkillSourceSha(skill.name,
-                        repoUrl = repoUrl.trimEnd('/').substringBefore("/tree/"),
-                        branch = branch,
-                        dirHash = computeDirHash(tree1, skill.dirPath)
-                    )
-                }
+                saveSkillSourceSha(skill.name,
+                    repoUrl = repoUrl.trimEnd('/').substringBefore("/tree/"),
+                    branch = branch,
+                    dirHash = computeDirHash(tree, skill.dirPath)
+                )
                 withContext(Dispatchers.Main) { onResult(true, skill.name) }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { onResult(false, e.message ?: "下载失败") }
@@ -582,9 +587,6 @@ class SkillsVM(
         json.put("skillShas", skillShas)
         sourceFile.writeText(json.toString(2))
     }
-
-    /** 获取远程 SKILL.md 路径对应的 blob sha */
-    
 
     /** 获取仓库的 Git Trees */
     private suspend fun fetchRepoTree(owner: String, repo: String, branch: String): org.json.JSONArray? {
@@ -750,7 +752,7 @@ class SkillsVM(
                     return@launch
                 }
 
-                val fileContents = downloadSkillFiles(info.owner, info.repo, branch, dirPath)
+                val fileContents = downloadSkillFiles(info.owner, info.repo, branch, dirPath, tree)
                     ?: run { withContext(Dispatchers.Main) { onResult(false, "下载失败") }; return@launch }
 
                 if (!skillManager.saveSkillFilesAtomically(skillName, fileContents)) {
@@ -758,11 +760,8 @@ class SkillsVM(
                 }
 
                 if (newBlobSha != null) {
-                    val treeForHash = fetchRepoTree(info.owner, info.repo, branch)
-                    if (treeForHash != null) {
-                        saveSkillSourceSha(skillName, source.repoUrl, branch,
-                            computeDirHash(treeForHash, dirPath))
-                    }
+                    saveSkillSourceSha(skillName, source.repoUrl, branch,
+                        computeDirHash(tree, dirPath))
                 }
 
                 _skills.value = skillManager.listSkills()
@@ -781,8 +780,8 @@ class SkillsVM(
     /** 下载整个 skill 目录的文件 */
     private suspend fun downloadSkillFiles(
         owner: String, repo: String, branch: String, dirPath: String,
+        tree: org.json.JSONArray,
     ): LinkedHashMap<String, String>? {
-        val tree = fetchRepoTree(owner, repo, branch) ?: return null
         val prefix = dirPath.trimEnd('/').let { if (it.isBlank()) "" else "$it/" }
 
         val files = mutableListOf<Pair<String, String>>()
@@ -975,6 +974,70 @@ class SkillsVM(
             }
         }
         return true
+    }
+
+    /** 加载 marketplace.json 并返回展开后的技能列表 */
+    fun loadMarketplace(url: String, onResult: (Boolean, List<MarketplaceSkill>) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val json = downloadText(url) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, emptyList()) }
+                    return@launch
+                }
+                val data = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                    .decodeFromString(MarketplaceData.serializer(), json)
+
+                // 从 URL 提取仓库信息
+                val repoMatch = Regex("https://raw\\.githubusercontent\\.com/([^/]+)/([^/]+)/([^/]+)/")
+                    .find(url)
+                val owner = repoMatch?.groupValues?.get(1) ?: ""
+                val repo = repoMatch?.groupValues?.get(2) ?: ""
+                val branch = repoMatch?.groupValues?.get(3) ?: "main"
+                val repoBase = "https://github.com/$owner/$repo"
+
+                val result = mutableListOf<MarketplaceSkill>()
+                for (plugin in data.plugins) {
+                    for (skillPath in plugin.skills) {
+                        val dirName = skillPath.trimEnd('/').split('/').last()
+                        val fullPath = skillPath.removePrefix("./").removeSuffix("/")
+                        result.add(MarketplaceSkill(
+                            name = dirName,
+                            fullPath = fullPath,
+                            pluginName = plugin.name,
+                            description = plugin.description.ifBlank { dirName },
+                        ))
+                    }
+                }
+
+                withContext(Dispatchers.Main) { onResult(true, result) }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onResult(false, emptyList()) }
+            }
+        }
+    }
+
+    /** 从 marketplace 安装单个 skill */
+    fun installFromMarketplace(
+        marketplaceUrl: String, skill: MarketplaceSkill, onResult: (Boolean, String) -> Unit
+    ) {
+        val repoMatch = Regex("https://raw\\.githubusercontent\\.com/([^/]+)/([^/]+)/([^/]+)/")
+            .find(marketplaceUrl)
+        if (repoMatch == null) {
+            onResult(false, "无法解析 marketplace URL")
+            return
+        }
+        val owner = repoMatch.groupValues[1]
+        val repo = repoMatch.groupValues[2]
+        val branch = repoMatch.groupValues[3]
+        val repoUrl = "https://github.com/$owner/$repo/tree/$branch/${skill.fullPath}"
+
+        val ghi = GitHubSkillInfo(
+            name = skill.name,
+            description = skill.description,
+            dirPath = skill.fullPath,
+            mdPath = "${skill.fullPath}/SKILL.md",
+        )
+        downloadSkillFromGitHub(repoUrl, ghi, onResult)
     }
 
     private fun downloadText(url: String): String? {
