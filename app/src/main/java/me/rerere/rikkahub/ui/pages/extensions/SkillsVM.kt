@@ -315,6 +315,10 @@ class SkillsVM(
                         realDir!!.walkTopDown().forEach { file ->
                             if (file.isFile) {
                                 val relPath = file.relativeTo(realDir!!).path
+                                if (file.length() > 5 * 1024 * 1024) {
+                                    android.util.Log.w("SkillsVM", "跳过超大文件 $relPath (${file.length()} bytes)")
+                                    return@forEach
+                                }
                                 try {
                                     files[relPath] = file.readText()
                                 } catch (e: Exception) {
