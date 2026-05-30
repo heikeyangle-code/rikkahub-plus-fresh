@@ -536,7 +536,8 @@ class ChatService(
                 },
                 outputTransformers = outputTransformers,
                 tools = buildList {
-                    addAll(createFileTools())
+                    val skillDirs = assistant.enabledSkills.mapNotNull { skillManager.getSkillDir(it)?.absolutePath }
+                    addAll(createFileTools(skillDirs))
                     if (settings.enableWebSearch) {
                         addAll(createSearchTools(settings))
                     }
