@@ -38,14 +38,6 @@ fun DynamicScheme.toColorScheme(): ColorScheme {
             onErrorContainer = Color(s.onErrorContainer),
             outline = Color(s.outline),
             outlineVariant = Color(s.outlineVariant),
-            scrim = Color(s.scrim),
-            surfaceBright = Color(s.surfaceBright),
-            surfaceDim = Color(s.surfaceDim),
-            surfaceContainer = Color(s.surfaceContainer),
-            surfaceContainerHigh = Color(s.surfaceContainerHigh),
-            surfaceContainerHighest = Color(s.surfaceContainerHighest),
-            surfaceContainerLow = Color(s.surfaceContainerLow),
-            surfaceContainerLowest = Color(s.surfaceContainerLowest),
         )
     } else {
         lightColorScheme(
@@ -77,14 +69,6 @@ fun DynamicScheme.toColorScheme(): ColorScheme {
             onErrorContainer = Color(s.onErrorContainer),
             outline = Color(s.outline),
             outlineVariant = Color(s.outlineVariant),
-            scrim = Color(s.scrim),
-            surfaceBright = Color(s.surfaceBright),
-            surfaceDim = Color(s.surfaceDim),
-            surfaceContainer = Color(s.surfaceContainer),
-            surfaceContainerHigh = Color(s.surfaceContainerHigh),
-            surfaceContainerHighest = Color(s.surfaceContainerHighest),
-            surfaceContainerLow = Color(s.surfaceContainerLow),
-            surfaceContainerLowest = Color(s.surfaceContainerLowest),
         )
     }
 }
