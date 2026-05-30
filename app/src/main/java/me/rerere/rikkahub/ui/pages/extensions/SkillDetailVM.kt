@@ -33,6 +33,12 @@ class SkillDetailVM(
     private val _tree = MutableStateFlow<List<SkillFileNode>>(emptyList())
     val tree = _tree.asStateFlow()
 
+    private val _updating = MutableStateFlow(false)
+    val updating = _updating.asStateFlow()
+
+    private val _hasUpdateSource = MutableStateFlow(false)
+    val hasUpdateSource = _hasUpdateSource.asStateFlow()
+
     private var skillName = ""
 
     /** 当前 skill 的元数据 */
@@ -51,6 +57,15 @@ class SkillDetailVM(
         viewModelScope.launch(Dispatchers.IO) {
             val dir = skillManager.getSkillDir(skillName) ?: return@launch
             _tree.value = buildTree(dir, dir)
+            // 检查是否有 GitHub 更新源
+            _hasUpdateSource.value = dir.resolve(".rikkahub_source.json").exists()
+        }
+    }
+
+    fun refreshSourceStatus() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val dir = skillManager.getSkillDir(skillName) ?: return@launch
+            _hasUpdateSource.value = dir.resolve(".rikkahub_source.json").exists()
         }
     }
 
@@ -68,6 +83,8 @@ class SkillDetailVM(
     }
 
     fun readFile(skillFile: SkillFile): String = skillFile.file.readText()
+
+    fun setUpdating(v: Boolean) { _updating.value = v }
 
     // Returns null on success, error message on failure
     fun saveFile(relativePath: String, content: String, onResult: (String?) -> Unit) {

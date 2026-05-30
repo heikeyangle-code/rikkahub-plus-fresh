@@ -680,29 +680,39 @@ private fun SkillCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors = CustomColors.cardColorsOnSurfaceContainer,
+        shape = RoundedCornerShape(12.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 4.dp),
+            verticalAlignment = Alignment.Top,
         ) {
-            Icon(
-                imageVector = HugeIcons.Puzzle,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                modifier = Modifier.size(40.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = HugeIcons.Puzzle,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = skill.name,
-                        style = MaterialTheme.typography.titleSmallEmphasized,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
                     )
                     if (skill.version != null) {
                         Spacer(Modifier.width(6.dp))
@@ -726,7 +736,7 @@ private fun SkillCard(
                     maxLines = 2,
                 )
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     skill.category?.let { cat ->
@@ -735,7 +745,7 @@ private fun SkillCard(
                     }
                     if (skill.triggers.isNotEmpty()) {
                         Text(
-                            "触发: ${skill.triggers.take(3).joinToString()}",
+                            skill.triggers.take(3).joinToString(", "),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.tertiary,
                             maxLines = 1,
@@ -744,7 +754,7 @@ private fun SkillCard(
                     val fileCount = skill.linkedFiles.values.sumOf { it.size }
                     if (fileCount > 0) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(HugeIcons.Book01, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(HugeIcons.Book01, null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.width(2.dp))
                             Text(
                                 "$fileCount",
@@ -756,9 +766,9 @@ private fun SkillCard(
                 }
                 if (!skill.compatibility.isNullOrBlank()) {
                     Text(
-                        text = skill.compatibility,
+                        text = skill.compatibility.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary,
+                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f),
                     )
                 }
             }

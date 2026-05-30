@@ -19,8 +19,10 @@ import me.rerere.rikkahub.data.files.SkillRegistry
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import java.util.LinkedHashMap
 import org.json.JSONArray
+import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.io.File
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -498,12 +500,317 @@ class SkillsVM(
                     )
                     settingsStore.update(updated)
                 }
+                // 保存安装源信息（目录哈希），方便后续检查更新
+                val tree1 = fetchRepoTree(info.owner, info.repo, branch)
+                if (tree1 != null) {
+                    saveSkillSourceSha(skill.name,
+                        repoUrl = repoUrl.trimEnd('/').substringBefore("/tree/"),
+                        branch = branch,
+                        dirHash = computeDirHash(tree1, skill.dirPath)
+                    )
+                }
                 withContext(Dispatchers.Main) { onResult(true, skill.name) }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { onResult(false, e.message ?: "下载失败") }
             }
         }
     }
+
+    // region Source Tracking & Update
+
+    data class SkillSourceInfo(
+        val repoUrl: String,                         // https://github.com/owner/repo
+        val branch: String,                          // "main"
+        val skillShas: Map<String, String> = emptyMap(),  // {skillName: blobSha}
+    )
+
+    /** 读取 skill 的安装源信息 */
+    fun getSkillSource(skillName: String): SkillSourceInfo? {
+        val sourceFile = skillManager.getSkillDir(skillName)?.resolve(".rikkahub_source.json")
+            ?: return null
+        if (!sourceFile.exists()) return null
+        return try {
+            val json = org.json.JSONObject(sourceFile.readText())
+            val shasJson = json.optJSONObject("skillShas")
+            val skillShas = if (shasJson != null) {
+                val map = mutableMapOf<String, String>()
+                shasJson.keys().forEach { key -> map[key] = shasJson.optString(key, "") }
+                map
+            } else {
+                // 兼容旧格式: 只有 commitSha
+                val oldSha = json.optString("commitSha", "")
+                if (oldSha.isNotBlank()) mapOf(skillName to oldSha) else emptyMap()
+            }
+            SkillSourceInfo(
+                repoUrl = json.optString("repoUrl", ""),
+                branch = json.optString("branch", ""),
+                skillShas = skillShas,
+            ).takeIf { it.repoUrl.isNotBlank() }
+        } catch (_: Exception) { null }
+    }
+
+    /** 计算 skill 目录的文件哈希（所有文件路径+sha → hash） */
+    private fun computeDirHash(tree: org.json.JSONArray, dirPath: String): String {
+        val prefix = dirPath.trimEnd('/').let { if (it.isBlank()) "" else "$it/" }
+        val items = mutableListOf<String>()
+        for (i in 0 until tree.length()) {
+            val item = tree.getJSONObject(i)
+            val path = item.optString("path", "")
+            val sha = item.optString("sha", "")
+            if (item.optString("type") == "blob" && path.startsWith(prefix) && sha.isNotBlank()) {
+                items.add("${path.removePrefix(prefix)}:$sha")
+            }
+        }
+        items.sort()
+        return Integer.toHexString(items.joinToString("|").hashCode())
+    }
+
+    /** 更新 skill 的源哈希（安装/更新后调用，比对整个目录） */
+    private fun saveSkillSourceSha(skillName: String, repoUrl: String, branch: String, dirHash: String) {
+        val dir = skillManager.getSkillDir(skillName) ?: return
+        val sourceFile = dir.resolve(".rikkahub_source.json")
+        val json = if (sourceFile.exists()) {
+            try { org.json.JSONObject(sourceFile.readText()) } catch (_: Exception) { org.json.JSONObject() }
+        } else {
+            org.json.JSONObject()
+        }
+        json.put("repoUrl", repoUrl)
+        json.put("branch", branch)
+        json.remove("commitSha") // 清理旧字段
+        val skillShas = json.optJSONObject("skillShas") ?: org.json.JSONObject()
+        skillShas.put(skillName, dirHash)
+        json.put("skillShas", skillShas)
+        sourceFile.writeText(json.toString(2))
+    }
+
+    /** 获取远程 SKILL.md 路径对应的 blob sha */
+    
+
+    /** 获取仓库的 Git Trees */
+    private suspend fun fetchRepoTree(owner: String, repo: String, branch: String): org.json.JSONArray? {
+        val treeJson = downloadText(
+            "https://api.github.com/repos/$owner/$repo/git/trees/$branch?recursive=1"
+        ) ?: return null
+        val tree = org.json.JSONObject(treeJson).getJSONArray("tree")
+        val truncated = org.json.JSONObject(treeJson).optBoolean("truncated", false)
+        return if (truncated) null else tree
+    }
+
+    /**
+     * 检查单个 skill 的更新
+     * onResult: (hasUpdate: Boolean, message: String)
+     */
+    fun checkForUpdate(skillName: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val source = getSkillSource(skillName) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, "未找到安装源信息") }
+                    return@launch
+                }
+                val info = parseGitHubUrl(source.repoUrl) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, "无法解析仓库链接") }
+                    return@launch
+                }
+                val branch = resolveBranch(info.owner, info.repo, source.branch)
+                    ?: run { withContext(Dispatchers.Main) { onResult(false, "无法获取仓库分支") }; return@launch }
+                val tree = fetchRepoTree(info.owner, info.repo, branch) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, "无法读取仓库文件列表") }; return@launch
+                }
+                
+                // 对比每个已安装 skill 的 blob sha
+                var hasUpdate = false
+                for ((name, oldSha) in source.skillShas) {
+                    // 找该 skill 在树中的 SKILL.md
+                    for (i in 0 until tree.length()) {
+                        val item = tree.getJSONObject(i)
+                        val path = item.optString("path", "")
+                        if (path.endsWith("SKILL.md")) {
+                            val dlUrl = "https://raw.githubusercontent.com/${info.owner}/${info.repo}/$branch/$path"
+                            val content = downloadText(dlUrl) ?: continue
+                            val fm = SkillFrontmatterParser.parse(content)
+                            if (fm["name"] == name && oldSha != item.optString("sha")) {
+                                hasUpdate = true
+                                break
+                            }
+                            if (fm["name"] == name) break
+                        }
+                    }
+                    if (hasUpdate) break
+                }
+                if (hasUpdate) {
+                    withContext(Dispatchers.Main) { onResult(true, "发现新版本") }
+                } else {
+                    withContext(Dispatchers.Main) { onResult(false, "已是最新版本") }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onResult(false, e.message ?: "检查更新失败") }
+            }
+        }
+    }
+
+    /**
+     * 扫描源仓库并标记哪些 skill 有更新
+     * onResult: (List<GitHubSkillInfo>, repoUrl: String) — GitHubSkillInfo 中 hasUpdate 标记
+     */
+    fun scanForUpdates(
+        skillName: String,
+        onResult: (Boolean, List<GitHubSkillInfo>, String) -> Unit,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val source = getSkillSource(skillName) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, emptyList(), "未找到安装源信息") }
+                    return@launch
+                }
+                val info = parseGitHubUrl(source.repoUrl) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, emptyList(), "无效仓库链接") }
+                    return@launch
+                }
+                val branch = resolveBranch(info.owner, info.repo, source.branch)
+                    ?: run { withContext(Dispatchers.Main) { onResult(false, emptyList(), "无法获取分支") }; return@launch }
+                val tree = fetchRepoTree(info.owner, info.repo, branch) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, emptyList(), "读取仓库失败") }; return@launch
+                }
+
+                val results = mutableListOf<GitHubSkillInfo>()
+                for (i in 0 until tree.length()) {
+                    val item = tree.getJSONObject(i)
+                    val path = item.optString("path", "")
+                    val blobSha = item.optString("sha", "")
+                    if (path.endsWith("SKILL.md")) {
+                        val dlUrl = "https://raw.githubusercontent.com/${info.owner}/${info.repo}/$branch/$path"
+                        val content = downloadText(dlUrl) ?: continue
+                        val fm = SkillFrontmatterParser.parse(content)
+                        val name = fm["name"] ?: path.split("/").dropLast(1).lastOrNull() ?: "unknown"
+                        val desc = fm["description"] ?: ""
+                        val dirPath = path.removeSuffix("SKILL.md").trimEnd('/')
+                        val oldDirHash = source.skillShas[name]
+                        // 计算远程仓库该 skill 目录的完整哈希（包含所有文件）
+                        val newDirHash = computeDirHash(tree, dirPath)
+                        val hasUpdate = oldDirHash != null && oldDirHash != newDirHash
+                        val isNew = oldDirHash == null  // 仓库里有但本地没装过
+                        results.add(GitHubSkillInfo(
+                            name = name, description = desc,
+                            dirPath = dirPath, mdPath = path, blobSha = newDirHash,
+                            hasUpdate = hasUpdate, isNew = isNew,
+                        ))
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    onResult(true, results, "${info.owner}/${info.repo}")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onResult(false, emptyList(), e.message ?: "扫描失败") }
+            }
+        }
+    }
+
+    /**
+     * 更新单个 skill 到最新版本
+     */
+    fun updateSkillToLatest(skillName: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val source = getSkillSource(skillName) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, "未找到安装源信息") }
+                    return@launch
+                }
+                val info = parseGitHubUrl(source.repoUrl) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, "无效仓库链接") }
+                    return@launch
+                }
+                val branch = resolveBranch(info.owner, info.repo, source.branch)
+                    ?: run { withContext(Dispatchers.Main) { onResult(false, "无法获取分支") }; return@launch }
+                val tree = fetchRepoTree(info.owner, info.repo, branch) ?: run {
+                    withContext(Dispatchers.Main) { onResult(false, "读取仓库失败") }; return@launch
+                }
+
+                // 找 SKILL.md 获取目录路径和新的 blob sha
+                var dirPath: String? = null
+                var newBlobSha: String? = null
+                for (i in 0 until tree.length()) {
+                    val item = tree.getJSONObject(i)
+                    val path = item.optString("path", "")
+                    if (path.endsWith("SKILL.md")) {
+                        val dlUrl = "https://raw.githubusercontent.com/${info.owner}/${info.repo}/$branch/$path"
+                        val content = downloadText(dlUrl) ?: continue
+                        val fm = SkillFrontmatterParser.parse(content)
+                        if (fm["name"] == skillName) {
+                            dirPath = path.removeSuffix("SKILL.md").trimEnd('/')
+                            newBlobSha = item.optString("sha")
+                            break
+                        }
+                    }
+                }
+                if (dirPath == null) {
+                    withContext(Dispatchers.Main) { onResult(false, "仓库中未找到此 skill") }
+                    return@launch
+                }
+
+                val fileContents = downloadSkillFiles(info.owner, info.repo, branch, dirPath)
+                    ?: run { withContext(Dispatchers.Main) { onResult(false, "下载失败") }; return@launch }
+
+                if (!skillManager.saveSkillFilesAtomically(skillName, fileContents)) {
+                    withContext(Dispatchers.Main) { onResult(false, "保存失败") }; return@launch
+                }
+
+                if (newBlobSha != null) {
+                    val treeForHash = fetchRepoTree(info.owner, info.repo, branch)
+                    if (treeForHash != null) {
+                        saveSkillSourceSha(skillName, source.repoUrl, branch,
+                            computeDirHash(treeForHash, dirPath))
+                    }
+                }
+
+                _skills.value = skillManager.listSkills()
+                withContext(Dispatchers.Main) { onResult(true, skillName) }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onResult(false, e.message ?: "更新失败") }
+            }
+        }
+    }
+
+    /** 兼容旧 API */
+    fun updateSkillFromGitHub(skillName: String, onResult: (Boolean, String) -> Unit) {
+        updateSkillToLatest(skillName, onResult)
+    }
+
+    /** 下载整个 skill 目录的文件 */
+    private suspend fun downloadSkillFiles(
+        owner: String, repo: String, branch: String, dirPath: String,
+    ): LinkedHashMap<String, String>? {
+        val tree = fetchRepoTree(owner, repo, branch) ?: return null
+        val prefix = dirPath.trimEnd('/').let { if (it.isBlank()) "" else "$it/" }
+
+        val files = mutableListOf<Pair<String, String>>()
+        for (i in 0 until tree.length()) {
+            val item = tree.getJSONObject(i)
+            val path = item.optString("path", "")
+            if (item.optString("type") == "blob" && path.startsWith(prefix)) {
+                val relativePath = path.removePrefix(prefix)
+                val downloadUrl = "https://raw.githubusercontent.com/$owner/$repo/$branch/$path"
+                files.add(relativePath to downloadUrl)
+            }
+        }
+        if (files.isEmpty()) return null
+
+        val fileContents = LinkedHashMap<String, String>()
+        val sem = Semaphore(5)
+        val results = coroutineScope {
+            files.map { (path, url) ->
+                async(Dispatchers.IO) {
+                    sem.withPermit { path to downloadText(url) }
+                }
+            }.awaitAll()
+        }
+        for ((relativePath, content) in results) {
+            if (content == null) return null
+            fileContents[relativePath] = content
+        }
+        return fileContents
+    }
+
+    // endregion
 
     /** 兼容旧接口: 粘贴的链接正好指向一个 skill 目录时直接下载 */
     fun importSkillFromGitHub(repoUrl: String, onResult: (Boolean, String) -> Unit) {
@@ -579,6 +886,15 @@ class SkillsVM(
                     )
                     settingsStore.update(updated)
                 }
+                // 保存安装源信息（目录哈希）
+                val tree2 = fetchRepoTree(info.owner, info.repo, branch)
+                if (tree2 != null) {
+                    saveSkillSourceSha(name,
+                        repoUrl = repoUrl.trimEnd('/').substringBefore("/tree/"),
+                        branch = branch,
+                        dirHash = computeDirHash(tree2, info.path)
+                    )
+                }
                 withContext(Dispatchers.Main) { onResult(true, name) }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { onResult(false, e.message ?: "未知错误") }
@@ -598,6 +914,9 @@ class SkillsVM(
         val description: String,
         val dirPath: String,  // 目录路径，如 "plugins/skill-creator/skills/skill-creator"
         val mdPath: String,   // SKILL.md 完整路径
+        val blobSha: String = "",  // SKILL.md 的 blob SHA，用于更新比对
+        val hasUpdate: Boolean = false,  // 该 skill 是否有更新
+        val isNew: Boolean = false,      // 仓库有但本地未安装
     )
 
     private fun parseGitHubUrl(url: String): GitHubRepoInfo? {

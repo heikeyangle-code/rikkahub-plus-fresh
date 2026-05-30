@@ -3,6 +3,7 @@ package me.rerere.rikkahub.ui.pages.extensions
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,20 +11,29 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
@@ -43,8 +53,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
 import me.rerere.rikkahub.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -57,6 +69,9 @@ import com.composables.icons.lucide.FolderOpen
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.Trash2
+import com.composables.icons.lucide.RefreshCw
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Download01
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.RikkaConfirmDialog
 import me.rerere.rikkahub.ui.context.LocalToaster
@@ -67,9 +82,12 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun SkillDetailPage(skillName: String) {
     val vm = koinViewModel<SkillDetailVM>()
+    val skillsVM = koinViewModel<SkillsVM>()
     LaunchedEffect(skillName) { vm.init(skillName) }
 
     val tree by vm.tree.collectAsStateWithLifecycle()
+    val updating by vm.updating.collectAsStateWithLifecycle()
+    val hasUpdateSource by vm.hasUpdateSource.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val toaster = LocalToaster.current
 
@@ -78,6 +96,13 @@ fun SkillDetailPage(skillName: String) {
     var deleteTarget by remember { mutableStateOf<SkillFile?>(null) }
     var deleteDirTarget by remember { mutableStateOf<SkillFileNode.DirNode?>(null) }
     val deleteFailedMsg = stringResource(R.string.skill_detail_page_delete_failed)
+
+    // 更新状态
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var showUpdatePicker by remember { mutableStateOf(false) }
+    var scannedForUpdate by remember { mutableStateOf<List<SkillsVM.GitHubSkillInfo>>(emptyList()) }
+    var selectedForUpdate by remember { mutableStateOf(setOf<Int>()) }
+    var updateRepoUrl by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -224,6 +249,79 @@ if (skill.mcpServers.isNotEmpty()) {
                                 color = MaterialTheme.colorScheme.tertiary,
                             )
                         }
+
+                        // region 更新
+                        if (hasUpdateSource) {
+                            Spacer(Modifier.height(10.dp))
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Lucide.RefreshCw,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        if (updating) "更新中..." else "检查更新",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                                if (updating) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp,
+                                    )
+                                } else {
+                                    OutlinedButton(
+                                        onClick = {
+                                            if (!isCheckingUpdate) {
+                                                isCheckingUpdate = true
+                                                skillsVM.scanForUpdates(skillName) { success, skills, repoUrl ->
+                                                    isCheckingUpdate = false
+                                                    if (success) {
+                                                        scannedForUpdate = skills
+                                                        updateRepoUrl = repoUrl
+                                                        // 仅默认勾选有更新的（有变更的 + 新增的）
+                                                        selectedForUpdate = skills.indices
+                                                            .filter { skills[it].hasUpdate || skills[it].isNew }
+                                                            .toSet()
+                                                        if (selectedForUpdate.isEmpty()) {
+                                                            toaster.show("已是最新版本")
+                                                        } else {
+                                                            showUpdatePicker = true
+                                                        }
+                                                    } else {
+                                                        toaster.show(repoUrl)
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        enabled = !isCheckingUpdate,
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    ) {
+                                        if (isCheckingUpdate) {
+                                            CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                        } else {
+                                            Icon(
+                                                HugeIcons.Download01,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp),
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text("检查更新", style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // endregion
                     }
                 }
             }
@@ -298,6 +396,163 @@ if (skill.mcpServers.isNotEmpty()) {
         onDismiss = { deleteDirTarget = null },
     ) {
         Text(stringResource(R.string.skill_detail_page_delete_confirm, deleteDirTarget?.relativePath ?: ""))
+    }
+
+    // 更新 skill 多选弹窗
+    if (showUpdatePicker && scannedForUpdate.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { showUpdatePicker = false },
+            title = {
+                Text(
+                    "发现 ${scannedForUpdate.size} 个 Skill",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        updateRepoUrl,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        TextButton(onClick = {
+                            selectedForUpdate = if (selectedForUpdate.size == scannedForUpdate.size) emptySet()
+                            else scannedForUpdate.indices.toSet()
+                        }) {
+                            Text(
+                                if (selectedForUpdate.size == scannedForUpdate.size) "取消全选" else "全选",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        Text(
+                            "已选 ${selectedForUpdate.size}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    HorizontalDivider()
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
+                    ) {
+                        items(scannedForUpdate.size) { idx ->
+                            val skillInfo = scannedForUpdate[idx]
+                            val selected = idx in selectedForUpdate
+                            Surface(
+                                onClick = {
+                                    selectedForUpdate = if (selected)
+                                        selectedForUpdate - idx
+                                    else
+                                        selectedForUpdate + idx
+                                },
+                                color = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                        else MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = if (selected) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.surfaceVariant,
+                                        modifier = Modifier.size(18.dp),
+                                    ) {
+                                        if (selected) {
+                                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                                Text("✓", style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                                                    color = MaterialTheme.colorScheme.onPrimary)
+                                            }
+                                        }
+                                    }
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(skillInfo.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                            if (skillInfo.hasUpdate) {
+                                                Spacer(Modifier.width(6.dp))
+                                                Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.errorContainer) {
+                                                    Text("有更新", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onErrorContainer)
+                                                }
+                                            }
+                                            if (skillInfo.isNew) {
+                                                Spacer(Modifier.width(6.dp))
+                                                Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.tertiaryContainer) {
+                                                    Text("新增", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                                }
+                                            }
+                                        }
+                                        if (skillInfo.description.isNotBlank()) {
+                                            Text(skillInfo.description, style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3)
+                                        }
+                                        Text(skillInfo.mdPath, style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.tertiary,
+                                            maxLines = 1, fontFamily = FontFamily.Monospace)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (selectedForUpdate.isNotEmpty() && !updating) {
+                            showUpdatePicker = false
+                            vm.setUpdating(true)
+                            val toUpdate = selectedForUpdate.map { scannedForUpdate[it] }
+                            // 逐个更新（仅选中的）
+                            updateNext(0, toUpdate, skillsVM, vm, toaster)
+                        }
+                    },
+                    enabled = selectedForUpdate.isNotEmpty() && !updating,
+                ) {
+                    Text(if (updating) "更新中..." else "更新选中 (${selectedForUpdate.size})")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUpdatePicker = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+}
+
+private fun updateNext(
+    index: Int,
+    skills: List<SkillsVM.GitHubSkillInfo>,
+    skillsVM: SkillsVM,
+    detailVM: SkillDetailVM,
+    toaster: me.rerere.rikkahub.ui.context.RikkaToaster,
+) {
+    if (index >= skills.size) {
+        detailVM.setUpdating(false)
+        detailVM.loadFiles()
+        detailVM.refreshSourceStatus()
+        toaster.show("更新完成: ${skills.size} 个")
+        return
+    }
+    skillsVM.updateSkillFromGitHub(skills[index].name) { ok, msg ->
+        if (ok) {
+            updateNext(index + 1, skills, skillsVM, detailVM, toaster)
+        } else {
+            detailVM.setUpdating(false)
+            toaster.show("更新失败: $msg")
+        }
     }
 }
 
