@@ -5,20 +5,31 @@ import android.graphics.Typeface
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -30,10 +41,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dokar.sonner.ToastType
@@ -54,6 +70,7 @@ import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.Select
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.theme.CustomColors
+import me.rerere.rikkahub.ui.theme.LocalDarkMode
 import me.rerere.rikkahub.ui.theme.rememberChatFontFamily
 import me.rerere.rikkahub.utils.plus
 import org.koin.androidx.compose.koinViewModel
@@ -339,6 +356,31 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                             }
                         }
                     )
+                    item(
+                        headlineContent = { Text(stringResource(R.string.setting_display_page_enable_quote_color_title)) },
+                        supportingContent = { Text(stringResource(R.string.setting_display_page_enable_quote_color_desc)) },
+                        trailingContent = {
+                            Switch(
+                                checked = displaySetting.enableQuoteColor,
+                                onCheckedChange = {
+                                    updateDisplaySetting(displaySetting.copy(enableQuoteColor = it))
+                                }
+                            )
+                        },
+                    )
+                    if (displaySetting.enableQuoteColor) {
+                        item(
+                            headlineContent = { Text(stringResource(R.string.setting_display_page_quote_color_scheme_title)) },
+                            supportingContent = {
+                                QuoteColorPicker(
+                                    currentColor = displaySetting.quoteColor,
+                                    onColorSelected = { color ->
+                                        updateDisplaySetting(displaySetting.copy(quoteColor = color))
+                                    }
+                                )
+                            },
+                        )
+                    }
                 }
             }
 
@@ -387,6 +429,232 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
             }
         }
     }
+}
+
+// Quote color presets (name, hex, label string resource)
+private val QUOTE_COLOR_PRESETS = listOf(
+    "" to "setting_display_page_quote_color_theme_follow",        // theme-follow
+    "#E18A24" to "setting_display_page_quote_color_tavern_orange",
+    "#D4945C" to "setting_display_page_quote_color_warm_gold",
+    "#E8736A" to "setting_display_page_quote_color_rose",
+    "#FF7043" to "setting_display_page_quote_color_coral",
+    "#B39DDB" to "setting_display_page_quote_color_lavender",
+    "#7EAFC4" to "setting_display_page_quote_color_sky_blue",
+    "#81C784" to "setting_display_page_quote_color_mint",
+    "__custom__" to "setting_display_page_quote_color_custom",    // custom marker
+)
+
+@Composable
+private fun QuoteColorPicker(
+    currentColor: String,
+    onColorSelected: (String) -> Unit,
+) {
+    val isCustom = currentColor !in QUOTE_COLOR_PRESETS.map { it.first }.filter { it != "__custom__" }
+    val selectedKey = if (isCustom) "__custom__" else currentColor
+
+    var customColor by remember { mutableStateOf(currentColor.ifBlank { "#E18A24" }) }
+    var hexInput by remember { mutableStateOf(customColor) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Preset color chips - 2 rows of 4
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            QUOTE_COLOR_PRESETS.forEach { (hex, labelRes) ->
+                val isSelected = hex == selectedKey
+                val displayColor = when {
+                    hex.isEmpty() -> if (LocalDarkMode.current) parseHexColor("#E18A24")!! else parseHexColor("#C7731E")!!
+                    hex == "__custom__" -> parseHexColor(customColor) ?: MaterialTheme.colorScheme.tertiary
+                    else -> parseHexColor(hex) ?: MaterialTheme.colorScheme.tertiary
+                }
+                Surface(
+                    onClick = {
+                        if (hex == "__custom__") {
+                            onColorSelected(customColor)
+                        } else {
+                            onColorSelected(hex)
+                        }
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainer
+                    },
+                    border = if (isSelected) {
+                        androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    } else null,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(displayColor)
+                        )
+                        Text(
+                            text = stringResource(labelRes),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                }
+            }
+        }
+
+        // Custom color controls (only visible when custom is selected)
+        if (selectedKey == "__custom__") {
+            // Hue slider
+            val currentHsv = remember(customColor) {
+                val c = parseHexColor(customColor) ?: return@remember floatArrayOf(0f, 1f, 1f)
+                val argb = android.graphics.Color.argb(
+                    (c.alpha * 255).toInt(),
+                    (c.red * 255).toInt(),
+                    (c.green * 255).toInt(),
+                    (c.blue * 255).toInt()
+                )
+                val hsv = FloatArray(3)
+                android.graphics.Color.colorToHSV(argb, hsv)
+                hsv
+            }
+            var hue by remember(currentHsv) { mutableStateOf(currentHsv[0]) }
+            var brightness by remember(currentHsv) { mutableStateOf(currentHsv[2]) }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // Color preview box
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.hsv(hue, 1f, brightness))
+                )
+
+                Column(modifier = Modifier.weight(1f)) {
+                    // Hue bar
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            stringResource(R.string.setting_display_page_quote_color_custom),
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.width(40.dp),
+                        )
+                        Slider(
+                            value = hue,
+                            onValueChange = {
+                                hue = it
+                                val newColor = Color.hsv(hue, 1f, brightness)
+                                customColor = colorToHex(newColor)
+                                hexInput = customColor
+                                onColorSelected(customColor)
+                            },
+                            valueRange = 0f..360f,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    // Brightness bar
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "☀",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.width(40.dp),
+                        )
+                        Slider(
+                            value = brightness,
+                            onValueChange = {
+                                brightness = it
+                                val newColor = Color.hsv(hue, 1f, brightness)
+                                customColor = colorToHex(newColor)
+                                hexInput = customColor
+                                onColorSelected(customColor)
+                            },
+                            valueRange = 0.1f..1f,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
+            // Hex input
+            OutlinedTextField(
+                value = hexInput,
+                onValueChange = { value ->
+                    hexInput = value
+                    if (value.matches(Regex("^#[0-9A-Fa-f]{6}$"))) {
+                        customColor = value.uppercase()
+                        parseHexColor(customColor)?.let { c ->
+                            val argb = android.graphics.Color.argb(
+                                (c.alpha * 255).toInt(),
+                                (c.red * 255).toInt(),
+                                (c.green * 255).toInt(),
+                                (c.blue * 255).toInt()
+                            )
+                            val hsv = FloatArray(3)
+                            android.graphics.Color.colorToHSV(argb, hsv)
+                            hue = hsv[0]
+                            brightness = hsv[2]
+                        }
+                        onColorSelected(customColor)
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                leadingIcon = {
+                    Text("#", style = MaterialTheme.typography.bodyMedium)
+                },
+                shape = RoundedCornerShape(8.dp),
+            )
+        }
+
+        // Preview
+        val previewColor = when {
+            selectedKey == "__custom__" -> parseHexColor(customColor) ?: MaterialTheme.colorScheme.tertiary
+            currentColor.isBlank() -> if (LocalDarkMode.current) parseHexColor("#E18A24")!! else parseHexColor("#C7731E")!!
+            else -> parseHexColor(currentColor) ?: MaterialTheme.colorScheme.tertiary
+        }
+        val previewText = stringResource(R.string.setting_display_page_quote_color_preview)
+        // Split into narration and quoted parts: *narration* "quoted"
+        val quoteStart = previewText.indexOf('"')
+        val quoteEnd = previewText.lastIndexOf('"')
+        if (quoteStart >= 0 && quoteEnd > quoteStart) {
+            val narStart = previewText.substring(0, quoteStart)
+            val quoted = previewText.substring(quoteStart, quoteEnd + 1)
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))) {
+                        append(narStart)
+                    }
+                    withStyle(SpanStyle(color = previewColor)) {
+                        append(quoted)
+                    }
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+    }
+}
+
+/** Parse hex color string like "#E18A24" to Compose Color */
+private fun parseHexColor(hex: String): Color? = try {
+    val clean = hex.removePrefix("#")
+    Color((clean.toLong(16)) or 0x00000000FF000000)
+} catch (_: Exception) { null }
+
+/** Convert Compose Color to hex string like "#E18A24" */
+private fun colorToHex(color: Color): String {
+    return String.format("#%02X%02X%02X",
+        (color.red * 255).toInt().coerceIn(0, 255),
+        (color.green * 255).toInt().coerceIn(0, 255),
+        (color.blue * 255).toInt().coerceIn(0, 255),
+    )
 }
 
 private val CustomFontMimeTypesUI = arrayOf(

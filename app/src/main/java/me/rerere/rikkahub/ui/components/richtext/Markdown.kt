@@ -76,6 +76,7 @@ import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.rikkahub.ui.components.table.DataTable
 import me.rerere.rikkahub.ui.context.LocalSettings
 import me.rerere.rikkahub.ui.theme.JetbrainsMono
+import me.rerere.rikkahub.ui.theme.LocalDarkMode
 import me.rerere.rikkahub.utils.toDp
 import org.intellij.markdown.IElementType
 import org.intellij.markdown.MarkdownElementTypes
@@ -100,11 +101,17 @@ private val parser by lazy {
 private val INLINE_LATEX_REGEX = Regex("\\\\\\((.+?)\\\\\\)")
 private val BLOCK_LATEX_REGEX = Regex("\\\\\\[(.+?)\\\\\\]", RegexOption.DOT_MATCHES_ALL)
 val THINKING_REGEX = Regex("<think>([\\s\\S]*?)(?:</think>|$)", RegexOption.DOT_MATCHES_ALL)
-private val CODE_BLOCK_REGEX = Regex("```[\\s\\S]*?```|`[^`\n]*`", RegexOption.DOT_MATCHES_ALL)
+private val CODE_BLOCK_REGEX = Regex("```[\\s\\S]*?```|`[^`\\n]*`", RegexOption.DOT_MATCHES_ALL)
 private val BREAK_LINE_REGEX = Regex("(?i)<br\\s*/?>")
 
+// Quotes supported for coloring (aligned with SillyTavern):
+// English double quotes, curly quotes, guillemets, corner brackets, fullwidth quotes
+private val QUOTE_REGEX = Regex(
+    "\"(.+?)\"|\u201C(.+?)\u201D|\u00AB(.+?)\u00BB|\u300C(.+?)\u300D|\u300E(.+?)\u300F|\uFF02(.+?)\uFF02"
+)
+
 // 预处理markdown内容
-private fun preProcess(content: String): String {
+private fun preProcess(content: String, quoteColor: String? = null): String {
     // 先找出所有代码块的位置
     val codeBlocks = mutableListOf<IntRange>()
     CODE_BLOCK_REGEX.findAll(content).forEach { match ->
@@ -116,7 +123,7 @@ private fun preProcess(content: String): String {
         return codeBlocks.any { range -> position in range }
     }
 
-    // 替换行内公式 \( ... \) 到 $ ... $，但跳过代码块内的内容
+    // 替换行内公式 \\( ... \\) 到 $ ... $，但跳过代码块内的内容
     var result = INLINE_LATEX_REGEX.replace(content) { matchResult ->
         if (isInCodeBlock(matchResult.range.first)) {
             matchResult.value // 保持原样
@@ -125,12 +132,23 @@ private fun preProcess(content: String): String {
         }
     }
 
-    // 替换块级公式 \[ ... \] 到 $$ ... $$，但跳过代码块内的内容
+    // 替换块级公式 \\[ ... \\] 到 $$ ... $$，但跳过代码块内的内容
     result = BLOCK_LATEX_REGEX.replace(result) { matchResult ->
         if (isInCodeBlock(matchResult.range.first)) {
             matchResult.value // 保持原样
         } else {
             "$$" + matchResult.groupValues[1] + "$$"
+        }
+    }
+
+    // 引号对话着色 (跳过代码块内的引号)
+    if (quoteColor != null) {
+        result = QUOTE_REGEX.replace(result) { matchResult ->
+            if (isInCodeBlock(matchResult.range.first)) {
+                matchResult.value
+            } else {
+                "<span style=\"color:${quoteColor}\">${matchResult.value}</span>"
+            }
         }
     }
 
@@ -195,8 +213,8 @@ private fun ASTNode.containsHtml(): Boolean {
     return children.any { it.containsHtml() }
 }
 
-private fun parseMarkdown(content: String): MarkdownParseResult {
-    val preprocessed = preProcess(content)
+private fun parseMarkdown(content: String, quoteColor: String? = null): MarkdownParseResult {
+    val preprocessed = preProcess(content, quoteColor)
     val astTree = parser.buildMarkdownTreeFromString(preprocessed)
     return MarkdownParseResult(preprocessed, astTree, astTree.containsHtml())
 }
@@ -208,7 +226,16 @@ fun MarkdownBlock(
     style: TextStyle = LocalTextStyle.current,
     onClickCitation: (String) -> Unit = {}
 ) {
-    var (data, setData) = remember { mutableStateOf(parseMarkdown(content)) }
+    val settings = LocalSettings.current.displaySetting
+    val darkMode = LocalDarkMode.current
+    val quoteColor = if (settings.enableQuoteColor) {
+        // Resolve quote color: empty string = auto (dark=#E18A24, light=#C7731E)
+        settings.quoteColor.ifBlank {
+            if (darkMode) "#E18A24" else "#C7731E"
+        }
+    } else null
+
+    var (data, setData) = remember { mutableStateOf(parseMarkdown(content, quoteColor)) }
 
     // 监听内容变化，重新解析AST树
     // 这里在后台线程解析AST树, 防止频繁更新的时候掉帧
@@ -216,7 +243,7 @@ fun MarkdownBlock(
     LaunchedEffect(Unit) {
         snapshotFlow { updatedContent }
             .distinctUntilChanged()
-            .mapLatest { parseMarkdown(it) }
+            .mapLatest { parseMarkdown(it, quoteColor) }
             .catch { exception -> exception.printStackTrace() }
             .flowOn(Dispatchers.Default)
             .collect { setData(it) }
