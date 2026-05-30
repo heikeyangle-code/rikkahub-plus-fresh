@@ -180,7 +180,10 @@ class ChatService(
 
     private val lifecycleObserver = LifecycleEventObserver { _, event ->
         when (event) {
-            Lifecycle.Event.ON_START -> _isForeground.value = true
+            Lifecycle.Event.ON_START -> {
+                _isForeground.value = true
+                stopGenerationForeground()
+            }
             Lifecycle.Event.ON_STOP -> _isForeground.value = false
             else -> {}
         }
@@ -566,8 +569,9 @@ class ChatService(
                     }
                 },
             ).onCompletion {
-                // 取消 Live Update 通知
+                // 取消 Live Update 通知 + 前台服务
                 cancelLiveUpdateNotification(conversationId)
+                stopGenerationForeground()
 
                 // 可能被取消了，或者意外结束，兜底更新
                 val updatedConversation = getConversationFlow(conversationId).value.copy(
@@ -589,16 +593,22 @@ class ChatService(
                             .updateCurrentMessages(chunk.messages)
                         updateConversation(conversationId, updatedConversation)
 
-                        // 如果应用不在前台，发送 Live Update 通知
-                        if (!isForeground.value && settings.displaySetting.enableNotificationOnMessageGeneration && settings.displaySetting.enableLiveUpdateNotification) {
-                            sendLiveUpdateNotification(conversationId, chunk.messages, senderName)
+                        // 如果应用不在前台，启动前台 Service + 发送 Live Update 通知
+                        if (!isForeground.value && settings.displaySetting.enableNotificationOnMessageGeneration) {
+                            startGenerationForeground(senderName, conversationId.toString())
+                            if (settings.displaySetting.enableLiveUpdateNotification) {
+                                sendLiveUpdateNotification(conversationId, chunk.messages, senderName)
+                            }
+                        } else {
+                            stopGenerationForeground()
                         }
                     }
                 }
             }
         }.onFailure {
-            // 取消 Live Update 通知
+            // 取消 Live Update 通知 + 前台服务
             cancelLiveUpdateNotification(conversationId)
+            stopGenerationForeground()
 
             it.printStackTrace()
             addError(it, conversationId, title = context.getString(R.string.error_title_generation))
@@ -1021,6 +1031,38 @@ class ChatService(
     private fun cancelLiveUpdateNotification(conversationId: Uuid) {
         context.cancelNotification(getLiveUpdateNotificationId(conversationId))
     }
+
+    // region Foreground Service — 后台生成时保持进程存活
+
+    private fun startGenerationForeground(title: String, conversationId: String) {
+        val intent = Intent(context, GenerationForegroundService::class.java).apply {
+            action = GenerationForegroundService.ACTION_START
+            putExtra(GenerationForegroundService.EXTRA_TITLE, title)
+            putExtra(GenerationForegroundService.EXTRA_CONVERSATION_ID, conversationId)
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    }
+
+    private fun updateGenerationForeground(text: String) {
+        val intent = Intent(context, GenerationForegroundService::class.java).apply {
+            action = GenerationForegroundService.ACTION_UPDATE
+            putExtra(GenerationForegroundService.EXTRA_TEXT, text.take(200))
+        }
+        context.startService(intent)
+    }
+
+    private fun stopGenerationForeground() {
+        val intent = Intent(context, GenerationForegroundService::class.java).apply {
+            action = GenerationForegroundService.ACTION_STOP
+        }
+        context.stopService(intent)
+    }
+
+    // endregion
 
     private fun getPendingIntent(context: Context, conversationId: Uuid): PendingIntent {
         val intent = Intent(context, RouteActivity::class.java).apply {
