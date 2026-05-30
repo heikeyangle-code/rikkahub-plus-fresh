@@ -513,6 +513,12 @@ class ChatService(
 
             // start generating
             val session = getOrCreateSession(conversationId)
+
+            // 如果不在前台，提前启动前台 Service（不等第一块数据）
+            if (!isForeground.value && settings.displaySetting.enableNotificationOnMessageGeneration) {
+                startGenerationForeground(senderName, conversationId.toString())
+            }
+
             generationHandler.generateText(
                 settings = settings,
                 model = model,
@@ -593,14 +599,14 @@ class ChatService(
                             .updateCurrentMessages(chunk.messages)
                         updateConversation(conversationId, updatedConversation)
 
-                        // 如果应用不在前台，启动前台 Service + 发送 Live Update 通知
-                        if (!isForeground.value && settings.displaySetting.enableNotificationOnMessageGeneration) {
-                            startGenerationForeground(senderName, conversationId.toString())
-                            if (settings.displaySetting.enableLiveUpdateNotification) {
-                                sendLiveUpdateNotification(conversationId, chunk.messages, senderName)
-                            }
-                        } else {
+                        // 前台时停止前台 Service（用户切回来了）
+                        if (isForeground.value) {
                             stopGenerationForeground()
+                        }
+
+                        // 如果应用不在前台，发送 Live Update 通知
+                        if (!isForeground.value && settings.displaySetting.enableNotificationOnMessageGeneration && settings.displaySetting.enableLiveUpdateNotification) {
+                            sendLiveUpdateNotification(conversationId, chunk.messages, senderName)
                         }
                     }
                 }
