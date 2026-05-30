@@ -317,8 +317,9 @@ class SkillsVM(
                     return@launch
                 }
 
-                val tree = org.json.JSONObject(treeJson).getJSONArray("tree")
-                val truncated = org.json.JSONObject(treeJson).optBoolean("truncated", false)
+                val treeJsonObj = org.json.JSONObject(treeJson)
+                val tree = treeJsonObj.getJSONArray("tree")
+                val truncated = treeJsonObj.optBoolean("truncated", false)
 
                 if (truncated) {
                     withContext(Dispatchers.Main) { onResult(false, emptyList(), "仓库文件过多，暂不支持大仓库扫描") }
@@ -543,8 +544,9 @@ class SkillsVM(
         val treeJson = downloadText(
             "https://api.github.com/repos/$owner/$repo/git/trees/$branch?recursive=1"
         ) ?: return null
-        val tree = org.json.JSONObject(treeJson).getJSONArray("tree")
-        val truncated = org.json.JSONObject(treeJson).optBoolean("truncated", false)
+        val treeJsonObj = org.json.JSONObject(treeJson)
+        val tree = treeJsonObj.getJSONArray("tree")
+        val truncated = treeJsonObj.optBoolean("truncated", false)
         return if (truncated) null else tree
     }
 
@@ -870,7 +872,7 @@ class SkillsVM(
         val hasUpdate: Boolean = false,  // 该 skill 是否有更新
         val isNew: Boolean = false,      // 仓库有但本地未安装
     )
-
+    /** 从 GitHub URL 解析 owner/repo/branch/path */
     private fun parseGitHubUrl(url: String): GitHubRepoInfo? {
         val trimmed = url.trim().trimEnd('/')
         // https://github.com/owner/repo
