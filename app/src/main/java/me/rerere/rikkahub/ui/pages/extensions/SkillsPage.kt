@@ -101,32 +101,6 @@ fun SkillsPage() {
     var scanRepoUrl by remember { mutableStateOf("") }
     val downloadStatus by vm.downloadStatus.collectAsStateWithLifecycle()
 
-    // Marketplace
-    var showMarketplace by rememberSaveable { mutableStateOf(false) }
-    var marketplaceSkills by remember { mutableStateOf<List<SkillsVM.MarketplaceSkill>>(emptyList()) }
-    var isLoadingMarketplace by remember { mutableStateOf(false) }
-    var selectedMarketplaceSkills by remember { mutableStateOf(setOf<Int>()) }
-    var isInstallingMarketplace by remember { mutableStateOf(false) }
-
-    // 逐个安装 marketplace 技能
-    fun installNextMarketplace(index: Int) {
-        if (index >= selectedMarketplaceSkills.size) {
-            isInstallingMarketplace = false
-            showMarketplace = false
-            toaster.show("安装完成")
-            return
-        }
-        val skill = marketplaceSkills[selectedMarketplaceSkills.elementAt(index)]
-        vm.installFromMarketplace(SkillRegistry.OFFICIAL_MARKETPLACE_URL, skill) { ok, msg ->
-            if (ok) {
-                installNextMarketplace(index + 1)
-            } else {
-                isInstallingMarketplace = false
-                toaster.show("安装失败: $msg")
-            }
-        }
-    }
-
     // File picker launcher (.zip / .md)
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -450,13 +424,16 @@ fun SkillsPage() {
                 Surface(
                     onClick = {
                         showImportSheet = false
-                        showMarketplace = true
-                        isLoadingMarketplace = true
-                        selectedMarketplaceSkills = emptySet()
-                        vm.loadMarketplace(SkillRegistry.OFFICIAL_MARKETPLACE_URL) { ok, skills ->
-                            if (ok) marketplaceSkills = skills
-                            else toaster.show("加载失败")
-                            isLoadingMarketplace = false
+                        scanRepoUrl = "https://github.com/anthropics/skills"
+                        isScanning = true
+                        vm.scanSkillsFromGitHub(scanRepoUrl) { ok, skills, repo ->
+                            isScanning = false
+                            if (ok) {
+                                scannedSkills = skills
+                                showSkillPicker = true
+                            } else {
+                                toaster.show("扫描失败")
+                            }
                         }
                     },
                     shape = RoundedCornerShape(12.dp),
@@ -570,89 +547,6 @@ fun SkillsPage() {
             },
             dismissButton = {
                 TextButton(onClick = { showGitHubDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
-
-    // 官方 Marketplace 浏览对话框
-    if (showMarketplace) {
-        AlertDialog(
-            onDismissRequest = { showMarketplace = false },
-            title = { Text("官方 Marketplace") },
-            text = {
-                Column(modifier = Modifier.heightIn(max = 400.dp)) {
-                    if (isLoadingMarketplace) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(32.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    } else if (marketplaceSkills.isEmpty()) {
-                        Text("加载失败或没有可用技能", style = MaterialTheme.typography.bodyMedium)
-                    } else {
-                        Text(
-                            "选择要安装的技能：",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            items(marketplaceSkills.size) { index ->
-                                val skill = marketplaceSkills[index]
-                                Surface(
-                                    onClick = {
-                                        selectedMarketplaceSkills = if (index in selectedMarketplaceSkills)
-                                            selectedMarketplaceSkills - index
-                                        else selectedMarketplaceSkills + index
-                                    },
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (index in selectedMarketplaceSkills)
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                skill.name,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Medium,
-                                            )
-                                            Text(
-                                                skill.description,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 2,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (selectedMarketplaceSkills.isNotEmpty() && !isInstallingMarketplace) {
-                            isInstallingMarketplace = true
-                            installNextMarketplace(0)
-                        }
-                    },
-                    enabled = selectedMarketplaceSkills.isNotEmpty() && !isInstallingMarketplace,
-                ) {
-                    Text(if (isInstallingMarketplace) "安装中..." else "安装 (${selectedMarketplaceSkills.size})")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showMarketplace = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             },

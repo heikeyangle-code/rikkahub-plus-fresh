@@ -177,15 +177,7 @@ class SkillsVM(
         val name: String = "",
         val source: String? = null,
         val description: String = "",
-        val skills: List<String> = emptyList(),
-    )
-
-    /** 解析 marketplace.json 的插件信息，返回展开后的 skill 列表 */
-    data class MarketplaceSkill(
-        val name: String,       // 技能目录名
-        val fullPath: String,   // 仓库内完整路径，如 "skills/xlsx"
-        val pluginName: String,  // 所属插件名
-        val description: String, // 插件描述
+        val category: String? = null,
     )
 
     /**
@@ -974,70 +966,6 @@ class SkillsVM(
             }
         }
         return true
-    }
-
-    /** 加载 marketplace.json 并返回展开后的技能列表 */
-    fun loadMarketplace(url: String, onResult: (Boolean, List<MarketplaceSkill>) -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val json = downloadText(url) ?: run {
-                    withContext(Dispatchers.Main) { onResult(false, emptyList()) }
-                    return@launch
-                }
-                val data = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                    .decodeFromString(MarketplaceData.serializer(), json)
-
-                // 从 URL 提取仓库信息
-                val repoMatch = Regex("https://raw\\.githubusercontent\\.com/([^/]+)/([^/]+)/([^/]+)/")
-                    .find(url)
-                val owner = repoMatch?.groupValues?.get(1) ?: ""
-                val repo = repoMatch?.groupValues?.get(2) ?: ""
-                val branch = repoMatch?.groupValues?.get(3) ?: "main"
-                val repoBase = "https://github.com/$owner/$repo"
-
-                val result = mutableListOf<MarketplaceSkill>()
-                for (plugin in data.plugins) {
-                    for (skillPath in plugin.skills) {
-                        val dirName = skillPath.trimEnd('/').split('/').last()
-                        val fullPath = skillPath.removePrefix("./").removeSuffix("/")
-                        result.add(MarketplaceSkill(
-                            name = dirName,
-                            fullPath = fullPath,
-                            pluginName = plugin.name,
-                            description = plugin.description.ifBlank { dirName },
-                        ))
-                    }
-                }
-
-                withContext(Dispatchers.Main) { onResult(true, result) }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) { onResult(false, emptyList()) }
-            }
-        }
-    }
-
-    /** 从 marketplace 安装单个 skill */
-    fun installFromMarketplace(
-        marketplaceUrl: String, skill: MarketplaceSkill, onResult: (Boolean, String) -> Unit
-    ) {
-        val repoMatch = Regex("https://raw\\.githubusercontent\\.com/([^/]+)/([^/]+)/([^/]+)/")
-            .find(marketplaceUrl)
-        if (repoMatch == null) {
-            onResult(false, "无法解析 marketplace URL")
-            return
-        }
-        val owner = repoMatch.groupValues[1]
-        val repo = repoMatch.groupValues[2]
-        val branch = repoMatch.groupValues[3]
-        val repoUrl = "https://github.com/$owner/$repo/tree/$branch/${skill.fullPath}"
-
-        val ghi = GitHubSkillInfo(
-            name = skill.name,
-            description = skill.description,
-            dirPath = skill.fullPath,
-            mdPath = "${skill.fullPath}/SKILL.md",
-        )
-        downloadSkillFromGitHub(repoUrl, ghi, onResult)
     }
 
     private fun downloadText(url: String): String? {

@@ -449,8 +449,8 @@ private fun QuoteColorPicker(
     currentColor: String,
     onColorSelected: (String) -> Unit,
 ) {
-    val isCustom = currentColor !in QUOTE_COLOR_PRESETS.map { it.first }.filter { it != "__custom__" }
-    val selectedKey = if (isCustom) "__custom__" else currentColor
+    val initialKey = if (currentColor in QUOTE_COLOR_PRESETS.map { it.first }.filter { it != "__custom__" }) currentColor else "__custom__"
+    var selectedKey by remember { mutableStateOf(initialKey) }
 
     var customColor by remember { mutableStateOf(currentColor.ifBlank { "#E18A24" }) }
     var hexInput by remember { mutableStateOf(customColor) }
@@ -470,9 +470,8 @@ private fun QuoteColorPicker(
                 }
                 Surface(
                     onClick = {
-                        if (hex == "__custom__") {
-                            onColorSelected(customColor)
-                        } else {
+                        selectedKey = hex
+                        if (hex != "__custom__") {
                             onColorSelected(hex)
                         }
                     },
