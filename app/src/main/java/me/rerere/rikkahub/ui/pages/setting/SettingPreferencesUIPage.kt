@@ -645,7 +645,7 @@ private fun QuoteColorPicker(
 /** Parse hex color string like "#E18A24" to Compose Color */
 private fun parseHexColor(hex: String): Color? = try {
     val clean = hex.removePrefix("#")
-    Color((clean.toLong(16)) or 0x00000000FF000000)
+    Color(android.graphics.Color.parseColor("#$clean"))
 } catch (_: Exception) { null }
 
 /** Convert Compose Color to hex string like "#E18A24" */
