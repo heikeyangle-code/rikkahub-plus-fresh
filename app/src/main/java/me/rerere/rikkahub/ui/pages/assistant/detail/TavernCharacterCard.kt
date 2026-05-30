@@ -623,6 +623,7 @@ private fun EmbeddedGroupSettingsDialog(
     var groupOverride by remember { mutableStateOf(template.groupOverride) }
     var constant by remember { mutableStateOf(template.constant) }
     var selective by remember { mutableStateOf(template.selective) }
+    var useProbability by remember { mutableStateOf(template.useProbability) }
     var selectiveLogic by remember { mutableStateOf(template.selectiveLogic) }
     var caseSensitive by remember { mutableStateOf(template.caseSensitive) }
     var useRegex by remember { mutableStateOf(template.useRegex) }
@@ -652,8 +653,16 @@ private fun EmbeddedGroupSettingsDialog(
                 }
 
                 // 概率
-                Text("触发概率(Probability): ${probability.toInt()}%", style = MaterialTheme.typography.labelMedium)
-                Slider(value = probability, onValueChange = { probability = it }, valueRange = 0f..100f, steps = 99)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("触发概率(Probability)", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                    Switch(checked = useProbability, onCheckedChange = { useProbability = !useProbability })
+                }
+                AnimatedVisibility(visible = useProbability) {
+                    Column {
+                        Text("触发概率(Probability): ${probability.toInt()}%", style = MaterialTheme.typography.labelMedium)
+                        Slider(value = probability, onValueChange = { probability = it }, valueRange = 0f..100f, steps = 99)
+                    }
+                }
 
                 // 插入位置
                 Text("插入位置(Position)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
@@ -744,6 +753,7 @@ private fun EmbeddedGroupSettingsDialog(
                     groupOverride = groupOverride,
                     constant = constant,
                     selective = selective,
+                    useProbability = useProbability,
                     selectiveLogic = selectiveLogic,
                     caseSensitive = caseSensitive,
                     useRegex = useRegex,
@@ -971,14 +981,22 @@ private fun EntryEditor(
         // 概率 + 位置
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("触发概率(Probability)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Slider(
-                    value = probability,
-                    onValueChange = { probability = it },
-                    valueRange = 0f..100f,
-                    steps = 99,
-                )
-                Text("${probability.toInt()}%", style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("触发概率(Probability)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = entry.useProbability,
+                        onCheckedChange = { onUpdate(entry.copy(useProbability = it)) },
+                    )
+                }
+                if (entry.useProbability) {
+                    Slider(
+                        value = probability,
+                        onValueChange = { probability = it },
+                        valueRange = 0f..100f,
+                        steps = 99,
+                    )
+                    Text("${probability.toInt()}%", style = MaterialTheme.typography.labelSmall)
+                }
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {

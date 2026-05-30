@@ -347,6 +347,9 @@ private fun parseEntriesArray(arr: kotlinx.serialization.json.JsonArray): List<T
                 role = parseRoleString(e["role"]),
                 groupWeight = e["group_weight"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 100,
                 groupOverride = e["group_override"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
+                delay = e["delay"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
+                useProbability = e["useProbability"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull()
+                    ?: e["use_probability"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
             )
         } catch (_: Exception) { null }
     }
@@ -380,6 +383,9 @@ private fun parseEntriesMap(obj: JsonObject): List<TavernBookEntry> {
                 role = parseRoleString(e["role"]),
                 groupWeight = e["group_weight"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 100,
                 groupOverride = e["group_override"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
+                delay = e["delay"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
+                useProbability = e["useProbability"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull()
+                    ?: e["use_probability"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
             )
         } catch (_: Exception) { null }
     }
@@ -445,8 +451,10 @@ private fun tavernEntryToInjection(entry: TavernBookEntry): PromptInjection.Rege
         probability = entry.probability,
         sticky = entry.sticky,
         cooldown = entry.cooldown,
+        delay = entry.delay,
         groupWeight = entry.groupWeight,
         groupOverride = entry.groupOverride,
+        useProbability = entry.useProbability,
     )
 }
 
@@ -501,6 +509,7 @@ private fun injectionToTavernEntry(
         probability = injection.probability,
         sticky = injection.sticky,
         cooldown = injection.cooldown,
+        delay = injection.delay,
         depth = injection.injectDepth,
         scanDepth = injection.scanDepth,
         role = when (injection.role) {
@@ -510,8 +519,9 @@ private fun injectionToTavernEntry(
         },
         groupWeight = injection.groupWeight,
         groupOverride = injection.groupOverride,
+        delay = injection.delay,
+        useProbability = injection.useProbability,
     )
-}
 
 /** 反向映射 InjectionPosition → 酒馆 position 数字 */
 private fun mapInjectionToPosition(pos: InjectionPosition): Int = when (pos) {

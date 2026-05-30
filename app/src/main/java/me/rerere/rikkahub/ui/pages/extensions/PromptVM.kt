@@ -66,11 +66,13 @@ class PromptVM(
                     probability = injection.probability,
                     sticky = injection.sticky,
                     cooldown = injection.cooldown,
+                    delay = injection.delay,
                     depth = injection.injectDepth,
                     scanDepth = injection.scanDepth,
                     role = when (injection.role) { me.rerere.ai.core.MessageRole.USER -> "user"; me.rerere.ai.core.MessageRole.ASSISTANT -> "assistant"; else -> "system" },
                     groupWeight = injection.groupWeight,
                     groupOverride = injection.groupOverride,
+                    useProbability = injection.useProbability,
                 )
             }
             assistant.copy(tavernData = tav.copy(embeddedBook = oldBook.copy(entries = newEntries)))

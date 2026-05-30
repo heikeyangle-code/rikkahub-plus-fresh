@@ -191,6 +191,7 @@ sealed class PromptInjection {
         val sticky: Int = 0,                         // 激活后持续保留N轮（0=不粘）
         val cooldown: Int = 0,                          // 冷却轮数（0=无冷却）
         val delay: Int = 0,                             // 延迟激活轮数（0=立即，酒馆 extensions.delay）
+        val useProbability: Boolean = true,              // 是否启用概率过滤（false=忽略probability直接触发）
     ) : PromptInjection()
 }
 
@@ -241,6 +242,10 @@ fun PromptInjection.RegexInjection.isTriggered(context: String, activeSticky: Bo
     // 没有关键词 → 不触发
     if (keywords.isEmpty() && secondaryKeys.isEmpty()) return false
 
+    // 概率过滤（useProbability=false 时跳过）
+    val effectiveProb = if (useProbability) probability else 100
+    if (effectiveProb < 100 && kotlin.random.Random.nextInt(100) >= effectiveProb) return false
+
     if (selective) {
         // 选择性模式：secondaryKeys 参与逻辑判定
         if (keywords.isEmpty() && secondaryKeys.isEmpty()) return false
@@ -256,9 +261,6 @@ fun PromptInjection.RegexInjection.isTriggered(context: String, activeSticky: Bo
         val anyAll = allMatches.any { it }
         val allAll = allMatches.all { it }
 
-        // 概率过滤（常驻在上面已返回）
-        if (probability < 100 && kotlin.random.Random.nextInt(100) >= probability) return false
-
         return when (selectiveLogic) {
             SelectiveLogic.AND_ANY -> anyPrimary && anySecondary
             SelectiveLogic.AND_ALL -> allPrimary && allSecondary
@@ -269,12 +271,7 @@ fun PromptInjection.RegexInjection.isTriggered(context: String, activeSticky: Bo
     } else {
         // 非选择性模式：只检查主关键词
         if (keywords.isEmpty()) return false
-        val hasMatch = keywords.any { keyMatches(it, context, useRegex, caseSensitive) }
-
-        // 概率过滤
-        if (probability < 100 && kotlin.random.Random.nextInt(100) >= probability) return false
-
-        return hasMatch
+        return keywords.any { keyMatches(it, context, useRegex, caseSensitive) }
     }
 }
 

@@ -78,7 +78,7 @@ internal fun transformMessages(
 
     if (injections.isEmpty()) {
         // 无注入时仍要推进粘性和冷却状态
-        tickSticky(activeStickyEntries)
+        tickSticky(activeStickyEntries, cooldownEntries, emptyList())
         tickCooldowns(cooldownEntries)
         return messages
     }
@@ -115,7 +115,7 @@ internal fun transformMessages(
     val result = applyInjections(messages, byPosition)
 
     // 推进粘性和冷却
-    tickSticky(activeStickyEntries)
+    tickSticky(activeStickyEntries, cooldownEntries, injections.filterIsInstance<PromptInjection.RegexInjection>())
     tickCooldowns(cooldownEntries)
 
     return result
@@ -174,6 +174,9 @@ internal fun collectInjections(
                     newlyTriggered.add(entry)
                     continue
                 }
+
+                // delay：消息数不够则不激活
+                if (entry.delay > 0 && nonSystemMessages.size < entry.delay) continue
 
                 // 正常触发检查
                 val context = extractContextForMatching(nonSystemMessages, entry.scanDepth)
@@ -239,12 +242,18 @@ private fun handleStickyCooldown(
     }
 }
 
-/** 推进粘性计数器：每次调用减1，到0移除 */
-private fun tickSticky(activeStickyEntries: MutableMap<Uuid, Int>) {
+/** 推进粘性计数器：每次调用减1，到0时若条目有cooldown则自动进入冷却 */
+private fun tickSticky(activeStickyEntries: MutableMap<Uuid, Int>, cooldownTracker: MutableMap<Uuid, Int>, entries: List<PromptInjection.RegexInjection>) {
+    val entriesById = entries.associateBy { it.id }
     val toRemove = mutableListOf<Uuid>()
     for ((id, remaining) in activeStickyEntries) {
         if (remaining <= 1) {
             toRemove.add(id)
+            // sticky 到期 → 自动设 cooldown（对齐酒馆）
+            val entry = entriesById[id]
+            if (entry != null && entry.cooldown > 0) {
+                cooldownTracker[id] = entry.cooldown
+            }
         } else {
             activeStickyEntries[id] = remaining - 1
         }

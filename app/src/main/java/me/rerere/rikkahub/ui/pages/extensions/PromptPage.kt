@@ -1473,16 +1473,29 @@ private fun GroupSettingsDialog(
                 )
 
                 // 概率
-                Text(
-                    stringResource(R.string.prompt_page_probability, edited.probability),
-                    style = MaterialTheme.typography.titleSmall,
+                FormItem(
+                    label = { Text("触发概率(Probability)") },
+                    tail = {
+                        Switch(
+                            checked = edited.useProbability,
+                            onCheckedChange = { edited = edited.copy(useProbability = it) }
+                        )
+                    }
                 )
-                Slider(
-                    value = edited.probability.toFloat(),
-                    onValueChange = { edited = edited.copy(probability = it.toInt()) },
-                    valueRange = 0f..100f,
-                    steps = 99,
-                )
+                AnimatedVisibility(visible = edited.useProbability) {
+                    Column {
+                        Text(
+                            stringResource(R.string.prompt_page_probability, edited.probability),
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Slider(
+                            value = edited.probability.toFloat(),
+                            onValueChange = { edited = edited.copy(probability = it.toInt()) },
+                            valueRange = 0f..100f,
+                            steps = 99,
+                        )
+                    }
+                }
 
                 // 粘性 + 冷却
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1846,39 +1859,43 @@ private fun RegexInjectionEditDialog(
                     )
                 }
 
-                // 触发概率
-                Text(
-                    stringResource(R.string.prompt_page_probability, entry.probability),
-                    style = MaterialTheme.typography.titleSmall
+                // 概率
+                FormItem(
+                    label = { Text("触发概率(Probability)") },
+                    tail = {
+                        Switch(
+                            checked = entry.useProbability,
+                            onCheckedChange = { onEdit(entry.copy(useProbability = it)) }
+                        )
+                    }
                 )
-                Slider(
-                    value = entry.probability.toFloat(),
-                    onValueChange = { onEdit(entry.copy(probability = it.toInt())) },
-                    valueRange = 0f..100f,
-                    steps = 99
-                )
+                AnimatedVisibility(visible = entry.useProbability) {
+                    Column {
+                        Text(
+                            stringResource(R.string.prompt_page_probability, entry.probability),
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Slider(
+                            value = entry.probability.toFloat(),
+                            onValueChange = { onEdit(entry.copy(probability = it.toInt())) },
+                            valueRange = 0f..100f,
+                            steps = 99
+                        )
+                    }
+                }
 
                 // 粘性 + 冷却
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FormItem(
-                        modifier = Modifier.weight(1f),
+                    OutlinedTextField(
+                        value = entry.sticky.toString(),
+                        onValueChange = { it.toIntOrNull()?.let { s -> onEdit(entry.copy(sticky = s)) } },
                         label = { Text(stringResource(R.string.prompt_page_sticky)) },
-                        description = { Text(stringResource(R.string.prompt_page_sticky_desc)) },
-                        tail = {
-                            Row(verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
-                                    value = entry.sticky.toString(),
-                                    onValueChange = { it.toIntOrNull()?.let { s -> onEdit(entry.copy(sticky = s)) } },
-                                    modifier = Modifier.width(72.dp),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine = true,
-                                    textStyle = MaterialTheme.typography.bodySmall,
-                                )
-                                Text("轮", style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
+                        supportingText = { Text(stringResource(R.string.prompt_page_sticky_desc)) },
+                        suffix = { Text("轮", style = MaterialTheme.typography.bodySmall) },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodySmall,
                     )
                     OutlinedTextField(
                         value = entry.cooldown.toString(),
@@ -1886,8 +1903,20 @@ private fun RegexInjectionEditDialog(
                         label = { Text(stringResource(R.string.prompt_page_cooldown)) },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
+                        singleLine = true,
                     )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = entry.delay.toString(),
+                        onValueChange = { it.toIntOrNull()?.let { d -> onEdit(entry.copy(delay = d)) } },
+                        label = { Text("延迟(Delay)") },
+                        supportingText = { Text("N轮后才开始检测触发") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                    )
+                    Spacer(Modifier.weight(1f))
                 }
 
                 FormItem(

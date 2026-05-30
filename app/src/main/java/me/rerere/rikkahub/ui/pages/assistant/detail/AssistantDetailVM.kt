@@ -212,8 +212,10 @@ class AssistantDetailVM(
                     probability = e.probability,
                     sticky = e.sticky,
                     cooldown = e.cooldown,
+                    delay = e.delay,
                     groupWeight = e.groupWeight,
                     groupOverride = e.groupOverride,
+                    useProbability = e.useProbability,
                 )
             }
             lb.copy(entries = synced)
