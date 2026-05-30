@@ -523,6 +523,10 @@ private fun QuoteColorPicker(
             var hue by remember(currentHsv) { mutableStateOf(currentHsv[0]) }
             var brightness by remember(currentHsv) { mutableStateOf(currentHsv[2]) }
 
+            // Track last committed values to skip initial composition onValueChange
+            val initialHue = remember { hue }
+            val initialBrightness = remember { brightness }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -546,12 +550,14 @@ private fun QuoteColorPicker(
                         )
                         Slider(
                             value = hue,
-                            onValueChange = {
-                                hue = it
-                                val newColor = Color.hsv(hue, 1f, brightness)
-                                customColor = colorToHex(newColor)
-                                hexInput = customColor
-                                onColorSelected(customColor)
+                            onValueChange = { newHue ->
+                                hue = newHue
+                                if (newHue != initialHue) {
+                                    val newColor = Color.hsv(hue, 1f, brightness)
+                                    customColor = colorToHex(newColor)
+                                    hexInput = customColor
+                                    onColorSelected(customColor)
+                                }
                             },
                             valueRange = 0f..360f,
                             modifier = Modifier.weight(1f),
@@ -566,12 +572,14 @@ private fun QuoteColorPicker(
                         )
                         Slider(
                             value = brightness,
-                            onValueChange = {
-                                brightness = it
-                                val newColor = Color.hsv(hue, 1f, brightness)
-                                customColor = colorToHex(newColor)
-                                hexInput = customColor
-                                onColorSelected(customColor)
+                            onValueChange = { newBri ->
+                                brightness = newBri
+                                if (newBri != initialBrightness) {
+                                    val newColor = Color.hsv(hue, 1f, brightness)
+                                    customColor = colorToHex(newColor)
+                                    hexInput = customColor
+                                    onColorSelected(customColor)
+                                }
                             },
                             valueRange = 0.1f..1f,
                             modifier = Modifier.weight(1f),

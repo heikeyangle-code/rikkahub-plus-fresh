@@ -417,60 +417,7 @@ fun SkillsPage() {
                     }
                 }
 
-                Spacer(Modifier.height(4.dp))
 
-                // Option 4: Official Marketplace
-                Surface(
-                    onClick = {
-                        showImportSheet = false
-                        scanRepoUrl = "https://github.com/anthropics/skills"
-                        isScanning = true
-                        vm.scanSkillsFromGitHub(scanRepoUrl) { ok, skills, repo ->
-                            isScanning = false
-                            if (ok) {
-                                scannedSkills = skills
-                                showSkillPicker = true
-                            } else {
-                                toaster.show("扫描失败")
-                            }
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            HugeIcons.Puzzle,
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "官方 Marketplace",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                            )
-                            Text(
-                                "浏览 Anthropic 官方技能市场",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Icon(
-                            HugeIcons.ArrowRight01,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
             }
         }
     }

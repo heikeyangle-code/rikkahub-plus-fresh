@@ -89,36 +89,6 @@ class SkillsVM(
     }
 
     /**
-     * 从远程 URL 获取 marketplace.json 并导入
-     */
-    fun fetchRemoteMarketplace(url: String, onResult: (Boolean, String) -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val json = downloadText(url) ?: run {
-                    withContext(Dispatchers.Main) { onResult(false, "下载失败") }
-                    return@launch
-                }
-                val marketplace = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                    .decodeFromString(MarketplaceData.serializer(), json)
-                var count = 0
-                marketplace.plugins.forEach { plugin ->
-                    if (plugin.source != null) {
-                        val fullUrl = if (plugin.source.startsWith("http")) plugin.source
-                        else url.removeSuffix("marketplace.json") + plugin.source
-                        importSkillFromGitHub(fullUrl) { success, _ ->
-                            if (success) count++
-                        }
-                    }
-                }
-                _skills.value = skillManager.listSkills()
-                withContext(Dispatchers.Main) { onResult(true, "导入完成: $count 个") }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) { onResult(false, e.message ?: "解析失败") }
-            }
-        }
-    }
-
-    /**
      * 从 ZIP 文件导入 skill 目录
      */
     fun importFromZip(uri: android.net.Uri, context: android.content.Context, onResult: (Boolean, String) -> Unit) {
@@ -167,18 +137,6 @@ class SkillsVM(
             }
         }
     }
-
-    @kotlinx.serialization.Serializable
-    data class MarketplaceData(
-        val plugins: List<MarketplacePlugin> = emptyList(),
-    )
-    @kotlinx.serialization.Serializable
-    data class MarketplacePlugin(
-        val name: String = "",
-        val source: String? = null,
-        val description: String = "",
-        val category: String? = null,
-    )
 
     /**
      * 从注册表条目下载并安装 skill

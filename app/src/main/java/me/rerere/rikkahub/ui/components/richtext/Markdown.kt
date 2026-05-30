@@ -239,7 +239,7 @@ fun MarkdownBlock(
 
     if (data.hasHtml) {
         MarkdownNew(
-            content = content,
+            content = coloredContent,
             modifier = modifier,
             style = style,
             onClickCitation = onClickCitation,
